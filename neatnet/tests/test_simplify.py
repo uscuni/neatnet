@@ -4,7 +4,7 @@ import geopandas
 import numpy
 import pytest
 import shapely
-from pandas.testing import assert_series_equal
+from pandas.testing import assert_frame_equal, assert_series_equal
 
 import neatnet
 
@@ -65,7 +65,11 @@ def test_simplify_network_small(scenario, tol, known_length):
     assert observed.index.dtype == numpy.dtype("int64")
 
     assert observed.shape == known.shape
-    assert_series_equal(known._status, observed._status)
+    assert_series_equal(known["_status"], observed["_status"])
+    assert_frame_equal(
+        known.drop(columns=["_status", "geometry"]),
+        observed.drop(columns=["_status", "geometry"]),
+    )
 
     pytest.geom_test(known, observed, tolerance=tol, aoi=f"{ac}_{scenario}")
 
@@ -98,7 +102,11 @@ def test_simplify_network_full_fua(aoi, tol, known_length):
     assert observed.index.dtype == numpy.dtype("int64")
 
     if pytest.ubuntu and pytest.env_type != "oldest":
-        assert_series_equal(known._status, observed._status)
+        assert_series_equal(known["_status"], observed["_status"])
+        assert_frame_equal(
+            known.drop(columns=["_status", "geometry"]),
+            observed.drop(columns=["_status", "geometry"]),
+        )
         pytest.geom_test(known, observed, tolerance=tol, aoi=aoi)
 
 
