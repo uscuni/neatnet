@@ -1083,10 +1083,6 @@ def nx_gx(
     # correctly pick-up the highest hierarchy and drop all lower
     if artifact.C > 0:
         logger.debug("HIGHEST C")
-        # define mask for E and S strokes
-        es_mask = edges.coins_group.isin(all_ends.coins_group)
-        # filter Cs
-        highest_hierarchy = edges[~es_mask]
     else:
         logger.debug("HIGHEST E")
         singles = set()
@@ -1099,12 +1095,14 @@ def nx_gx(
             ):
                 singles.add(group)
                 visited.append(group)
-        # filter ends
+        # re-filter ends
         all_ends = edges[edges.coins_group.isin(singles)]
-        # define mask for E and S strokes
-        es_mask = edges.coins_group.isin(all_ends.coins_group)
-        # filter Cs
-        highest_hierarchy = edges[~es_mask]
+
+    # define mask for E and S strokes
+    es_mask = edges.coins_group.isin(all_ends.coins_group)
+
+    # filter Cs
+    highest_hierarchy = edges[~es_mask]
 
     # get nodes forming the artifact
     relevant_nodes = nodes.iloc[
