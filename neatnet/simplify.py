@@ -99,7 +99,7 @@ def _identify_non_planar(
 def classification_sequence(
     roads, artifacts, compute_coins, eps: float = 1e-4, step="singletons"
 ):
-    """..."""
+    """Classify singletons into ``{CES}`` typology."""
 
     # Extract network nodes and relate to artifacts
     nodes, artifacts = _link_nodes_artifacts(step, roads, artifacts, eps)
@@ -187,30 +187,6 @@ def simplify_singletons(
     -------
     geopandas.GeoDataFrame
         The road network line data following the singleton procedure.
-    """
-
-    """
-    # Extract network nodes and relate to artifacts
-    nodes, artifacts = _link_nodes_artifacts("singletons", roads, artifacts, eps)
-
-    # Compute number of stroke groups per artifact
-    if compute_coins:
-        roads, _ = continuity(roads)
-
-    artifacts = _classify_strokes(artifacts, roads)
-
-    # Filter artifacts caused by non-planar intersections
-    artifacts = _identify_non_planar(artifacts, roads)
-
-    # Count intersititial nodes (primes)
-    _prime_count = artifacts["node_count"] - artifacts[["C", "E", "S"]].sum(axis=1)
-    artifacts["interstitial_nodes"] = _prime_count
-
-    # Define the type label
-    ces_type = []
-    for x in artifacts[["node_count", "C", "E", "S"]].itertuples():
-        ces_type.append(f"{x.node_count}{'C' * x.C}{'E' * x.E}{'S' * x.S}")
-    artifacts["ces_type"] = ces_type
     """
 
     # Classify artifact typology
