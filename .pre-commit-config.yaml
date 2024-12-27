@@ -11,6 +11,7 @@ repos:
     hooks:
       - id: yamllint
         args: [
+          --all-files,
           --strict,
           -d,
           "{extends: default, ignore: '.pixi/*', rules: {line-length: {max: 90}}}",
