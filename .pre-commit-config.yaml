@@ -7,7 +7,7 @@ repos:
       - id: ruff
       - id: ruff-format
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
+    rev: "v1.35.1"
     hooks:
       - id: yamllint
         args: [--strict, -d, '{extends: default, ignore: .pixi/*, rules: {line-length: {max: 90}}}', .]
