@@ -1,12 +1,6 @@
 ---
 files: "neatnet\/"
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.8.4"
-    hooks:
-      - id: ruff
-      - id: ruff-format
-
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.0
     hooks:
@@ -16,7 +10,11 @@ repos:
           "{extends: default, ignore: .pixi/*, rules: {line-length: {max: 90}}}",
           .,
         ]
-
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.8.4"
+    hooks:
+      - id: ruff
+      - id: ruff-format
 ci:
   autofix_prs: false
   autoupdate_schedule: quarterly
