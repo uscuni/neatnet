@@ -14,7 +14,7 @@ repos:
           --strict,
           -d,
           "{extends: default, ignore: .pixi/*, rules: {line-length: {max: 90}}}",
-          .,
+          ".",
         ]
 ci:
   autofix_prs: false
