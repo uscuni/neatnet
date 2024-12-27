@@ -1,8 +1,6 @@
 ---
 name: MyPy Type Checking
 
-99:00
-
 on:
   push:
     branches: [main]
