@@ -12,7 +12,7 @@ repos:
       - id: yamllint # . needed or not???
         args: [
           -d,
-          "{extends: default, ignore: '.pixi/*', rules: {line-length: {max: 90}}}",
+          "{extends: strict, ignore: '.pixi/*', rules: {line-length: {max: 90}}}",
           .
         ]
 
