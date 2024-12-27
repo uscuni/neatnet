@@ -1,5 +1,5 @@
 ---
-name: MyPy Type Checking
+name: MyPy Type Checking # comment...
 
 on:
   push:
