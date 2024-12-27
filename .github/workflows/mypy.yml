@@ -1,7 +1,7 @@
 ---
 name: MyPy Type Checking
 
-on:
+ on:
   push:
     branches: [main]
   pull_request:
