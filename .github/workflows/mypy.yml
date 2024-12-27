@@ -1,6 +1,6 @@
 ---
 name: MyPy Type Checking
-  x
+xxx
 
 on:
   push:
