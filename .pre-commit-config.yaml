@@ -12,8 +12,7 @@ repos:
       - id: yamllint
         args: [
           -d,
-          "{extends: relaxed, ignore: '.pixi/*', rules: {line-length: {max: 90}}}",
-          .
+          "{extends: relaxed, ignore: '.pixi/*', rules: {line-length: {max: 90}}}"
         ]
 
 ci:
