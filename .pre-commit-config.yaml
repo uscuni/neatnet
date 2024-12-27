@@ -9,10 +9,10 @@ repos:
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
     hooks:
-      - id: yamllint
+      - id: yamllint # . needed or not???
         args: [
           -d,
-          "{extends: relaxed, ignore: '.pixi/*', rules: {line-length: {max: 90}}}",
+          "{extends: default, ignore: '.pixi/*', rules: {line-length: {max: 90}}}",
           .
         ]
 
