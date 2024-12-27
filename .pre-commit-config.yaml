@@ -6,16 +6,17 @@ repos:
     hooks:
       - id: ruff
       - id: ruff-format
+
   - repo: https://github.com/adrienverge/yamllint
     rev: "v1.35.1"
     hooks:
       - id: yamllint
-        #args: [
-        #  --strict,
-        #  -d,
-        #  "{extends: default, ignore: .pixi/*, rules: {line-length: {max: 90}}}",
-        #  .,
-        #]
+        args: [
+          --strict,
+          -d,
+          "{extends: default, ignore: .pixi/*, rules: {line-length: {max: 90}}}",
+          .,
+        ]
 
 ci:
   autofix_prs: false
