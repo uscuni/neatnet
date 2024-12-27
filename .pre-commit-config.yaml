@@ -6,6 +6,7 @@ repos:
     hooks:
       - id: yamllint
         args: [
+          --strict,
           -d,
           "{extends: default, ignore: .pixi/*, rules: {line-length: {max: 90}}}",
           .,
