@@ -1,21 +1,22 @@
- name: MyPy Type Checking
+---
+name: MyPy Type Checking
 
- on:
-   push:
-     branches: [main]
-   pull_request:
-     branches:
-       - "*"
-   schedule:
-     - cron: "59 23 * * *"
-   workflow_dispatch:
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches:
+      - "*"
+  schedule:
+    - cron: "59 23 * * *"
+  workflow_dispatch:
     inputs:
       version:
         description: Manual Type Checking
         default: type_checking
         required: false
 
- jobs:
+jobs:
   mypy:
     runs-on: ubuntu-latest
     defaults:

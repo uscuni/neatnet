@@ -1,3 +1,4 @@
+---
 name: py312_neatnet-latest
 channels:
   - conda-forge
