@@ -1542,8 +1542,7 @@ def nx_gx_cluster(
     conn_within = _is_within(non_planar_connections, cluster_geom)
     if not all(conn_within):
         warnings.warn(
-            "Could not create a connection as it would lead outside "
-            "of the artifact.",
+            "Could not create a connection as it would lead outside of the artifact.",
             UserWarning,
             stacklevel=2,
         )
