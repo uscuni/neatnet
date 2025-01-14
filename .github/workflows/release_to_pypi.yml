@@ -1,3 +1,4 @@
+---
 name: Publish neatnet to PyPI / GitHub
 
 on:
@@ -13,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history for all branches and tags.
+          fetch-depth: 0  # Fetch all history for all branches and tags.
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,5 +40,3 @@ jobs:
 
       - name: Publish distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-
-    
