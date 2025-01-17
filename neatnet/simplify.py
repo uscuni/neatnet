@@ -681,7 +681,7 @@ def simplify_network(
     artifacts, clusters of artifacts.
 
     For further information on face artifact detection and extraction
-    see :cite:`fleischmann2023`.
+    see :cite:`fleischmann_shape-based_2024`.
 
     Parameters
     ----------
@@ -716,25 +716,25 @@ def simplify_network(
         If artifact threshold detection fails, this value is used as a fallback.
     area_threshold_blocks : float | int = 1e5
         This is the first threshold for detecting block-like artifacts whose
-        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
-        passed in ``artifact_threshold``.
+        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above
+        the value passed in ``artifact_threshold``.
         If a polygon has an area below ``area_threshold_blocks``, *and*
         is of elongated shape (see also ``isoareal_threshold_blocks``),
         *and* touches at least one polygon that has already been classified as artifact,
         then it will be classified as an artifact.
     isoareal_threshold_blocks : float | int = 0.5
         This is the second threshold for detecting block-like artifacts whose
-        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
-        passed in ``artifact_threshold``. If a polygon has an isoareal quotient
+        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above the
+        value passed in ``artifact_threshold``. If a polygon has an isoareal quotient
         below ``isoareal_threshold_blocks`` (see ``esda.shape.isoareal_quotient``),
         i.e., if it has an elongated shape; *and* it has a sufficiently small area
         (see also ``area_threshold_blocks``), *and* if it touches at least one
-         polygon that has already been detected as an artifact,
+        polygon that has already been detected as an artifact,
         then it will be classified as an artifact.
     area_threshold_circles : float | int = 5e4
         This is the first threshold for detecting circle-like artifacts whose
-        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
-        passed in ``artifact_threshold``. If a polygon has an area below
+        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above the
+        value passed in ``artifact_threshold``. If a polygon has an area below
         ``area_threshold_circles``, *and* one of the following 2 cases is given:
         (a) the polygon is touched, but not enclosed by polygons already classified
         as artifacts, *and* with an isoperimetric quotient
@@ -747,8 +747,8 @@ def simplify_network(
         close to circular; then it will be classified as an artifact.
     isoareal_threshold_circles_enclosed : float | int = 0.75
         This is the second threshold for detecting circle-like artifacts whose
-        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
-        passed in ``artifact_threshold``. If a polygon has a sufficiently small
+        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above the
+        value  passed in ``artifact_threshold``. If a polygon has a sufficiently small
         area (see also ``area_threshold_circles``), *and* the polygon is
         fully enclosed by polygons already classified as artifacts,
         *and* its isoareal quotient (see ``esda.shape.isoareal_quotient``)
@@ -757,7 +757,7 @@ def simplify_network(
         then it will be classified as an artifact.
     isoperimetric_threshold_circles_touching : float | int = 0.9
         This is the third threshold for detecting circle-like artifacts whose
-        Face Artifact Index (see :cite:`fleischmann2023`)
+        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`)
         is above the value passed in ``artifact_threshold``.
         If a polygon has a sufficiently small area
         (see also ``area_threshold_circles``), *and* the polygon is touched
