@@ -368,8 +368,7 @@ def _rotate_loop_coords(
         loop_points.geometry, predicate="dwithin", distance=1e-4
     )
 
-    _shared_node = loop_points.loc[loop_points_ix].geometry.get_coordinates().values
-    new_start = np.unique(_shared_node, axis=0)
+    new_start = loop_points.loc[loop_points_ix].geometry.mode().get_coordinates().values
     _coords_match = (loop_coords == new_start).all(axis=1)
     new_start_idx = np.where(_coords_match)[0].squeeze()
 

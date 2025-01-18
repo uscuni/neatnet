@@ -50,6 +50,8 @@ tests = [
     "pytest",
     "pytest-cov",
     "pytest-xdist",
+    "ruff",
+    "yamllint",
 ]
 
 [tool.setuptools.packages.find]
@@ -111,6 +113,7 @@ pytest = "*"
 pytest-cov = "*"
 pytest-xdist = "*"
 ruff = "*"
+yamllint = "*"
 
 [tool.pixi.pypi-dependencies]
 neatnet = { path = ".", editable = true }

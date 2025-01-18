@@ -1,10 +1,27 @@
-files: "neatnet\/"
+---
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.8.1"
+    rev: "v0.9.1"
     hooks:
       - id: ruff
+        files: "neatnet\/"
       - id: ruff-format
+        files: "neatnet\/"
+  - repo: https://github.com/adrienverge/yamllint
+    rev: "v1.35.1"
+    hooks:
+      - id: yamllint
+        files: "."
+        args: [
+          -d,
+          "{extends: default, ignore: .pixi/*, rules: {line-length: {max: 90}}}",
+          ".",
+        ]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: "v5.0.0"
+    hooks:
+      - id: check-toml
+        files: "."
 
 ci:
   autofix_prs: false
