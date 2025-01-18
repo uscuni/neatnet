@@ -27,12 +27,13 @@ logging.info("")
 logging.info("")
 
 fua_city = {
-    1133: "aleppo",
-    869: "auckland",
-    4617: "bucaramanga",
-    809: "douala",
-    1656: "liege",
-    4881: "slc",
+    # 1133: "aleppo",
+    # 869: "auckland",
+    # 4617: "bucaramanga",
+    # 809: "douala",
+    # 1656: "liege",
+    # 4881: "slc",
+    8989: "wuhan",
 }
 
 # dict of cityname: fua ID
