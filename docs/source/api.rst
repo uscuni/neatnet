@@ -1,28 +1,57 @@
 .. _reference:
 
+.. currentmodule:: neatnet
 
 API reference
 =============
 
-The API reference provides an overview of all public functions in NeatNet.
+The API reference provides an overview of all public functions in ``neatnet``.
 
-Network Simplification
-----------------------
+Network Simplification Routines
+-------------------------------
 
-.. currentmodule:: neatnet
+The top-level function that performs complete adaptive simplification of street networks
+is the primary API of ``neatnet``.
 
 .. autosummary::
    :toctree: generated/
 
    simplify_network
-   simplify_loop
 
-Artifact Detection
-------------------
+Simplification Components
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. currentmodule:: neatnet
+Some of the individual components are also exposed as independent functions (note that
+all are consumed by :func:`simplify_network`).
+
+Either as combined routines:
+
+.. autosummary::
+   :toctree: generated/
+
+   consolidate_nodes
+   fix_topology
+
+Or as their atomic components:
+
+.. autosummary::
+   :toctree: generated/
+
+   remove_false_nodes
+   induce_nodes
+
+Internal components
+-------------------
+
+For debugging purposes, users may use some parts of the internal API.
 
 .. autosummary::
    :toctree: generated/
 
    get_artifacts
+   simplify_loop
+   simplify_singletons
+   simplify_pairs
+   simplify_clusters
+
+None of the other functions is intended for public use and their API can change without a warning.
