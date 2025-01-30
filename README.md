@@ -18,7 +18,17 @@ simplified = neatnet.simplify_network(gdf)
 
 See our guidelines in [`CONTRIBUTING.md`](https://github.com/uscuni/neatnet/blob/main/CONTRIBUTING.md).
 
-## Recommended Citation
+## Recommended Citations
+
+### Canonical Citation (primary)
+
+*forthcoming*
+
+### Repository Citation (secondary)
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14765801.svg)](https://doi.org/10.5281/zenodo.14765801)
+
+* **Fleischmann, M., Vybornova, A., & Gaboardi, J.D.** (2025). `uscuni/neatnet`. Zenodo. https://doi.org/10.5281/zenodo.14765801
 
 ---------------------------------------
 
