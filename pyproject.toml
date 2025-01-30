@@ -54,13 +54,25 @@ tests = [
     "yamllint",
 ]
 
+docs = [
+    "sphinx",
+    "numpydoc",
+    "myst_nb",
+    "sphinxcontrib-bibtex",
+    "sphinx_autosummary_accessors",
+    "sphinx_copybutton",
+    "sphinx_book_theme",
+]
+
 [tool.setuptools.packages.find]
 include = ["neatnet", "neatnet.*"]
 
 [tool.ruff]
 line-length = 88
 extend-include = ["*.ipynb"]
-lint.select = ["E", "F", "W", "I", "UP", "N", "B", "A", "C4", "SIM", "ARG"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "N", "B", "A", "C4", "SIM", "ARG"]
 
 [tool.ruff.lint.per-file-ignores]
  "*__init__.py" = [
@@ -117,6 +129,6 @@ neatnet = { path = ".", editable = true }
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
-tests = { features = ["tests"], solve-group = "default" }
+tests = { features = ["tests", "docs"], solve-group = "default" }
 
 [tool.pixi.tasks]
