@@ -10,7 +10,7 @@ import neatnet
 
 # set the global exception raiser for testing & debugging
 # See gh#121
-neatnet.simplify.DEBUGGING = True
+neatnet.simplify.DEBUGGING = False
 
 line_collection = (  # type: ignore[valid-type, misc]
     list[shapely.LineString]
