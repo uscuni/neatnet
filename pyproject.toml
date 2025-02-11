@@ -60,7 +60,9 @@ include = ["neatnet", "neatnet.*"]
 [tool.ruff]
 line-length = 88
 extend-include = ["*.ipynb"]
-lint.select = ["E", "F", "W", "I", "UP", "N", "B", "A", "C4", "SIM", "ARG"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "N", "B", "A", "C4", "SIM", "ARG"]
 
 [tool.ruff.lint.per-file-ignores]
  "*__init__.py" = [

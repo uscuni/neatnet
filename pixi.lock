@@ -7907,8 +7907,8 @@ packages:
   timestamp: 1724658775723
 - pypi: .
   name: neatnet
-  version: 0.0.2.dev10+gbbf5dd5.d20250118
-  sha256: e0e5dd76b9c511e2fd8fb93e5fc75d8c9ceb9fb232a2d17b35d5d76fa4ba064e
+  version: 0.0.1.post3.dev3+g36f7538.d20250211
+  sha256: 54c9680bee0af38893810f36601c32417b6803c10602a9253de864d4f3d3b20a
   requires_dist:
   - esda>=2.6.0
   - geopandas>=1.0.1
