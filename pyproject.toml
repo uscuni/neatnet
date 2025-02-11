@@ -60,7 +60,9 @@ include = ["neatnet", "neatnet.*"]
 [tool.ruff]
 line-length = 88
 extend-include = ["*.ipynb"]
-lint.select = ["E", "F", "W", "I", "UP", "N", "B", "A", "C4", "SIM", "ARG"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "N", "B", "A", "C4", "SIM", "ARG"]
 
 [tool.ruff.lint.per-file-ignores]
  "*__init__.py" = [
@@ -86,6 +88,9 @@ omit = ["neatnet/tests/*"]
 filterwarnings = [
     # this is an internal warning thrown within ``neatnet.geometry.snap_to_targets()``
     'ignore:Could not create a connection*:UserWarning',
+]
+markers = [
+    'wuhan:Wuhan takes ages to run'
 ]
 [tool.pixi.project]
 channels = ["conda-forge"]
