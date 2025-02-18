@@ -10,7 +10,13 @@ from .nodes import (
     remove_false_nodes,
     split,
 )
-from .simplify import simplify_loop, simplify_network
+from .simplify import (
+    simplify_clusters,
+    simplify_loop,
+    simplify_network,
+    simplify_pairs,
+    simplify_singletons,
+)
 
 with contextlib.suppress(PackageNotFoundError):
     __version__ = version("neatnet")
