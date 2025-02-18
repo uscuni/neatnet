@@ -39,6 +39,19 @@ Or as their atomic components:
 
    remove_false_nodes
    induce_nodes
+   FaceArtifacts
+
+
+Additional functions
+--------------------
+
+Some of the functions for specific pre-processing tasks that are not part of the simplification routine:
+
+.. autosummary::
+   :toctree: generated/
+
+   close_gaps
+   extend_lines
 
 Internal components
 -------------------

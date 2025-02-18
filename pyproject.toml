@@ -62,6 +62,7 @@ docs = [
     "sphinx_autosummary_accessors",
     "sphinx_copybutton",
     "sphinx_book_theme",
+    "ipykernel",
 ]
 
 [tool.setuptools.packages.find]

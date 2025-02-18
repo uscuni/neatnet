@@ -2,7 +2,8 @@ import contextlib
 from importlib.metadata import PackageNotFoundError, version
 
 from . import simplify
-from .artifacts import get_artifacts
+from .artifacts import FaceArtifacts, get_artifacts
+from .gaps import close_gaps, extend_lines
 from .nodes import (
     consolidate_nodes,
     fix_topology,
