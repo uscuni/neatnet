@@ -116,6 +116,7 @@ def simplify_singletons(
 
     Next, each artifact is iterated over and constituent line geometries are either
     dropped or added in the following order of typologies:
+
         1. 1 node and 1 continuity group
         2. more than 1 node and 1 or more identical continuity groups
         3. 2 or more nodes and 2 or more continuity groups
