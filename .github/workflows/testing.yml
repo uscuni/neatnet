@@ -75,7 +75,24 @@ jobs:
           --cov-append \
           --cov-report term-missing \
           --cov-report xml . \
-          --env_type ${{ matrix.environment-file }}
+          --env_type ${{ matrix.environment-file }} \
+          -m "not wuhan"
+
+      - name: run tests (Wuhan)
+        run: |
+          pytest \
+          neatnet/ \
+          --verbose \
+          -r a \
+          --numprocesses logical \
+          --color yes \
+          --cov neatnet \
+          --cov-append \
+          --cov-report term-missing \
+          --cov-report xml . \
+          --env_type ${{ matrix.environment-file }} \
+          -m wuhan
+        if: ${{ github.event_name != 'pull_request' }}
 
       - name: zip artifacts - Ubuntu & macOS
         run: zip ci_artifacts.zip ci_artifacts -r
