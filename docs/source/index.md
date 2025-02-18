@@ -1,10 +1,3 @@
-<!-- ```{image} _static/logo.svg
-:alt: logo
-:width: 400px
-:align: center
-:class: logo_frontpage
-``` -->
-
 ```{include} ../../README.md
 ```
 
@@ -12,6 +5,7 @@
 :hidden:
 :caption: User Guide
 intro
+simple_preprocessing
 ```
 
 ```{toctree}
