@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath("../neatnet/"))
 
 import neatnet  # noqa
 
-project = "NeatNet"
+project = "neatnet"
 copyright = "2024-, neatnet Developers"
 author = "Martin Fleischmann, Anastassia Vybornova, James D. Gaboardi"
 
@@ -81,8 +81,8 @@ plot_include_source = True
 html_theme = "sphinx_book_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-html_logo = "_static/logo.svg"
-html_favicon = "_static/icon.png"
+# html_logo = "_static/logo.svg"
+# html_favicon = "_static/icon.png"
 html_theme_options = {
     "use_sidenotes": True,
 }
