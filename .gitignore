@@ -170,3 +170,4 @@ cache/
 *.egg-info
 
 ci_artifacts/
+docs/source/generated

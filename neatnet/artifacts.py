@@ -10,6 +10,8 @@ import shapely
 from esda import shape
 from libpysal import graph
 from scipy import sparse
+from scipy.signal import find_peaks
+from scipy.stats import gaussian_kde
 
 from .geometry import (
     _is_within,
@@ -20,6 +22,214 @@ from .geometry import (
 from .nodes import weld_edges
 
 logger = logging.getLogger(__name__)
+
+
+class FaceArtifacts:
+    """Identify face artifacts in street networks.
+
+    For a given street network composed of transportation-oriented geometry containing
+    features representing things like roundabouts, dual carriegaways and complex
+    intersections, identify areas enclosed by geometry that is considered a `face
+    artifact` as per :cite:`fleischmann_shape-based_2024`. Face artifacts highlight
+    areas with a high likelihood of being of non-morphological (e.g. transporation)
+    origin and may require simplification prior morphological analysis. See
+    :cite:`fleischmann_shape-based_2024` for more details.
+
+    Parameters
+    ----------
+    gdf : geopandas.GeoDataFrame
+        GeoDataFrame containing street network represented as (Multi)LineString geometry
+    index : str, optional
+        A type of the shape compacntess index to be used. Available are
+        ['circlular_compactness', 'isoperimetric_quotient', 'diameter_ratio'], by
+        default "circular_compactness"
+    height_mins : float, optional
+        Required depth of valleys, by default -np.inf
+    height_maxs : float, optional
+        Required height of peaks, by default 0.008
+    prominence : float, optional
+        Required prominence of peaks, by default 0.00075
+
+    Attributes
+    ----------
+    threshold : float
+        Identified threshold between face polygons and face artifacts
+    face_artifacts : GeoDataFrame
+        A GeoDataFrame of geometries identified as face artifacts
+    polygons : GeoDataFrame
+        All polygons resulting from polygonization of the input gdf with the
+        face_artifact_index
+    kde : scipy.stats._kde.gaussian_kde
+        Representation of a kernel-density estimate using Gaussian kernels.
+    pdf : numpy.ndarray
+        Probability density function
+    peaks : numpy.ndarray
+        locations of peaks in pdf
+    valleys : numpy.ndarray
+        locations of valleys in pdf
+
+    Examples
+    --------
+    >>> fa = neatnet.FaceArtifacts(street_network_prague)
+    >>> fa.threshold
+    6.9634555986177045
+    >>> fa.face_artifacts.head()
+                                                 geometry  face_artifact_index
+    6   POLYGON ((-744164.625 -1043922.362, -744167.39...             5.112844
+    9   POLYGON ((-744154.119 -1043804.734, -744152.07...             6.295660
+    10  POLYGON ((-744101.275 -1043738.053, -744103.80...             2.862871
+    12  POLYGON ((-744095.511 -1043623.478, -744095.35...             3.712403
+    17  POLYGON ((-744488.466 -1044533.317, -744489.33...             5.158554
+
+    Notes
+    -----
+    In purely synthetic scenarios where all calculated face artifact index values are
+    equal (e.g. a regular grid/lattice) a ``LinAlgError`` error will be raised. This
+    is virtually guaranteed to not happen in practice.
+    """
+
+    def __init__(
+        self,
+        gdf,
+        index="circular_compactness",
+        height_mins=-np.inf,
+        height_maxs=0.008,
+        prominence=0.00075,
+    ):
+        try:
+            from esda import shape
+        except (ImportError, ModuleNotFoundError) as err:
+            raise ImportError(
+                "The `esda` package is required. You can install it using "
+                "`pip install esda` or `conda install esda -c conda-forge`."
+            ) from err
+
+        # Polygonize street network
+        polygons = gpd.GeoSeries(
+            shapely.polygonize(  # polygonize
+                [gdf.dissolve().geometry.item()]
+            )
+        ).explode(ignore_index=True)
+
+        # Store geometries as a GeoDataFrame
+        self.polygons = gpd.GeoDataFrame(geometry=polygons)
+
+        if self.polygons.empty:
+            warnings.warn(
+                "Input roads could not not be polygonized. "
+                "Identification of face artifacts not possible.",
+                UserWarning,
+                stacklevel=2,
+            )
+            self.kde = None
+            self.pdf = None
+            self.peaks = None
+            self.d_peaks = None
+            self.valleys = None
+            self.d_valleys = None
+            self.threshold = None
+            self.face_artifacts = None
+            return
+
+        if index == "circular_compactness":
+            self.polygons["face_artifact_index"] = np.log(
+                shape.minimum_bounding_circle_ratio(polygons) * polygons.area
+            )
+        elif index == "isoperimetric_quotient":
+            self.polygons["face_artifact_index"] = np.log(
+                shape.isoperimetric_quotient(polygons) * polygons.area
+            )
+        elif index == "diameter_ratio":
+            self.polygons["face_artifact_index"] = np.log(
+                shape.diameter_ratio(polygons) * polygons.area
+            )
+        else:
+            raise ValueError(
+                f"'{index}' is not supported. Use one of ['circlular_compactness', "
+                "'isoperimetric_quotient', 'diameter_ratio']"
+            )
+
+        # parameters for peak/valley finding
+        peak_parameters = {
+            "height_mins": height_mins,
+            "height_maxs": height_maxs,
+            "prominence": prominence,
+        }
+        mylinspace = np.linspace(
+            self.polygons["face_artifact_index"].min(),
+            self.polygons["face_artifact_index"].max(),
+            1000,
+        )
+
+        self.kde = gaussian_kde(
+            self.polygons["face_artifact_index"], bw_method="silverman"
+        )
+        self.pdf = self.kde.pdf(mylinspace)
+
+        # find peaks
+        self.peaks, self.d_peaks = find_peaks(
+            x=self.pdf,
+            height=peak_parameters["height_maxs"],
+            threshold=None,
+            distance=None,
+            prominence=peak_parameters["prominence"],
+            width=1,
+            plateau_size=None,
+        )
+
+        # find valleys
+        self.valleys, self.d_valleys = find_peaks(
+            x=-self.pdf + 1,
+            height=peak_parameters["height_mins"],
+            threshold=None,
+            distance=None,
+            prominence=peak_parameters["prominence"],
+            width=1,
+            plateau_size=None,
+        )
+
+        # check if we have at least 2 peaks
+        condition_2peaks = len(self.peaks) > 1
+
+        # check if we have at least 1 valley
+        condition_1valley = len(self.valleys) > 0
+
+        conditions = [condition_2peaks, condition_1valley]
+
+        # if both these conditions are true, we find the artifact index
+        if all(conditions):
+            # find list order of highest peak
+            highest_peak_listindex = np.argmax(self.d_peaks["peak_heights"])
+            # find index (in linspace) of highest peak
+            highest_peak_index = self.peaks[highest_peak_listindex]
+            # define all possible peak ranges fitting our definition
+            peak_bounds = list(zip(self.peaks[:-1], self.peaks[1:], strict=True))
+            peak_bounds_accepted = [b for b in peak_bounds if highest_peak_index in b]
+            # find all valleys that lie between two peaks
+            valleys_accepted = [
+                v_index
+                for v_index in self.valleys
+                if any(v_index in range(b[0], b[1]) for b in peak_bounds_accepted)
+            ]
+            # the value of the first of those valleys is our artifact index
+            # get the order of the valley
+            valley_index = valleys_accepted[0]
+
+            # derive threshold value for given option from index/linspace
+            self.threshold = float(mylinspace[valley_index])
+            self.face_artifacts = self.polygons[
+                self.polygons.face_artifact_index < self.threshold
+            ]
+        else:
+            warnings.warn(
+                "No threshold found. Either your dataset it too small or the "
+                "distribution of the face artifact index does not follow the "
+                "expected shape.",
+                UserWarning,
+                stacklevel=2,
+            )
+            self.threshold = None
+            self.face_artifacts = None
 
 
 def get_artifacts(
@@ -35,7 +245,7 @@ def get_artifacts(
     predicate: str = "intersects",
 ) -> tuple[gpd.GeoDataFrame, float]:
     """Extract face artifacts and return the FAI threshold.
-    See :cite:`fleischmann2023` for more details.
+    See :cite:`fleischmann_shape-based_2024` for more details.
 
     Parameters
     ----------
@@ -50,25 +260,25 @@ def get_artifacts(
         ``simplify.simplify_network()``.
     area_threshold_blocks : float | int = 1e5
         This is the first threshold for detecting block-like artifacts whose
-        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
-        passed in ``artifact_threshold``.
+        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above
+        the value passed in ``artifact_threshold``.
         If a polygon has an area below ``area_threshold_blocks``, *and*
         is of elongated shape (see also ``isoareal_threshold_blocks``),
         *and* touches at least one polygon that has already been classified as artifact,
         then it will be classified as an artifact.
     isoareal_threshold_blocks : float | int = 0.5
         This is the second threshold for detecting block-like artifacts whose
-        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
-        passed in ``artifact_threshold``. If a polygon has an isoareal quotient
+        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above the
+        value passed in ``artifact_threshold``. If a polygon has an isoareal quotient
         below ``isoareal_threshold_blocks`` (see ``esda.shape.isoareal_quotient``),
         i.e., if it has an elongated shape; *and* it has a sufficiently small area
         (see also ``area_threshold_blocks``), *and* if it touches at least one
-         polygon that has already been detected as an artifact,
+        polygon that has already been detected as an artifact,
         then it will be classified as an artifact.
     area_threshold_circles : float | int = 5e4
         This is the first threshold for detecting circle-like artifacts whose
-        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
-        passed in ``artifact_threshold``. If a polygon has an area below
+        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above the
+        value passed in ``artifact_threshold``. If a polygon has an area below
         ``area_threshold_circles``, *and* one of the following 2 cases is given:
         (a) the polygon is touched, but not enclosed by polygons already classified
         as artifacts, *and* with an isoperimetric quotient
@@ -81,8 +291,8 @@ def get_artifacts(
         close to circular; then it will be classified as an artifact.
     isoareal_threshold_circles_enclosed : float | int = 0.75
         This is the second threshold for detecting circle-like artifacts whose
-        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
-        passed in ``artifact_threshold``. If a polygon has a sufficiently small
+        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above the
+        value passed in ``artifact_threshold``. If a polygon has a sufficiently small
         area (see also ``area_threshold_circles``), *and* the polygon is
         fully enclosed by polygons already classified as artifacts,
         *and* its isoareal quotient (see ``esda.shape.isoareal_quotient``)
@@ -91,7 +301,7 @@ def get_artifacts(
         then it will be classified as an artifact.
     isoperimetric_threshold_circles_touching : float | int = 0.9
         This is the third threshold for detecting circle-like artifacts whose
-        Face Artifact Index (see :cite:`fleischmann2023`)
+        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`)
         is above the value passed in ``artifact_threshold``.
         If a polygon has a sufficiently small area
         (see also ``area_threshold_circles``), *and* the polygon is touched
@@ -100,7 +310,7 @@ def get_artifacts(
         is above the value passed to ``isoperimetric_threshold_circles_touching``,
         i.e., if its shape is close to circular;
         then it will be classified as an artifact.
-    exclusion_mask : None | gpd.GeoSeries = None
+    exclusion_mask : None | geopandas.GeoSeries = None
         Polygons used to determine face artifacts to exclude from returned output.
     predicate : str = 'intersects'
         The spatial predicate used to exclude face artifacts from returned output.
@@ -110,7 +320,7 @@ def get_artifacts(
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
     threshold : float
-        Resultant artifact detection threshold from ``momepy.FaceArtifacts.threshold``.
+        Resultant artifact detection threshold from ``FaceArtifacts.threshold``.
         May also be the returned value of ``threshold`` or ``threshold_fallback``.
     """
 
@@ -123,7 +333,7 @@ def get_artifacts(
             "ignore", message="Input roads could not not be polygonized."
         )
         warnings.filterwarnings("ignore", message="No threshold found.")
-        fas = momepy.FaceArtifacts(roads)
+        fas = FaceArtifacts(roads)
 
     # If the fai is below the threshold
     if threshold is None:

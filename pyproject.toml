@@ -54,6 +54,17 @@ tests = [
     "yamllint",
 ]
 
+docs = [
+    "sphinx",
+    "numpydoc",
+    "myst_nb",
+    "sphinxcontrib-bibtex",
+    "sphinx_autosummary_accessors",
+    "sphinx_copybutton",
+    "sphinx_book_theme",
+    "ipykernel",
+]
+
 [tool.setuptools.packages.find]
 include = ["neatnet", "neatnet.*"]
 
@@ -122,6 +133,6 @@ neatnet = { path = ".", editable = true }
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
-tests = { features = ["tests"], solve-group = "default" }
+tests = { features = ["tests", "docs"], solve-group = "default" }
 
 [tool.pixi.tasks]
