@@ -21,3 +21,12 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-xdist
+  # docs
+  - ipykernel
+  - myst_nb
+  - numpydoc
+  - sphinx
+  - sphinxcontrib-bibtex
+  - sphinx_autosummary_accessors
+  - sphinx_copybutton
+  - sphinx_book_theme
