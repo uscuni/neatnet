@@ -49,7 +49,7 @@ jobs:
             https://github.com/ammaraskar/sphinx-action-test.git \
             --branch gh-pages \
             --single-branch gh-pages
-          cp -r docs/_build/html/* gh-pages/
+          cp -r docs/build/html/* gh-pages/
           cd gh-pages
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
