@@ -4,7 +4,7 @@
 
 ## Introduction
 
-## Documentation
+`neatnet` offers a set of tools pre-processing of street network geometry aimed at its simplification. This typically means removal of dual carrieageways, roundabouts and similar transportation-focused geometries and their replacement with a new geometry representing the street space via its centerline. The resulting geometry shall be closer to a morphological representation of space than the original source, that is typically drawn with transportation in mind (e.g. OpenStreetMap).
 
 ## Examples
 
@@ -16,9 +16,13 @@ simplified = neatnet.simplify_network(gdf)
 
 ## Contribution
 
-See our guidelines in [`CONTRIBUTING.md`](https://github.com/uscuni/neatnet/blob/main/CONTRIBUTING.md).
+While we consider the API stable, the project is young and may be evolving fast. All contributions are very welcome, see our guidelines in [`CONTRIBUTING.md`](https://github.com/uscuni/neatnet/blob/main/CONTRIBUTING.md).
 
 ## Recommended Citations
+
+The package is a result of a scientific collaboration between [The Research Team on Urban Structure](https://uscuni.org) of Charles University (USCUNI), [NEtwoRks, Data, and Society](https://nerds.itu.dk) research group of IT University Copenhagen (NERDS) and [Oak Ridge National Laboratory](https://www.ornl.gov/gshsd).
+
+If you use `neatnet` for a research purpose, please consider citing the original paper introducing it.
 
 ### Canonical Citation (primary)
 
