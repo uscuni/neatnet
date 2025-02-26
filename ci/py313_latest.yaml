@@ -23,10 +23,10 @@ dependencies:
   - pytest-xdist
   # docs
   - ipykernel
-  - myst_nb
+  - myst-nb
   - numpydoc
   - sphinx
   - sphinxcontrib-bibtex
-  - sphinx_autosummary_accessors
-  - sphinx_copybutton
-  - sphinx_book_theme
+  - sphinx-autosummary-accessors
+  - sphinx-copybutton
+  - sphinx-book-theme
