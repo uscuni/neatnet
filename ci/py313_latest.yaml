@@ -25,7 +25,7 @@ dependencies:
   - ipykernel
   - myst-nb
   - numpydoc
-  - sphinx
+  - sphinx<8.2
   - sphinxcontrib-bibtex
   - sphinx-autosummary-accessors
   - sphinx-copybutton
