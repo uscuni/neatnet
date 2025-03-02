@@ -63,6 +63,8 @@ docs = [
     "sphinx_copybutton",
     "sphinx_book_theme",
     "ipykernel",
+    "ipywidgets",
+    "jupyterlab",
 ]
 
 [tool.setuptools.packages.find]
