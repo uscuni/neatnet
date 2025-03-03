@@ -120,7 +120,7 @@ def geom_test(
 
 def difference_plot(
     aoi: str,
-    writedir: str | pathlib.Path,
+    writedir: pathlib.Path,
     known: geopandas.GeoDataFrame,
     observed: geopandas.GeoDataFrame,
     diff_buff: int = 50,
