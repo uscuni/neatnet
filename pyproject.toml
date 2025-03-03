@@ -45,6 +45,7 @@ Repository = "https://github.com/uscuni/neatnet"
 tests = [
     "codecov",
     "coverage",
+    "matplotlib",
     "pre-commit",
     "pyarrow>=17.0",
     "pytest",
@@ -63,6 +64,8 @@ docs = [
     "sphinx_copybutton",
     "sphinx_book_theme",
     "ipykernel",
+    "ipywidgets",
+    "jupyterlab",
 ]
 
 [tool.setuptools.packages.find]

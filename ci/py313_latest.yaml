@@ -17,6 +17,7 @@ dependencies:
   - scipy
   - shapely
   # testing
+  - matplotlib
   - pre-commit
   - pytest
   - pytest-cov
