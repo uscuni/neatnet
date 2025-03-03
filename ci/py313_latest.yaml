@@ -17,7 +17,17 @@ dependencies:
   - scipy
   - shapely
   # testing
+  - matplotlib
   - pre-commit
   - pytest
   - pytest-cov
   - pytest-xdist
+  # docs
+  - ipykernel
+  - myst-nb
+  - numpydoc
+  - sphinx<8.2
+  - sphinxcontrib-bibtex
+  - sphinx-autosummary-accessors
+  - sphinx-copybutton
+  - sphinx-book-theme

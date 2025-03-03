@@ -1,6 +1,8 @@
+import pathlib
 import platform
 
 import geopandas.testing
+import matplotlib.pyplot
 import numpy
 import pandas
 import pytest
@@ -116,6 +118,40 @@ def geom_test(
     return True
 
 
+def difference_plot(
+    aoi: str,
+    writedir: pathlib.Path,
+    known: geopandas.GeoDataFrame,
+    observed: geopandas.GeoDataFrame,
+    diff_buff: int = 50,
+):
+    """Plot difference locations observed simplified in relation to known simplified."""
+
+    crs = known.crs
+
+    # unioned multilinestring of each - known & observed
+    known = geopandas.GeoDataFrame(geometry=[known.union_all()], crs=crs)
+    observed = geopandas.GeoDataFrame(geometry=[observed.union_all()], crs=crs)
+
+    # unioned difference of k-o + o-k
+    known_observed_diff = known.difference(observed)
+    observed_known_diff = observed.difference(known)
+    differences = geopandas.GeoDataFrame(
+        geometry=[
+            pandas.concat([known_observed_diff, observed_known_diff])
+            .explode()
+            .union_all()
+        ],
+        crs=crs,
+    )
+
+    # plot difference locations in relation to known
+    base = known.plot(figsize=(15, 15), zorder=2, alpha=0.4, ec="k", lw=0.5)
+    differences.buffer(diff_buff).plot(ax=base, zorder=1, fc="r", alpha=0.6)
+    base.set_title(f"known vs. observed differences - {aoi}")
+    matplotlib.pyplot.savefig(writedir / f"{aoi}.png", dpi=300, bbox_inches="tight")
+
+
 def pytest_addoption(parser):
     """Add custom command line arguments."""
 
@@ -140,3 +176,4 @@ def pytest_configure(config):  # noqa: ARG001
 
     pytest.polygonize = polygonize
     pytest.geom_test = geom_test
+    pytest.difference_plot = difference_plot
