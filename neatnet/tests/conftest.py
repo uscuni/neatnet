@@ -174,3 +174,4 @@ def pytest_configure(config):  # noqa: ARG001
 
     pytest.polygonize = polygonize
     pytest.geom_test = geom_test
+    pytest.difference_plot = difference_plot
