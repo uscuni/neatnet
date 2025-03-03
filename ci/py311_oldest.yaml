@@ -14,6 +14,7 @@ dependencies:
   - scipy=1.14.1
   - shapely=2.0.6
   # testing
+  - matplotlib
   - pre-commit
   - pyarrow=17.0
   - pytest
