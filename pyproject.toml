@@ -45,6 +45,7 @@ Repository = "https://github.com/uscuni/neatnet"
 tests = [
     "codecov",
     "coverage",
+    "matplotlib",
     "pre-commit",
     "pyarrow>=17.0",
     "pytest",
