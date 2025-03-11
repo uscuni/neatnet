@@ -34,11 +34,16 @@ If you use `neatnet` for a research purpose, please consider citing the original
 
 * **Fleischmann, M., Vybornova, A., & Gaboardi, J.D.** (2025). `uscuni/neatnet`. Zenodo. https://doi.org/10.5281/zenodo.14765801
 
+## Funding
+
+The development has been supported by the Charles University’s Primus program through the project "Influence of Socioeconomic and Cultural Factors on Urban Structure in Central Europe", project reference `PRIMUS/24/SCI/023`.
+
 ---------------------------------------
 
 This package developed & and maintained by:
 * [Martin Fleischmann](https://github.com/martinfleis)
 * [Anastassia Vybornova](https://github.com/anastassiavybornova)
 * [James D. Gaboardi](https://github.com/jGaboardi)
+
 
 Copyright (c) 2024-, neatnet Developers
