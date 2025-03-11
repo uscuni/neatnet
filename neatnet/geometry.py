@@ -298,7 +298,8 @@ def _remove_sliver(
 
 def _as_parts(edgelines: np.ndarray) -> np.ndarray:
     """Return constituent LineStrings if MultiLineString present."""
-    if np.unique(shapely.get_type_id(edgelines)).shape[0] > 1:
+    geom_types = np.unique(shapely.get_type_id(edgelines))
+    if geom_types.shape[0] > 1 or geom_types[0] == 5:
         edgelines = shapely.get_parts(edgelines)
     return edgelines
 
