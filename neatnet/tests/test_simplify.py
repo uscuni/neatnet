@@ -97,6 +97,7 @@ def test_simplify_network_full_fua(aoi, tol, known_length):
     artifact_dir = ci_artifacts / aoi
     artifact_dir.mkdir(parents=True, exist_ok=True)
     observed.to_parquet(artifact_dir / "simplified.parquet")
+    pytest.difference_plot(aoi, artifact_dir, known, observed)
 
     assert pytest.approx(observed_length, rel=0.0001) == known_length
     assert observed.index.dtype == numpy.dtype("int64")
@@ -134,6 +135,7 @@ def test_simplify_network_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_86
     artifact_dir = ci_artifacts / aoi
     artifact_dir.mkdir(parents=True, exist_ok=True)
     observed.to_parquet(artifact_dir / "simplified.parquet")
+    pytest.difference_plot(aoi, artifact_dir, known, observed)
 
     assert pytest.approx(observed_length, rel=0.0001) == known_length
     assert observed.index.dtype == numpy.dtype("int64")

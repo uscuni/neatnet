@@ -203,13 +203,24 @@ def voronoi_skeleton(
 
         # check if the edgeline is within polygon
         if not edgeline.within(limit):
-            # if not, clip it by the polygon with a small negative buffer to keep
-            # the gap between edgeline and poly boundary to avoid possible
-            # overlapping lines
-            edgeline = shapely.intersection(edgeline, limit)
+            if not isinstance(edgeline, shapely.MultiLineString):
+                # if not, clip it by the polygon with a small negative buffer to keep
+                # the gap between edgeline and poly boundary to avoid possible
+                # overlapping lines
+                edgeline = shapely.intersection(edgeline, limit)
 
-            # in edge cases, this can result in a MultiLineString with one sliver part
-            edgeline = _remove_sliver(edgeline)
+                # in edge cases, this can result in a MultiLineString with one sliver
+                # part
+                edgeline = _remove_sliver(edgeline)
+            # if the edgeline is a MultiLineString, treat each part independently
+            else:
+                parts = []
+                for part in edgeline.geoms:
+                    part = shapely.intersection(part, limit)
+                    part = _remove_sliver(part)
+                    if not part.is_empty:
+                        parts.append(part)
+                edgeline = shapely.MultiLineString(parts)
 
         # check if a, b lines share a node
         intersection = shapely_lines[b].intersection(shapely_lines[a])
@@ -287,7 +298,8 @@ def _remove_sliver(
 
 def _as_parts(edgelines: np.ndarray) -> np.ndarray:
     """Return constituent LineStrings if MultiLineString present."""
-    if np.unique(shapely.get_type_id(edgelines)).shape[0] > 1:
+    geom_types = np.unique(shapely.get_type_id(edgelines))
+    if geom_types.shape[0] > 1 or (geom_types == 5).all():
         edgelines = shapely.get_parts(edgelines)
     return edgelines
 
