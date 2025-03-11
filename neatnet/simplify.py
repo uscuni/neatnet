@@ -800,10 +800,8 @@ def simplify_network(
     work with network data projected in feet if all default arguments are adjusted.
     """
 
-    # NOTE: this keeps attributes but resets index
     roads = fix_topology(roads, eps=eps)
     # Merge nearby nodes (up to double of distance used in skeleton).
-    # NOTE: this drops attributes and resets index
     roads = consolidate_nodes(roads, tolerance=max_segment_length * 2.1)
 
     # Identify artifacts
