@@ -820,37 +820,51 @@ def simplify_network(
     new_roads = induce_nodes(new_roads, eps=eps)
     new_roads = new_roads[~new_roads.geometry.normalize().duplicated()].copy()
 
-    # Identify artifacts based on the first loop network
-    artifacts, _ = get_artifacts(
-        new_roads,
-        threshold=threshold,
-        threshold_fallback=artifact_threshold_fallback,
-        area_threshold_blocks=area_threshold_blocks,
-        isoareal_threshold_blocks=isoareal_threshold_blocks,
-        area_threshold_circles=area_threshold_circles,
-        isoareal_threshold_circles_enclosed=isoareal_threshold_circles_enclosed,
-        isoperimetric_threshold_circles_touching=isoperimetric_threshold_circles_touching,
-        exclusion_mask=exclusion_mask,
-        predicate=predicate,
-    )
+    i = 2
+    while True:
+        area_previous_iteration = artifacts.area.sum()
+        # Identify artifacts based on the first loop network
+        artifacts, _ = get_artifacts(
+            new_roads,
+            threshold=threshold,
+            threshold_fallback=artifact_threshold_fallback,
+            area_threshold_blocks=area_threshold_blocks,
+            isoareal_threshold_blocks=isoareal_threshold_blocks,
+            area_threshold_circles=area_threshold_circles,
+            isoareal_threshold_circles_enclosed=isoareal_threshold_circles_enclosed,
+            isoperimetric_threshold_circles_touching=isoperimetric_threshold_circles_touching,
+            exclusion_mask=exclusion_mask,
+            predicate=predicate,
+        )
+        print(f"loop {i}, area: {artifacts.area.sum()}")
+        artifacts.to_file("loop.gpkg", layer=f"artifacts_{i}")
+        new_roads.to_file("loop.gpkg", layer=f"roads_{i}")
 
-    # Loop 2
-    final_roads = simplify_loop(
-        new_roads,
-        artifacts,
-        max_segment_length=max_segment_length,
-        min_dangle_length=min_dangle_length,
-        clip_limit=clip_limit,
-        simplification_factor=simplification_factor,
-        consolidation_tolerance=consolidation_tolerance,
-        eps=eps,
-    )
+        if artifacts.area.sum() == 0:
+            break
 
-    # This is potentially fixing some minor erroneous edges coming from Voronoi
-    final_roads = induce_nodes(final_roads, eps=eps)
-    final_roads = final_roads[~final_roads.geometry.normalize().duplicated()].copy()
+        if abs(artifacts.area.sum() - area_previous_iteration) < 1e-3:
+            break
 
-    return final_roads
+        i += 1
+
+        # Loop 2
+        new_roads = simplify_loop(
+            new_roads,
+            artifacts,
+            max_segment_length=max_segment_length,
+            min_dangle_length=min_dangle_length,
+            clip_limit=clip_limit,
+            simplification_factor=simplification_factor,
+            consolidation_tolerance=consolidation_tolerance,
+            eps=eps,
+        )
+
+        # This is potentially fixing some minor erroneous edges coming from Voronoi
+        new_roads = induce_nodes(new_roads, eps=eps)
+        new_roads = new_roads[~new_roads.geometry.normalize().duplicated()].copy()
+
+    return new_roads
 
 
 def simplify_loop(
