@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 import pyproj
 import shapely
-from libpysal import graph
 from scipy import sparse
+from sklearn.cluster import DBSCAN
 
 
 def split(
@@ -469,19 +469,9 @@ def consolidate_nodes(
     # get clusters of nodes which should be consolidated
     # first get components of possible clusters to and then do the linkage itself
     # otherwise is dead slow and needs a ton of memory
-    indices = nodes.sindex.query(
-        nodes.geometry, predicate="dwithin", distance=tolerance
-    )
-    matrix = sparse.coo_array(
-        (np.ones(len(indices[0]), dtype=np.bool_), indices[::-1]),
-        shape=(len(nodes), len(nodes)),
-        dtype=np.bool_,
-    )
-    dwithin_graph = graph.Graph.from_sparse(matrix, ids=nodes.index)
-    comp_labels = dwithin_graph.component_labels
-    cardinalities = dwithin_graph.cardinalities
-
-    mask = cardinalities > 1
+    db = DBSCAN(eps=tolerance, min_samples=2).fit(nodes.get_coordinates())
+    comp_labels = db.labels_
+    mask = comp_labels > -1
     components = comp_labels[mask]
     nodes_to_merge = nodes[mask]
 
