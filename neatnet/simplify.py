@@ -655,6 +655,8 @@ def get_solution(group: gpd.GeoDataFrame, roads: gpd.GeoDataFrame) -> pd.Series:
 def simplify_network(
     roads: gpd.GeoDataFrame,
     *,
+    exclusion_mask: None | gpd.GeoSeries = None,
+    predicate: str = "intersects",
     max_segment_length: float | int = 1,
     min_dangle_length: float | int = 20,
     clip_limit: float | int = 2,
@@ -668,8 +670,7 @@ def simplify_network(
     isoareal_threshold_circles_enclosed: float | int = 0.75,
     isoperimetric_threshold_circles_touching: float | int = 0.9,
     eps: float = 1e-4,
-    exclusion_mask: None | gpd.GeoSeries = None,
-    predicate: str = "intersects",
+    n_loops: int = 2,
 ) -> gpd.GeoDataFrame:
     """Top-level workflow for simplifying networks. The input raw road network data,
     which must be in a projected coordinate reference system and is expected to be in
@@ -689,6 +690,10 @@ def simplify_network(
     roads : geopandas.GeoDataFrame
         Raw road network data. This input *must* be in a projected coordinate reference
         system and *should* be in meters. All defaults arguments assume meters.
+    exclusion_mask : None | geopandas.GeoSeries = None
+        Polygons used to determine face artifacts to exclude from returned output.
+    predicate : str = 'intersects'
+        The spatial predicate used to exclude face artifacts from returned output.
     max_segment_length : float | int = 1
         Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
@@ -769,10 +774,9 @@ def simplify_network(
         then it will be classified as an artifact.
     eps : float = 1e-4
         Tolerance epsilon used in multiple internal geometric operations.
-    exclusion_mask : None | geopandas.GeoSeries = None
-        Polygons used to determine face artifacts to exclude from returned output.
-    predicate : str = 'intersects'
-        The spatial predicate used to exclude face artifacts from returned output.
+    n_loops : int = 2
+        Number of loops through the simplification pipeline. It is recommended to stick
+        to the default value and increase it only very conservatively.
 
     Returns
     -------
@@ -820,9 +824,7 @@ def simplify_network(
     new_roads = induce_nodes(new_roads, eps=eps)
     new_roads = new_roads[~new_roads.geometry.normalize().duplicated()].copy()
 
-    i = 2
-    while True:
-        area_previous_iteration = artifacts.area.sum()
+    for _ in range(2, n_loops + 1):
         # Identify artifacts based on the first loop network
         artifacts, _ = get_artifacts(
             new_roads,
@@ -836,19 +838,7 @@ def simplify_network(
             exclusion_mask=exclusion_mask,
             predicate=predicate,
         )
-        print(f"loop {i}, area: {artifacts.area.sum()}")
-        artifacts.to_file("loop.gpkg", layer=f"artifacts_{i}")
-        new_roads.to_file("loop.gpkg", layer=f"roads_{i}")
 
-        if artifacts.area.sum() == 0:
-            break
-
-        if abs(artifacts.area.sum() - area_previous_iteration) < 1e-3:
-            break
-
-        i += 1
-
-        # Loop 2
         new_roads = simplify_loop(
             new_roads,
             artifacts,
