@@ -9561,15 +9561,15 @@ packages:
   timestamp: 1738196177597
 - pypi: .
   name: neatnet
-  version: 0.0.1.post3.dev12+g03aa4f9.d20250311
-  sha256: b48710d51c174181338581fe97a9afd36b795ad921c4b74c44de045c0e8cec4b
+  version: 0.0.1.post3.dev16+g2b6810d.d20250313
+  sha256: 074103b9a0c708a51290fdf50ca48aba680f9f94fe06b37309f090ef11e6aed7
   requires_dist:
   - esda>=2.6.0
   - geopandas>=1.0.1
   - libpysal>=4.12.1
   - momepy>=0.9.0
   - networkx>=3.3
-  - numpy>=1.26.4
+  - numpy>=2
   - pandas>=2.2.3
   - scipy>=1.14.1
   - shapely>=2.0.6
