@@ -8,6 +8,7 @@ import pandas as pd
 import pyproj
 import shapely
 from scipy import sparse
+from libpysal import graph
 
 
 def split(
@@ -466,12 +467,31 @@ def consolidate_nodes(
             return gdf
 
     # get clusters of nodes which should be consolidated
-    linkage = hierarchy.linkage(nodes.get_coordinates(), method="average")
-    nodes["lab"] = hierarchy.fcluster(linkage, tolerance, criterion="distance")
-    unique, counts = np.unique(nodes["lab"], return_counts=True)
+    indices = nodes.sindex.query(nodes.geometry, predicate="dwithin", distance=tolerance)
+    matrix = sparse.coo_array(
+                    (np.ones(len(indices[0]), dtype=np.bool_), indices[::-1]),
+                    shape=(len(nodes), len(nodes)),
+                    dtype=np.bool_,
+                )
+    dwithin_graph = graph.Graph.from_sparse(matrix, ids=nodes.index)
+    comp_labels = dwithin_graph.component_labels
+    cardinalities = dwithin_graph.cardinalities
+    
+    mask = cardinalities > 1
+    components = comp_labels[mask]
+    nodes_to_merge = nodes[mask]
+    
+    def get_labels(nodes):
+        linkage = hierarchy.linkage(shapely.get_coordinates(nodes), method="average")
+        labels = hierarchy.fcluster(linkage, tolerance, criterion="distance").astype(str) + f"_{nodes.name}"
+        return labels
+    
+    grouped = pd.Series(nodes_to_merge.geometry).groupby(components).transform(get_labels)
+    nodes['lab'] = grouped
+    unique, counts = np.unique(nodes["lab"].dropna(), return_counts=True)
     actual_clusters = unique[counts > 1]
     change = nodes[nodes["lab"].isin(actual_clusters)]
-
+    
     # no change needed, return the original
     if change.empty:
         gdf["_status"] = "original"
