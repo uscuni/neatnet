@@ -467,6 +467,8 @@ def consolidate_nodes(
             return gdf
 
     # get clusters of nodes which should be consolidated
+    # first get components of possible clusters to and then do the linkage itself
+    # otherwise is dead slow and needs a ton of memory
     indices = nodes.sindex.query(
         nodes.geometry, predicate="dwithin", distance=tolerance
     )
