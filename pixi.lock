@@ -2273,7 +2273,7 @@ packages:
   - pytest>=7.0 ; extra == 'test'
   - trustme ; extra == 'test'
   - truststore>=0.9.1 ; python_full_version >= '3.10' and extra == 'test'
-  - uvloop>=0.21 ; python_full_version < '3.14' and platform_python_implementation == 'CPython' and sys_platform != 'win32' and extra == 'test'
+  - uvloop>=0.21 ; python_full_version < '3.14' and platform_python_implementation == 'CPython' and platform_system != 'Windows' and extra == 'test'
   - packaging ; extra == 'doc'
   - sphinx~=7.4 ; extra == 'doc'
   - sphinx-rtd-theme ; extra == 'doc'
@@ -4873,7 +4873,7 @@ packages:
   version: 6.29.5
   sha256: afdb66ba5aa354b09b91379bac28ae4afebbb30e8b39510c9690afb7a10421b5
   requires_dist:
-  - appnope ; sys_platform == 'darwin'
+  - appnope ; platform_system == 'Darwin'
   - comm>=0.1.1
   - debugpy>=1.6.5
   - ipython>=7.23.1
@@ -9561,20 +9561,21 @@ packages:
   timestamp: 1738196177597
 - pypi: .
   name: neatnet
-  version: 0.0.1.post3.dev14+g9c3cc06.d20250301
-  sha256: a10cf4ce55f98a7e579d03d35bfc5a258db578889eaf4f35f3a2ff1800bcddef
+  version: 0.0.1.post3.dev16+g2b6810d.d20250313
+  sha256: 074103b9a0c708a51290fdf50ca48aba680f9f94fe06b37309f090ef11e6aed7
   requires_dist:
   - esda>=2.6.0
   - geopandas>=1.0.1
   - libpysal>=4.12.1
   - momepy>=0.9.0
   - networkx>=3.3
-  - numpy>=1.26.4
+  - numpy>=2
   - pandas>=2.2.3
   - scipy>=1.14.1
   - shapely>=2.0.6
   - codecov ; extra == 'tests'
   - coverage ; extra == 'tests'
+  - matplotlib ; extra == 'tests'
   - pre-commit ; extra == 'tests'
   - pyarrow>=17.0 ; extra == 'tests'
   - pytest ; extra == 'tests'
