@@ -20,8 +20,7 @@ jobs:
   tests:
     name: ${{ matrix.os }}, ${{ matrix.environment-file }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    continue-on-error: true
+    timeout-minutes: 60
     strategy:
       matrix:
         os: [ubuntu-latest]
