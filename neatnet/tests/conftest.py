@@ -1,5 +1,6 @@
 import pathlib
 import platform
+import warnings
 
 import geopandas.testing
 import matplotlib.pyplot
@@ -147,7 +148,17 @@ def difference_plot(
 
     # plot difference locations in relation to known
     base = known.plot(figsize=(15, 15), zorder=2, alpha=0.4, ec="k", lw=0.5)
-    differences.buffer(diff_buff).plot(ax=base, zorder=1, fc="r", alpha=0.6)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=(
+                "The GeoSeries you are attempting to plot is composed "
+                "of empty geometries. Nothing has been displayed."
+            ),
+            category=UserWarning,
+            module="geopandas",
+        )
+        differences.buffer(diff_buff).plot(ax=base, zorder=1, fc="r", alpha=0.6)
     base.set_title(f"known vs. observed differences - {aoi}")
     matplotlib.pyplot.savefig(writedir / f"{aoi}.png", dpi=300, bbox_inches="tight")
 
