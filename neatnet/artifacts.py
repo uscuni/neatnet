@@ -338,9 +338,6 @@ def get_artifacts(
     # If the fai is below the threshold
     if threshold is None:
         if not fas.threshold and fas.polygons.empty:
-            ########################################################################
-            STOP  ##################################################################
-            ########################################################################
             return gpd.GeoDataFrame(geometry=[]), None
         if not fas.threshold and threshold_fallback:
             threshold = threshold_fallback
