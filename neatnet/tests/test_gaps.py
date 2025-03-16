@@ -32,7 +32,7 @@ def test_extend_lines():
     assert ext1.length.sum() == pytest.approx(4.2, rel=1e-3)
 
     target = gpd.GeoSeries([l2.centroid.buffer(3)])
-    ext2 = neatnet.extend_lines(gdf, 3, target)
+    ext2 = neatnet.extend_lines(gdf, 3, target=target)
 
     assert ext2.length.sum() > gdf.length.sum()
     assert ext2.length.sum() == pytest.approx(17.3776, rel=1e-3)
