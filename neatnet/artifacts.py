@@ -42,7 +42,7 @@ class FaceArtifacts:
     index : str = 'circular_compactness'
         A type of the shape compacntess index to be used. Available are
         ['circlular_compactness', 'isoperimetric_quotient', 'diameter_ratio']
-    height_mins : float = numpy.inf
+    height_mins : float = -numpy.inf
         Required depth of valleys.
     height_maxs : float = 0.008
         Required height of peaks
