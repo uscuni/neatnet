@@ -15,6 +15,7 @@ def split(
     split_points: list | np.ndarray | gpd.GeoSeries,
     cleaned_roads: gpd.GeoDataFrame,
     crs: str | pyproj.CRS,
+    *,
     eps: float = 1e-4,
 ) -> gpd.GeoSeries | gpd.GeoDataFrame:
     """Split lines on new nodes.
@@ -102,6 +103,7 @@ def _status(x: pd.Series) -> str:
 
 def get_components(
     edgelines: list | np.ndarray | gpd.GeoSeries,
+    *,
     ignore: None | gpd.GeoSeries = None,
 ) -> np.ndarray:
     """Associate edges with connected component labels and return.
@@ -162,6 +164,7 @@ def get_components(
 
 def weld_edges(
     edgelines: list | np.ndarray | gpd.GeoSeries,
+    *,
     ignore: None | gpd.GeoSeries = None,
 ) -> list | np.ndarray | gpd.GeoSeries:
     """Combine lines sharing an endpoint (if only 2 lines share that point).
@@ -190,7 +193,7 @@ def weld_edges(
     ).tolist()
 
 
-def induce_nodes(roads: gpd.GeoDataFrame, eps: float = 1e-4) -> gpd.GeoDataFrame:
+def induce_nodes(roads: gpd.GeoDataFrame, *, eps: float = 1e-4) -> gpd.GeoDataFrame:
     """Adding potentially missing nodes on intersections of individual LineString
     endpoints with the remaining network. The idea behind is that if a line ends
     on an intersection with another, there should be a node on both of them.
@@ -278,7 +281,7 @@ def _loops_and_non_loops(
 
 
 def remove_false_nodes(
-    gdf: gpd.GeoSeries | gpd.GeoDataFrame, aggfunc: str | dict = "first", **kwargs
+    gdf: gpd.GeoSeries | gpd.GeoDataFrame, *, aggfunc: str | dict = "first", **kwargs
 ) -> gpd.GeoSeries | gpd.GeoDataFrame:
     """Reimplementation of ``momepy.remove_false_nodes()`` that preserves attributes.
 
@@ -380,6 +383,7 @@ def _rotate_loop_coords(
 
 def fix_topology(
     roads: gpd.GeoDataFrame,
+    *,
     eps: float = 1e-4,
     **kwargs,
 ) -> gpd.GeoDataFrame:
@@ -416,6 +420,7 @@ def fix_topology(
 
 def consolidate_nodes(
     gdf: gpd.GeoDataFrame,
+    *,
     tolerance: float = 2.0,
     preserve_ends: bool = False,
 ) -> gpd.GeoSeries:
