@@ -1,5 +1,4 @@
 import logging
-import typing
 import warnings
 
 import geopandas as gpd
@@ -324,11 +323,6 @@ def get_artifacts(
         Resultant artifact detection threshold from ``FaceArtifacts.threshold``.
         May also be the returned value of ``threshold`` or ``threshold_fallback``.
     """
-
-    def _relate(neighs: tuple, cond: typing.Callable) -> bool:
-        """Helper for relating artifacts."""
-        return len(neighs) > 0 and cond(polys.loc[list(neighs), "is_artifact"])
-
     with warnings.catch_warnings():  # the second loop likey won't find threshold
         warnings.filterwarnings("ignore", message="No threshold found")
         fas = FaceArtifacts(roads)
@@ -336,7 +330,6 @@ def get_artifacts(
 
     # rook neighbors
     rook = graph.Graph.build_contiguity(polys, rook=True)
-    polys["neighbors"] = rook.neighbors
 
     # polygons are not artifacts...
     polys["is_artifact"] = False
@@ -363,6 +356,9 @@ def get_artifacts(
     isoareal = polys["isoareal_index"]
     isoperimetric = polys["isoperimetric_quotient"]
 
+    def _all_any(group):
+        return all(group), any(group)
+
     # iterate to account for artifacts that become
     # enclosed or touching by new designation
     while True:
@@ -370,11 +366,14 @@ def get_artifacts(
         # when no new artifacts are added
         artifact_count_before = sum(is_artifact)
 
-        # polygons that are enclosed by artifacts (at this moment)
-        polys["enclosed"] = polys.apply(lambda x: _relate(x["neighbors"], all), axis=1)
-
-        # polygons that are touching artifacts (at this moment)
-        polys["touching"] = polys.apply(lambda x: _relate(x["neighbors"], any), axis=1)
+        # polygons that are enclosed by artifacts (at this moment) and
+        # that are touching artifacts (at this moment)
+        polys[["enclosed", "touching"]] = pd.DataFrame(
+            np.stack(rook.apply(polys.is_artifact, _all_any)),
+            columns=["enclosed", "touching"],
+        )
+        polys.loc[rook.isolates, "enclosed"] = False
+        polys.loc[rook.isolates, "touching"] = False
 
         # "block" like artifacts (that are not too big or too rectangular)
         # TODO: there are still some dual carriageway - type blocks
