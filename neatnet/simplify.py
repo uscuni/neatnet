@@ -129,6 +129,7 @@ def classification_sequence(
 def simplify_singletons(
     artifacts: gpd.GeoDataFrame,
     roads: gpd.GeoDataFrame,
+    *,
     max_segment_length: float | int = 1,
     compute_coins: bool = True,
     min_dangle_length: float | int = 10,
@@ -302,6 +303,7 @@ def simplify_singletons(
 def simplify_pairs(
     artifacts: gpd.GeoDataFrame,
     roads: gpd.GeoDataFrame,
+    *,
     max_segment_length: float | int = 1,
     min_dangle_length: float | int = 20,
     clip_limit: float | int = 2,
@@ -487,6 +489,7 @@ def simplify_pairs(
 def simplify_clusters(
     artifacts: gpd.GeoDataFrame,
     roads: gpd.GeoDataFrame,
+    *,
     max_segment_length: float | int = 1,
     eps: float = 1e-4,
     simplification_factor: float | int = 2,
@@ -811,6 +814,8 @@ def simplify_network(
     # Identify artifacts
     artifacts, threshold = get_artifacts(
         roads,
+        exclusion_mask=exclusion_mask,
+        predicate=predicate,
         threshold=artifact_threshold,
         threshold_fallback=artifact_threshold_fallback,
         area_threshold_blocks=area_threshold_blocks,
@@ -818,8 +823,6 @@ def simplify_network(
         area_threshold_circles=area_threshold_circles,
         isoareal_threshold_circles_enclosed=isoareal_threshold_circles_enclosed,
         isoperimetric_threshold_circles_touching=isoperimetric_threshold_circles_touching,
-        exclusion_mask=exclusion_mask,
-        predicate=predicate,
     )
 
     # Loop 1
@@ -874,6 +877,7 @@ def simplify_network(
 def simplify_loop(
     roads: gpd.GeoDataFrame,
     artifacts: gpd.GeoDataFrame,
+    *,
     max_segment_length: float | int = 1,
     min_dangle_length: float | int = 20,
     clip_limit: float | int = 2,
