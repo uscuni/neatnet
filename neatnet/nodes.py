@@ -372,7 +372,20 @@ def _rotate_loop_coords(
         loop_points.geometry, predicate="dwithin", distance=1e-4
     )
 
-    new_start = loop_points.loc[loop_points_ix].geometry.mode().get_coordinates().values
+    mode = loop_points.loc[loop_points_ix].geometry.mode()
+
+    # if there is a non-planar intersection, we may have multiple points. Check with
+    # entrypoints only in that case
+    if mode.shape[0] > 1:
+        loop_points_ix, _ = not_loops.sindex.query(
+            loop_points.geometry, predicate="dwithin", distance=1e-4
+        )
+        new_mode = loop_points.loc[loop_points_ix].geometry.mode()
+        # if that did not help, just pick one to avoid failure and hope for the best
+        if new_mode.empty | new_mode.shape[0] > 1:
+            mode = mode.iloc[[0]]
+
+    new_start = mode.get_coordinates().values
     _coords_match = (loop_coords == new_start).all(axis=1)
     new_start_idx = np.where(_coords_match)[0].squeeze()
 
