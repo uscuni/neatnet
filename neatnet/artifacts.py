@@ -1,5 +1,4 @@
 import logging
-import typing
 import warnings
 
 import geopandas as gpd
@@ -39,24 +38,23 @@ class FaceArtifacts:
     ----------
     gdf : geopandas.GeoDataFrame
         GeoDataFrame containing street network represented as (Multi)LineString geometry
-    index : str, optional
+    index : str = 'circular_compactness'
         A type of the shape compacntess index to be used. Available are
-        ['circlular_compactness', 'isoperimetric_quotient', 'diameter_ratio'], by
-        default "circular_compactness"
-    height_mins : float, optional
-        Required depth of valleys, by default -np.inf
-    height_maxs : float, optional
-        Required height of peaks, by default 0.008
-    prominence : float, optional
-        Required prominence of peaks, by default 0.00075
+        ['circlular_compactness', 'isoperimetric_quotient', 'diameter_ratio']
+    height_mins : float = -numpy.inf
+        Required depth of valleys.
+    height_maxs : float = 0.008
+        Required height of peaks
+    prominence : float = 0.00075
+        Required prominence of peaks
 
     Attributes
     ----------
     threshold : float
         Identified threshold between face polygons and face artifacts
-    face_artifacts : GeoDataFrame
+    face_artifacts : geopandas.GeoDataFrame
         A GeoDataFrame of geometries identified as face artifacts
-    polygons : GeoDataFrame
+    polygons : geopandas.GeoDataFrame
         All polygons resulting from polygonization of the input gdf with the
         face_artifact_index
     kde : scipy.stats._kde.gaussian_kde
@@ -90,11 +88,12 @@ class FaceArtifacts:
 
     def __init__(
         self,
-        gdf,
-        index="circular_compactness",
-        height_mins=-np.inf,
-        height_maxs=0.008,
-        prominence=0.00075,
+        gdf: gpd.GeoDataFrame,
+        *,
+        index: str = "circular_compactness",
+        height_mins: float = -np.inf,
+        height_maxs: float = 0.008,
+        prominence: float = 0.00075,
     ):
         try:
             from esda import shape
@@ -234,6 +233,9 @@ class FaceArtifacts:
 
 def get_artifacts(
     roads: gpd.GeoDataFrame,
+    *,
+    exclusion_mask: None | gpd.GeoSeries = None,
+    predicate: str = "intersects",
     threshold: None | float | int = None,
     threshold_fallback: None | float | int = None,
     area_threshold_blocks: float | int = 1e5,
@@ -241,9 +243,7 @@ def get_artifacts(
     area_threshold_circles: float | int = 5e4,
     isoareal_threshold_circles_enclosed: float | int = 0.75,
     isoperimetric_threshold_circles_touching: float | int = 0.9,
-    exclusion_mask: None | gpd.GeoSeries = None,
-    predicate: str = "intersects",
-) -> tuple[gpd.GeoDataFrame, float]:
+) -> tuple[gpd.GeoDataFrame, float | None]:
     """Extract face artifacts and return the FAI threshold.
     See :cite:`fleischmann_shape-based_2024` for more details.
 
@@ -251,6 +251,10 @@ def get_artifacts(
     ----------
     roads : geopandas.GeoDataFrame
         Input roads that have been preprocessed.
+    exclusion_mask : None | geopandas.GeoSeries = None
+        Polygons used to determine face artifacts to exclude from returned output.
+    predicate : str = 'intersects'
+        The spatial predicate used to exclude face artifacts from returned output.
     threshold : None | float | int = None
         First option threshold used to determine face artifacts. See the
         ``artifact_threshold`` keyword argument in ``simplify.simplify_network()``.
@@ -310,24 +314,15 @@ def get_artifacts(
         is above the value passed to ``isoperimetric_threshold_circles_touching``,
         i.e., if its shape is close to circular;
         then it will be classified as an artifact.
-    exclusion_mask : None | geopandas.GeoSeries = None
-        Polygons used to determine face artifacts to exclude from returned output.
-    predicate : str = 'intersects'
-        The spatial predicate used to exclude face artifacts from returned output.
 
     Returns
     -------
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
-    threshold : float
+    threshold : float | None
         Resultant artifact detection threshold from ``FaceArtifacts.threshold``.
         May also be the returned value of ``threshold`` or ``threshold_fallback``.
     """
-
-    def _relate(neighs: tuple, cond: typing.Callable) -> bool:
-        """Helper for relating artifacts."""
-        return len(neighs) > 0 and cond(polys.loc[list(neighs), "is_artifact"])
-
     with warnings.catch_warnings():  # the second loop likey won't find threshold
         warnings.filterwarnings(
             "ignore", message="Input roads could not not be polygonized."
@@ -335,7 +330,14 @@ def get_artifacts(
         warnings.filterwarnings("ignore", message="No threshold found.")
         fas = FaceArtifacts(roads)
 
-    # If the fai is below the threshold
+    polys = fas.polygons.set_crs(roads.crs)
+
+    # rook neighbors
+    rook = graph.Graph.build_contiguity(polys, rook=True)
+
+    # polygons are not artifacts...
+    polys["is_artifact"] = False
+    # ...unless the fai is below the threshold
     if threshold is None:
         if not fas.threshold and fas.polygons.empty:
             return gpd.GeoDataFrame(geometry=[]), None
@@ -369,6 +371,9 @@ def get_artifacts(
     isoareal = polys["isoareal_index"]
     isoperimetric = polys["isoperimetric_quotient"]
 
+    def _all_any(group):
+        return all(group), any(group)
+
     # iterate to account for artifacts that become
     # enclosed or touching by new designation
     while True:
@@ -376,11 +381,14 @@ def get_artifacts(
         # when no new artifacts are added
         artifact_count_before = sum(is_artifact)
 
-        # polygons that are enclosed by artifacts (at this moment)
-        polys["enclosed"] = polys.apply(lambda x: _relate(x["neighbors"], all), axis=1)
-
-        # polygons that are touching artifacts (at this moment)
-        polys["touching"] = polys.apply(lambda x: _relate(x["neighbors"], any), axis=1)
+        # polygons that are enclosed by artifacts (at this moment) and
+        # that are touching artifacts (at this moment)
+        polys[["enclosed", "touching"]] = pd.DataFrame(
+            np.stack(rook.apply(polys.is_artifact, _all_any)),
+            columns=["enclosed", "touching"],
+        )
+        polys.loc[rook.isolates, "enclosed"] = False
+        polys.loc[rook.isolates, "touching"] = False
 
         # "block" like artifacts (that are not too big or too rectangular)
         # TODO: there are still some dual carriageway - type blocks

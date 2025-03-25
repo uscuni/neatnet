@@ -11,14 +11,16 @@ __all__ = [
 ]
 
 
-def close_gaps(gdf, tolerance):
+def close_gaps(
+    gdf: gpd.GeoDataFrame | gpd.GeoSeries, tolerance: float
+) -> gpd.GeoSeries:
     """Close gaps in LineString geometry where it should be contiguous.
 
     Snaps both lines to a centroid of a gap in between.
 
     Parameters
     ----------
-    gdf : GeoDataFrame, GeoSeries
+    gdf : GeoDataFrame | GeoSeries
         GeoDataFrame  or GeoSeries containing LineString representation of a network.
     tolerance : float
         nodes within a tolerance will be snapped together
@@ -64,17 +66,22 @@ def close_gaps(gdf, tolerance):
     return gpd.GeoSeries(snapped, crs=gdf.crs)
 
 
-def extend_lines(gdf, tolerance, target=None, barrier=None, extension=0):
-    """Extends lines from gdf to itself or target within a set tolerance
+def extend_lines(
+    gdf: gpd.GeoDataFrame,
+    tolerance: float,
+    *,
+    target: None | gpd.GeoDataFrame | gpd.GeoSeries = None,
+    barrier: None | gpd.GeoDataFrame | gpd.GeoSeries = None,
+    extension: int | float = 0,
+) -> gpd.GeoDataFrame:
+    """Extends lines from gdf to itself or target within a set tolerance.
 
-    Extends unjoined ends of LineString segments to join with other segments or
-    target. If ``target`` is passed, extend lines to target. Otherwise extend
-    lines to itself.
+    Extends unjoined ends of LineString segments to join with other segments or target.
+    If ``target`` is passed, extend lines to target. Otherwise extend lines to itself.
 
-    If ``barrier`` is passed, each extended line is checked for intersection
-    with ``barrier``. If they intersect, extended line is not returned. This
-    can be useful if you don't want to extend street network segments through
-    buildings.
+    If ``barrier`` is passed, each extended line is checked for intersection with
+    ``barrier``. If they intersect, extended line is not returned. This can be
+    useful if you don't want to extend street network segments through buildings.
 
     Parameters
     ----------
@@ -83,12 +90,12 @@ def extend_lines(gdf, tolerance, target=None, barrier=None, extension=0):
     tolerance : float
         tolerance in snapping (by how much could be each segment
         extended).
-    target : GeoDataFrame, GeoSeries
+    target : None | GeoDataFrame | GeoSeries
         target geometry to which ``gdf`` gets extended. Has to be
         (Multi)LineString geometry.
-    barrier : GeoDataFrame, GeoSeries
+    barrier : None | GeoDataFrame | GeoSeries = None
         extended line is not used if it intersects barrier
-    extension : float
+    extension : int | float = 0
         by how much to extend line beyond the snapped geometry. Useful
         when creating enclosures to avoid floating point imprecision.
 
@@ -101,8 +108,8 @@ def extend_lines(gdf, tolerance, target=None, barrier=None, extension=0):
     --------
     momepy.close_gaps
     momepy.remove_false_nodes
-
     """
+
     # explode to avoid MultiLineStrings
     # reset index due to the bug in GeoPandas explode
     df = gdf.reset_index(drop=True).explode(ignore_index=True)
@@ -216,10 +223,14 @@ def extend_lines(gdf, tolerance, target=None, barrier=None, extension=0):
     return df
 
 
-def _extend_line(coords, target, tolerance, snap=True):
-    """
-    Extends a line geometry to snap on the target within a tolerance.
-    """
+def _extend_line(
+    coords: np.ndarray,
+    target: gpd.GeoDataFrame | gpd.GeoSeries,
+    tolerance: float,
+    snap: bool = True,
+) -> np.ndarray:
+    """Extends a line geometry to snap on the target within a tolerance."""
+
     if snap:
         extrapolation = _get_extrapolated_line(
             coords[-4:] if len(coords.shape) == 1 else coords[-2:].flatten(),
@@ -256,10 +267,11 @@ def _extend_line(coords, target, tolerance, snap=True):
     return np.vstack([coords, extrapolation])
 
 
-def _get_extrapolated_line(coords, tolerance, point=False):
-    """
-    Creates a shapely line extrapoled in p1->p2 direction.
-    """
+def _get_extrapolated_line(
+    coords: np.ndarray, tolerance: float, point: bool = False
+) -> tuple[float, float] | shapely.LineString:
+    """Creates a shapely line extrapoled in p1->p2 direction."""
+
     p1 = coords[:2]
     p2 = coords[2:]
     a = p2

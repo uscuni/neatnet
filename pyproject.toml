@@ -47,6 +47,7 @@ tests = [
     "codecov",
     "coverage",
     "matplotlib",
+    "mypy",
     "pre-commit",
     "pyarrow>=17.0",
     "pytest",
@@ -131,6 +132,7 @@ pytest-cov = "*"
 pytest-xdist = "*"
 ruff = "*"
 yamllint = "*"
+mypy = ">=1.15.0,<2"
 
 [tool.pixi.pypi-dependencies]
 neatnet = { path = ".", editable = true }
