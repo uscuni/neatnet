@@ -336,7 +336,6 @@ def get_artifacts(
 
     # rook neighbors
     rook = graph.Graph.build_contiguity(polys, rook=True)
-    polys["neighbors"] = rook.neighbors
 
     # polygons are not artifacts...
     polys["is_artifact"] = False
@@ -371,10 +370,12 @@ def get_artifacts(
         artifact_count_before = sum(is_artifact)
 
         # polygons that are enclosed by artifacts (at this moment)
-        polys["enclosed"] = polys.apply(lambda x: _relate(x["neighbors"], all), axis=1)
+        polys["enclosed"] = rook.apply(polys.is_artifact, all)
+        polys.loc[rook.isolates, "enclosed"] = False
 
         # polygons that are touching artifacts (at this moment)
-        polys["touching"] = polys.apply(lambda x: _relate(x["neighbors"], any), axis=1)
+        polys["touching"] = rook.apply(polys.is_artifact, any)
+        polys.loc[rook.isolates, "touching"] = False
 
         # "block" like artifacts (that are not too big or too rectangular)
         # TODO: there are still some dual carriageway - type blocks
