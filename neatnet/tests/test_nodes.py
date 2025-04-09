@@ -652,17 +652,17 @@ class TestRemoveFalseNodes:
     def test_single_series(self):
         one_in_series = self.series[:0].copy()
         known = one_in_series
-        observed = neatnet.nodes.remove_false_nodes(one_in_series)
+        observed = neatnet.nodes.remove_interstitial_nodes(one_in_series)
         geopandas.testing.assert_geoseries_equal(observed, known)
 
     def test_series(self):
         known = geopandas.GeoDataFrame(geometry=self.known_geoms)
-        observed = neatnet.nodes.remove_false_nodes(self.series)
+        observed = neatnet.nodes.remove_interstitial_nodes(self.series)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
     def test_frame(self):
         known = geopandas.GeoDataFrame(geometry=self.known_geoms)
-        observed = neatnet.nodes.remove_false_nodes(
+        observed = neatnet.nodes.remove_interstitial_nodes(
             geopandas.GeoDataFrame(geometry=self.series)
         )
         geopandas.testing.assert_geodataframe_equal(observed, known)
@@ -673,7 +673,7 @@ class TestRemoveFalseNodes:
             geometry=self.known_geoms,
             columns=["geometry", "animal"],
         )
-        observed = neatnet.nodes.remove_false_nodes(
+        observed = neatnet.nodes.remove_interstitial_nodes(
             geopandas.GeoDataFrame({"animal": self.attrs}, geometry=self.series)
         )
         geopandas.testing.assert_geodataframe_equal(observed, known)
@@ -684,7 +684,7 @@ class TestRemoveFalseNodes:
             geometry=self.known_geoms,
             columns=["geometry", "animal"],
         )
-        observed = neatnet.nodes.remove_false_nodes(
+        observed = neatnet.nodes.remove_interstitial_nodes(
             geopandas.GeoDataFrame({"animal": self.attrs}, geometry=self.series),
             aggfunc="last",
         )
@@ -695,7 +695,7 @@ class TestRemoveFalseNodes:
             momepy.datasets.get_path("tests"), layer="network"
         )
         false_network["vals"] = range(len(false_network))
-        fixed = neatnet.remove_false_nodes(false_network).reset_index(drop=True)
+        fixed = neatnet.remove_interstitial_nodes(false_network).reset_index(drop=True)
         assert len(fixed) == 56
         assert isinstance(fixed, geopandas.GeoDataFrame)
         assert false_network.crs.equals(fixed.crs)
@@ -714,7 +714,7 @@ class TestRemoveFalseNodes:
             numpy.array(fixed.loc[55].geometry.coords), expected
         )
 
-        fixed_series = neatnet.nodes.remove_false_nodes(
+        fixed_series = neatnet.nodes.remove_interstitial_nodes(
             false_network.geometry
         ).reset_index(drop=True)
         assert len(fixed_series) == 56
@@ -722,7 +722,7 @@ class TestRemoveFalseNodes:
         assert false_network.crs.equals(fixed_series.crs)
 
         multiindex = false_network.explode(index_parts=True)
-        fixed_multiindex = neatnet.nodes.remove_false_nodes(multiindex)
+        fixed_multiindex = neatnet.nodes.remove_interstitial_nodes(multiindex)
         assert len(fixed_multiindex) == 56
         assert isinstance(fixed, geopandas.GeoDataFrame)
         assert sorted(false_network.columns) == sorted(fixed.columns)
@@ -732,7 +732,7 @@ class TestRemoveFalseNodes:
             momepy.datasets.get_path("bubenec"), layer="streets"
         )
         known = df_streets.drop([4, 7, 17, 22]).reset_index(drop=True)
-        observed = neatnet.nodes.remove_false_nodes(known).reset_index(drop=True)
+        observed = neatnet.nodes.remove_interstitial_nodes(known).reset_index(drop=True)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
 

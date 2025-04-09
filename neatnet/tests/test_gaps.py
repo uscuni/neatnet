@@ -16,7 +16,7 @@ def test_close_gaps():
     closed = neatnet.close_gaps(df, 0.25)
     assert len(closed) == len(df)
 
-    merged = neatnet.remove_false_nodes(closed)
+    merged = neatnet.remove_interstitial_nodes(closed)
     assert len(merged) == 1
     assert merged.length[0] == pytest.approx(7.0502, rel=1e-3)
 
