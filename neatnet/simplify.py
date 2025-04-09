@@ -23,7 +23,7 @@ from .nodes import (
     consolidate_nodes,
     fix_topology,
     induce_nodes,
-    remove_false_nodes,
+    remove_interstitial_nodes,
     split,
 )
 
@@ -85,7 +85,7 @@ def _identify_non_planar(
 ) -> gpd.GeoDataFrame:
     """Filter artifacts caused by non-planar intersections."""
 
-    # Note from within `simplify_singletons()`
+    # Note from within `neatify_singletons()`
     # TODO: This is not perfect.
     # TODO: Some 3CC artifacts were non-planar but not captured here.
 
@@ -126,7 +126,7 @@ def classification_sequence(
     return nodes, artifacts, roads
 
 
-def simplify_singletons(
+def neatify_singletons(
     artifacts: gpd.GeoDataFrame,
     roads: gpd.GeoDataFrame,
     *,
@@ -139,7 +139,7 @@ def simplify_singletons(
     consolidation_tolerance: float | int = 10,
 ) -> gpd.GeoDataFrame:
     """Simplification of singleton face artifacts – the first simplification step in
-    the procedure detailed in ``simplify.simplify_loop()``.
+    the procedure detailed in ``simplify.neatify_loop()``.
 
     This process extracts nodes from network edges before computing and labeling
     face artifacts with a ``{C, E, S}`` typology through ``momepy.COINS`` via the
@@ -289,7 +289,7 @@ def simplify_singletons(
             if c != "_status":
                 agg[c] = "first"
         non_empties = new_roads[~(new_roads.is_empty | new_roads.geometry.isna())]
-        new_roads = remove_false_nodes(non_empties, aggfunc=agg)
+        new_roads = remove_interstitial_nodes(non_empties, aggfunc=agg)
 
         final = new_roads
     else:
@@ -300,7 +300,7 @@ def simplify_singletons(
     return final
 
 
-def simplify_pairs(
+def neatify_pairs(
     artifacts: gpd.GeoDataFrame,
     roads: gpd.GeoDataFrame,
     *,
@@ -311,7 +311,7 @@ def simplify_pairs(
     consolidation_tolerance: float | int = 10,
 ) -> gpd.GeoDataFrame:
     """Simplification of pairs of face artifacts – the second simplification step in
-    the procedure detailed in ``simplify.simplify_loop()``.
+    the procedure detailed in ``simplify.neatify_loop()``.
 
     This process extracts nodes from network edges before identifying non-planarity
     and cluster information.
@@ -404,7 +404,7 @@ def simplify_pairs(
         _drop_roads = roads.drop(_to_drop.dropna().values)
 
         # Re-run node cleaning on subset of fresh road edges
-        roads_cleaned = remove_false_nodes(
+        roads_cleaned = remove_interstitial_nodes(
             _drop_roads,
             aggfunc=agg,
         )
@@ -449,7 +449,7 @@ def simplify_pairs(
     # Dispatch singleton simplifier
     if not merged_pairs.empty or not _1st.empty:
         # Merged pairs & first instance – w/o COINS
-        roads_cleaned = simplify_singletons(
+        roads_cleaned = neatify_singletons(
             pd.concat([merged_pairs, _1st]),
             roads_cleaned,
             max_segment_length=max_segment_length,
@@ -461,7 +461,7 @@ def simplify_pairs(
         )
         # Second instance – w/ COINS
         if not _2nd.empty:
-            roads_cleaned = simplify_singletons(
+            roads_cleaned = neatify_singletons(
                 _2nd,
                 roads_cleaned,
                 max_segment_length=max_segment_length,
@@ -474,7 +474,7 @@ def simplify_pairs(
 
     # Dispatch cluster simplifier
     if not for_skeleton.empty:
-        roads_cleaned = simplify_clusters(
+        roads_cleaned = neatify_clusters(
             for_skeleton,
             roads_cleaned,
             max_segment_length=max_segment_length,
@@ -486,7 +486,7 @@ def simplify_pairs(
     return roads_cleaned
 
 
-def simplify_clusters(
+def neatify_clusters(
     artifacts: gpd.GeoDataFrame,
     roads: gpd.GeoDataFrame,
     *,
@@ -497,7 +497,7 @@ def simplify_clusters(
     consolidation_tolerance: float | int = 10,
 ) -> gpd.GeoDataFrame:
     """Simplification of clusters of face artifacts – the third simplification step in
-    the procedure detailed in ``simplify.simplify_loop()``.
+    the procedure detailed in ``simplify.neatify_loop()``.
 
     This process extracts nodes from network edges before iterating over each
     cluster artifact and performing simplification.
@@ -573,7 +573,7 @@ def simplify_clusters(
     for c in new_roads.columns.drop(new_roads.active_geometry_name):
         if c != "_status":
             agg[c] = "first"
-    new_roads = remove_false_nodes(
+    new_roads = remove_interstitial_nodes(
         new_roads[~new_roads.is_empty], aggfunc=agg
     ).drop_duplicates("geometry")
 
@@ -669,7 +669,7 @@ def get_solution(group: gpd.GeoDataFrame, roads: gpd.GeoDataFrame) -> pd.Series:
     return pd.Series({"solution": "skeleton", "drop_id": shared})
 
 
-def simplify_network(
+def neatify(
     roads: gpd.GeoDataFrame,
     *,
     exclusion_mask: None | gpd.GeoSeries = None,
@@ -826,7 +826,7 @@ def simplify_network(
     )
 
     # Loop 1
-    new_roads = simplify_loop(
+    new_roads = neatify_loop(
         roads,
         artifacts,
         max_segment_length=max_segment_length,
@@ -856,7 +856,7 @@ def simplify_network(
             predicate=predicate,
         )
 
-        new_roads = simplify_loop(
+        new_roads = neatify_loop(
             new_roads,
             artifacts,
             max_segment_length=max_segment_length,
@@ -874,7 +874,7 @@ def simplify_network(
     return new_roads
 
 
-def simplify_loop(
+def neatify_loop(
     roads: gpd.GeoDataFrame,
     artifacts: gpd.GeoDataFrame,
     *,
@@ -930,7 +930,7 @@ def simplify_loop(
     # Remove edges fully within the artifact (dangles).
     _, r_idx = roads.sindex.query(artifacts.geometry, predicate="contains")
     # Dropping may lead to new false nodes – drop those
-    roads = remove_false_nodes(roads.drop(roads.index[r_idx]))
+    roads = remove_interstitial_nodes(roads.drop(roads.index[r_idx]))
 
     # Filter singleton artifacts
     rook = graph.Graph.build_contiguity(artifacts, rook=True)
@@ -949,7 +949,7 @@ def simplify_loop(
 
     if not singles.empty:
         # NOTE: this drops attributes
-        roads = simplify_singletons(
+        roads = neatify_singletons(
             singles,
             roads,
             max_segment_length=max_segment_length,
@@ -957,7 +957,7 @@ def simplify_loop(
             consolidation_tolerance=consolidation_tolerance,
         )
     if not doubles.empty:
-        roads = simplify_pairs(
+        roads = neatify_pairs(
             doubles,
             roads,
             max_segment_length=max_segment_length,
@@ -967,7 +967,7 @@ def simplify_loop(
             consolidation_tolerance=consolidation_tolerance,
         )
     if not clusters.empty:
-        roads = simplify_clusters(
+        roads = neatify_clusters(
             clusters,
             roads,
             max_segment_length=max_segment_length,

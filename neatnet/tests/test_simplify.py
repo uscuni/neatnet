@@ -21,7 +21,7 @@ ci_artifacts = pathlib.Path("ci_artifacts")
         ("exclusion_mask", 1.05, 65765.0),
     ],
 )
-def test_simplify_network_small(scenario, tol, known_length):
+def test_neatify_small(scenario, tol, known_length):
     ac = "apalachicola"
 
     original = geopandas.read_parquet(test_data / f"{ac}_original.parquet")
@@ -53,7 +53,7 @@ def test_simplify_network_small(scenario, tol, known_length):
     else:
         exclusion_mask = None
 
-    observed = neatnet.simplify_network(original, exclusion_mask=exclusion_mask)
+    observed = neatnet.neatify(original, exclusion_mask=exclusion_mask)
     observed_length = observed.geometry.length.sum()
 
     # storing GH artifacts
@@ -85,9 +85,9 @@ def test_simplify_network_small(scenario, tol, known_length):
         ("slc_4881", 0.3, 1_762_456),
     ],
 )
-def test_simplify_network_full_fua(aoi, tol, known_length):
+def test_neatify_full_fua(aoi, tol, known_length):
     known = geopandas.read_parquet(full_fua_data / aoi / "simplified.parquet")
-    observed = neatnet.simplify_network(
+    observed = neatnet.neatify(
         geopandas.read_parquet(full_fua_data / aoi / "original.parquet")
     )
     observed_length = observed.geometry.length.sum()
@@ -112,9 +112,9 @@ def test_simplify_network_full_fua(aoi, tol, known_length):
 
 
 @pytest.mark.wuhan
-def test_simplify_network_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
+def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
     known = geopandas.read_parquet(full_fua_data / aoi / "simplified.parquet")
-    observed = neatnet.simplify_network(
+    observed = neatnet.neatify(
         geopandas.read_parquet(full_fua_data / aoi / "original.parquet")
     )
     observed_length = observed.geometry.length.sum()

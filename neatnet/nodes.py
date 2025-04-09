@@ -168,7 +168,7 @@ def weld_edges(
     ignore: None | gpd.GeoSeries = None,
 ) -> list | np.ndarray | gpd.GeoSeries:
     """Combine lines sharing an endpoint (if only 2 lines share that point).
-    Lightweight version of ``remove_false_nodes()``.
+    Lightweight version of ``remove_interstitial_nodes()``.
 
     Parameters
     ----------
@@ -280,10 +280,12 @@ def _loops_and_non_loops(
     return loops, not_loops
 
 
-def remove_false_nodes(
+def remove_interstitial_nodes(
     gdf: gpd.GeoSeries | gpd.GeoDataFrame, *, aggfunc: str | dict = "first", **kwargs
 ) -> gpd.GeoSeries | gpd.GeoDataFrame:
-    """Reimplementation of ``momepy.remove_false_nodes()`` that preserves attributes.
+    """Clean topology of existing LineString geometry by removal of nodes of degree 2.
+
+    Returns the original gdf if there’s no node of degree 2.
 
     Parameters
     ----------
@@ -372,7 +374,20 @@ def _rotate_loop_coords(
         loop_points.geometry, predicate="dwithin", distance=1e-4
     )
 
-    new_start = loop_points.loc[loop_points_ix].geometry.mode().get_coordinates().values
+    mode = loop_points.loc[loop_points_ix].geometry.mode()
+
+    # if there is a non-planar intersection, we may have multiple points. Check with
+    # entrypoints only in that case
+    if mode.shape[0] > 1:
+        loop_points_ix, _ = not_loops.sindex.query(
+            loop_points.geometry, predicate="dwithin", distance=1e-4
+        )
+        new_mode = loop_points.loc[loop_points_ix].geometry.mode()
+        # if that did not help, just pick one to avoid failure and hope for the best
+        if new_mode.empty | new_mode.shape[0] > 1:
+            mode = mode.iloc[[0]]
+
+    new_start = mode.get_coordinates().values
     _coords_match = (loop_coords == new_start).all(axis=1)
     new_start_idx = np.where(_coords_match)[0].squeeze()
 
@@ -405,7 +420,7 @@ def fix_topology(
     eps : float = 1e-4
         Tolerance epsilon for point snapping passed into ``nodes.split()``.
     **kwargs : dict
-        Key word arguments passed into ``remove_false_nodes()``.
+        Key word arguments passed into ``remove_interstitial_nodes()``.
 
     Returns
     -------
@@ -415,7 +430,7 @@ def fix_topology(
     """
     roads = roads[~roads.geometry.normalize().duplicated()].copy()
     roads_w_nodes = induce_nodes(roads, eps=eps)
-    return remove_false_nodes(roads_w_nodes, **kwargs)
+    return remove_interstitial_nodes(roads_w_nodes, **kwargs)
 
 
 def consolidate_nodes(
@@ -550,7 +565,7 @@ def consolidate_nodes(
     for c in gdf.columns.drop(gdf.active_geometry_name):
         if c != "_status":
             agg[c] = "first"
-    return remove_false_nodes(
+    return remove_interstitial_nodes(
         gdf[~gdf.geometry.is_empty].explode(),
         # NOTE: this aggfunc needs to be able to process all the columns
         aggfunc=agg,
