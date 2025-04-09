@@ -57,7 +57,7 @@ for city, fua in city_fua.items():
     original = geopandas.read_parquet(pathlib.Path(aoi, "original.parquet"))
 
     # output data
-    simplified = neatnet.simplify_network(original)
+    simplified = neatnet.neatify(original)
     simplified.to_parquet(pathlib.Path(aoi, "simplified.parquet"))
 
     t2 = round((time.time() - t1) / 60.0, 2)

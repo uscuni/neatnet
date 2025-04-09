@@ -247,6 +247,9 @@ def get_artifacts(
     """Extract face artifacts and return the FAI threshold.
     See :cite:`fleischmann_shape-based_2024` for more details.
 
+    Compared to :class:`FaceArtifacts`, this further includes a routine extending the
+    set of originally discovered artifacts based on continuity and custom thresholds.
+
     Parameters
     ----------
     roads : geopandas.GeoDataFrame
@@ -257,11 +260,11 @@ def get_artifacts(
         The spatial predicate used to exclude face artifacts from returned output.
     threshold : None | float | int = None
         First option threshold used to determine face artifacts. See the
-        ``artifact_threshold`` keyword argument in ``simplify.simplify_network()``.
+        ``artifact_threshold`` keyword argument in ``simplify.neatify()``.
     threshold_fallback : None | float | int = None
         Second option threshold used to determine face artifacts. See the
         ``artifact_threshold_fallback`` keyword argument in
-        ``simplify.simplify_network()``.
+        ``simplify.neatify()``.
     area_threshold_blocks : float | int = 1e5
         This is the first threshold for detecting block-like artifacts whose
         Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above
