@@ -11,7 +11,7 @@
 ```py
 import neatnet
 
-simplified = neatnet.simplify_network(gdf)
+simplified = neatnet.neatify(gdf)
 ```
 
 ## Contribution

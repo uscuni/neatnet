@@ -31,8 +31,8 @@ def close_gaps(
 
     See also
     --------
-    momepy.extend_lines
-    momepy.remove_false_nodes
+    neatnet.extend_lines
+    neatnet.remove_interstitial_nodes
 
     """
     geom = gdf.geometry.array
@@ -106,8 +106,8 @@ def extend_lines(
 
     See also
     --------
-    momepy.close_gaps
-    momepy.remove_false_nodes
+    neatnet.close_gaps
+    neatnet.remove_interstitial_nodes
     """
 
     # explode to avoid MultiLineStrings

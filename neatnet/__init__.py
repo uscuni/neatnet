@@ -8,15 +8,15 @@ from .nodes import (
     consolidate_nodes,
     fix_topology,
     induce_nodes,
-    remove_false_nodes,
+    remove_interstitial_nodes,
     split,
 )
 from .simplify import (
-    simplify_clusters,
-    simplify_loop,
-    simplify_network,
-    simplify_pairs,
-    simplify_singletons,
+    neatify,
+    neatify_clusters,
+    neatify_loop,
+    neatify_pairs,
+    neatify_singletons,
 )
 
 with contextlib.suppress(PackageNotFoundError):

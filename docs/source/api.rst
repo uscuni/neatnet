@@ -16,36 +16,47 @@ is the primary API of ``neatnet``.
 .. autosummary::
    :toctree: generated/
 
-   simplify_network
+   neatify
 
-Simplification Components
-~~~~~~~~~~~~~~~~~~~~~~~~~
+The minimal topology fixing can be done using another routine:
+
+.. autosummary::
+   :toctree: generated/
+
+   fix_topology
+
+
+Node Simplification
+------------------
 
 Some of the individual components are also exposed as independent functions (note that
-all are consumed by :func:`simplify_network`).
+most are consumed by :func:`neatify`).
 
-Either as combined routines:
+
+A subset of functions dealing with network nodes:
 
 .. autosummary::
    :toctree: generated/
 
    consolidate_nodes
-   fix_topology
+   remove_interstitial_nodes
+   induce_nodes
 
-Or as their atomic components:
+Face artifact detection
+-----------------------
+
+A subset dealing with face artifacts:
 
 .. autosummary::
    :toctree: generated/
 
-   remove_false_nodes
-   induce_nodes
    FaceArtifacts
+   get_artifacts
 
+Gap filling
+----------
 
-Additional functions
---------------------
-
-Some of the functions for specific pre-processing tasks that are not part of the simplification routine:
+Snapping and extending lines in case of imprecise topology:
 
 .. autosummary::
    :toctree: generated/
@@ -56,15 +67,15 @@ Some of the functions for specific pre-processing tasks that are not part of the
 Internal components
 -------------------
 
-For debugging purposes, users may use some parts of the internal API.
+For debugging purposes, users may use some parts of the internal API used within :func:`neatify`.
 
 .. autosummary::
    :toctree: generated/
 
    get_artifacts
-   simplify_loop
-   simplify_singletons
-   simplify_pairs
-   simplify_clusters
+   neatify_loop
+   neatify_singletons
+   neatify_pairs
+   neatify_clusters
 
 None of the other functions is intended for public use and their API can change without a warning.
