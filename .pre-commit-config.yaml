@@ -4,9 +4,9 @@ repos:
     rev: "v0.11.8"
     hooks:
       - id: ruff
-        files: "neatnet\/"
+        files: "neatnet\/|docs\/source\/"
       - id: ruff-format
-        files: "neatnet\/"
+        files: "neatnet\/|docs\/source\/"
   - repo: https://github.com/adrienverge/yamllint
     rev: "v1.37.0"
     hooks:
