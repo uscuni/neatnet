@@ -1,6 +1,7 @@
 import pathlib
 
 import geopandas
+import momepy
 import numpy
 import pytest
 import shapely
@@ -147,3 +148,11 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
             observed.drop(columns=["_status", "geometry"]),
         )
         pytest.geom_test(known, observed, tolerance=tol, aoi=aoi)
+
+
+def test_neatify_fallback():
+    streets = geopandas.read_file(momepy.datasets.get_path("bubenec"), layer="streets")
+    with pytest.warns(UserWarning, match="No threshold for artifact"):
+        simple = neatnet.neatify(streets)
+        # only topology is fixed
+        assert simple.shape == (31, 2)

@@ -345,6 +345,12 @@ def get_artifacts(
         if not fas.threshold and fas.polygons.empty:
             return gpd.GeoDataFrame(geometry=[]), None
         if not fas.threshold and threshold_fallback:
+            warnings.warn(
+                "No threshold for artifact detection found. Using the set "
+                f"fallback value of {threshold_fallback}.",
+                UserWarning,
+                stacklevel=2,
+            )
             threshold = threshold_fallback
         elif not fas.threshold and not threshold_fallback:
             raise ValueError(
