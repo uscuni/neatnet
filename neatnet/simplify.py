@@ -721,7 +721,7 @@ def neatify(
         ``momepy.FaceArtifacts.threshold`` is not used in favor of the
         given value. This is useful for small networks where artifact
         detection may fail or become unreliable.
-    artifact_threshold_fallback : None | float | int = None
+    artifact_threshold_fallback : float | int = 7
         If artifact threshold detection fails, this value is used as a fallback.
     area_threshold_blocks : float | int = 1e5
         This is the first threshold for detecting block-like artifacts whose
