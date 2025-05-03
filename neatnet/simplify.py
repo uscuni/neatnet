@@ -666,7 +666,7 @@ def neatify(
     simplification_factor: float | int = 2,
     consolidation_tolerance: float | int = 10,
     artifact_threshold: None | float | int = None,
-    artifact_threshold_fallback: None | float | int = None,
+    artifact_threshold_fallback: float | int = 7,
     area_threshold_blocks: float | int = 1e5,
     isoareal_threshold_blocks: float | int = 0.5,
     area_threshold_circles: float | int = 5e4,

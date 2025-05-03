@@ -339,6 +339,12 @@ def get_artifacts(
     # ...unless the fai is below the threshold
     if threshold is None:
         if not fas.threshold and threshold_fallback:
+            warnings.warn(
+                "No threshold for artifact detection found. Using the set "
+                f"fallback value of {threshold_fallback}.",
+                UserWarning,
+                stacklevel=2,
+            )
             threshold = threshold_fallback
         elif not fas.threshold and not threshold_fallback:
             raise ValueError(
