@@ -10,6 +10,7 @@ dependencies:
   - momepy=0.9.0
   - networkx=3.3
   - numpy=2.0.0
+  - osmnx=2.0
   - pandas=2.2.3
   - scipy=1.14.1
   - shapely=2.0.6

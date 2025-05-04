@@ -1,7 +1,7 @@
 import contextlib
 from importlib.metadata import PackageNotFoundError, version
 
-from . import simplify
+from . import simplify, utils
 from .artifacts import FaceArtifacts, get_artifacts
 from .gaps import close_gaps, extend_lines
 from .nodes import (
