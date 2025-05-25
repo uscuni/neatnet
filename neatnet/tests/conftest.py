@@ -46,6 +46,7 @@ KNOWN_BAD_GEOMS = {
     "douala_809": [],
     "liege_1656": [921],
     "slc_4881": [1144, 1146],
+    "wuhan_8989": [],
     "apalachicola_standard": [324],
     "apalachicola_exclusion_mask": [],
 }
