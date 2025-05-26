@@ -233,6 +233,7 @@ def _identify_degree_mismatch(
 ) -> gpd.GeoSeries:
     """Helper to identify difference of observed vs. expected node degree."""
     nodes = _nodes_degrees_from_edges(edges.geometry)
+    nodes = nodes.set_crs(edges.crs)
     nix, eix = edges.sindex.query(nodes.geometry, **sindex_kws)
     coo_vals = ([True] * len(nix), (nix, eix))
     coo_shape = (len(nodes), len(edges))
