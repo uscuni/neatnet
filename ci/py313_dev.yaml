@@ -21,10 +21,10 @@ dependencies:
       - numpy
       - pandas
       - pyarrow
+      - pyogrio
       - scipy
       - shapely
       - git+https://github.com/pysal/esda.git
       - git+https://github.com/geopandas/geopandas.git
-      - git+https://github.com/geopandas/pyogrio.git
       - git+https://github.com/pysal/libpysal.git
       - git+https://github.com/pysal/momepy.git
