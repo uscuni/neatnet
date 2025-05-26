@@ -268,7 +268,9 @@ def _nodes_degrees_from_edges(
 ) -> gpd.GeoDataFrame:
     """Helper to get network nodes and their degrees from edges' geometries."""
     node_points, degrees = _nodes_from_edges(edgelines, return_degrees=True)
-    nodes_gdf = gpd.GeoDataFrame({"degree": degrees, "geometry": node_points})
+    nodes_gdf = gpd.GeoDataFrame(
+        {"degree": degrees, "geometry": node_points}, crs=None
+    )
     return nodes_gdf
 
 
