@@ -1300,6 +1300,9 @@ def nx_gx(
         ``to_drop`` and ``to_add`` are updated inplace.
     """
 
+    # ensure CRS is set - gh#219
+    nodes = nodes.set_crs(edges.crs)
+
     # filter ends
     all_ends = edges[edges.coins_end]
 

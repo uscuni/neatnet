@@ -1,7 +1,6 @@
 import typing
 
 import geopandas as gpd
-import momepy
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -233,13 +232,45 @@ def _identify_degree_mismatch(
     edges: gpd.GeoDataFrame, sindex_kws: dict
 ) -> gpd.GeoSeries:
     """Helper to identify difference of observed vs. expected node degree."""
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(edges)), lines=False)
+    nodes = _nodes_degrees_from_edges(edges.geometry)
+    nodes = nodes.set_crs(edges.crs)
     nix, eix = edges.sindex.query(nodes.geometry, **sindex_kws)
     coo_vals = ([True] * len(nix), (nix, eix))
     coo_shape = (len(nodes), len(edges))
     intersects = sparse.coo_array(coo_vals, shape=coo_shape, dtype=np.bool_)
     nodes["expected_degree"] = intersects.sum(axis=1)
     return nodes[nodes["degree"] != nodes["expected_degree"]].geometry
+
+
+def _nodes_from_edges(
+    edgelines: list | np.ndarray | gpd.GeoSeries,
+    return_degrees=False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+    """Helper to get network nodes from edges' geometries."""
+    edgelines = np.array(edgelines)
+    start_points = shapely.get_point(edgelines, 0)
+    end_points = shapely.get_point(edgelines, -1)
+    node_coords = np.unique(
+        shapely.get_coordinates(np.concatenate([start_points, end_points])),
+        axis=0,
+        return_counts=return_degrees,
+    )
+    if return_degrees:
+        node_coords, degrees = node_coords
+    node_points = shapely.points(node_coords)
+    if return_degrees:
+        return node_points, degrees
+    else:
+        return node_points
+
+
+def _nodes_degrees_from_edges(
+    edgelines: list | np.ndarray | gpd.GeoSeries,
+) -> gpd.GeoDataFrame:
+    """Helper to get network nodes and their degrees from edges' geometries."""
+    node_points, degrees = _nodes_from_edges(edgelines, return_degrees=True)
+    nodes_gdf = gpd.GeoDataFrame({"degree": degrees, "geometry": node_points})
+    return nodes_gdf
 
 
 def _makes_loop_contact(
@@ -337,11 +368,7 @@ def remove_interstitial_nodes(
     aggregated = aggregated_geometry.join(aggregated_data)
 
     # Derive nodes
-    nodes = momepy.nx_to_gdf(
-        momepy.node_degree(momepy.gdf_to_nx(aggregated[[aggregated.geometry.name]])),
-        lines=False,
-    )
-
+    nodes = _nodes_from_edges(aggregated.geometry)
     # Bifurcate edges into loops and non-loops
     loops, not_loops = _loops_and_non_loops(aggregated)
 
@@ -350,10 +377,10 @@ def remove_interstitial_nodes(
     #   - that endpoint shares a node with an intersecting line
     fixed_loops = []
     fixed_index = []
-    node_ix, loop_ix = loops.sindex.query(nodes.geometry, predicate="intersects")
+    node_ix, loop_ix = loops.sindex.query(nodes, predicate="intersects")
     for ix in np.unique(loop_ix):
         loop_geom = loops.geometry.iloc[ix]
-        target_nodes = nodes.geometry.iloc[node_ix[loop_ix == ix]]
+        target_nodes = nodes[node_ix[loop_ix == ix]]
         if len(target_nodes) == 2:
             new_sequence = _rotate_loop_coords(loop_geom, not_loops)
             fixed_loops.append(shapely.LineString(new_sequence))
@@ -473,7 +500,7 @@ def consolidate_nodes(
     elif isinstance(gdf, np.ndarray):
         gdf = gpd.GeoDataFrame(geometry=gdf)
 
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(gdf)), lines=False)
+    nodes = _nodes_degrees_from_edges(gdf.geometry)
 
     if preserve_ends:
         # keep at least one meter of original geometry around each end
