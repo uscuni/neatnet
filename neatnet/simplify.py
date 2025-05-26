@@ -3,7 +3,6 @@ import typing
 import warnings
 
 import geopandas as gpd
-import momepy
 import numpy as np
 import pandas as pd
 import shapely
@@ -19,6 +18,8 @@ from .artifacts import (
 )
 from .continuity import continuity, get_stroke_info
 from .nodes import (
+    _nodes_degrees_from_edges,
+    _nodes_from_edges,
     _status,
     consolidate_nodes,
     fix_topology,
@@ -41,7 +42,7 @@ def _link_nodes_artifacts(
     """Helper to prep nodes & artifacts when simplifying singletons & pairs."""
 
     # Get nodes from the network
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
+    nodes = _nodes_degrees_from_edges(roads.geometry)
 
     if step == "singletons":
         node_geom = nodes.geometry
@@ -531,7 +532,7 @@ def neatify_clusters(
     """
 
     # Get nodes from the network
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
+    nodes = gpd.GeoSeries(_nodes_from_edges(roads.geometry))
 
     # Collect changes
     to_drop: list[int] = []
@@ -735,7 +736,7 @@ def neatify(
         ``momepy.FaceArtifacts.threshold`` is not used in favor of the
         given value. This is useful for small networks where artifact
         detection may fail or become unreliable.
-    artifact_threshold_fallback : None | float | int = None
+    artifact_threshold_fallback : float | int = 7
         If artifact threshold detection fails, this value is used as a fallback.
     area_threshold_blocks : float | int = 1e5
         This is the first threshold for detecting block-like artifacts whose

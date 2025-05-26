@@ -47,7 +47,7 @@ tests = [
     "codecov",
     "coverage",
     "matplotlib",
-    "mypy",
+    "mypy>=1.15.0,<2",
     "pre-commit",
     "pyarrow>=17.0",
     "pytest",
@@ -58,17 +58,19 @@ tests = [
 ]
 
 docs = [
-    "sphinx",
-    "numpydoc",
-    "myst_nb",
-    "sphinxcontrib-bibtex",
-    "sphinx_autosummary_accessors",
-    "sphinx_copybutton",
-    "sphinx_book_theme",
     "ipykernel",
     "ipywidgets",
     "jupyterlab",
+    "myst_nb",
+    "numpydoc",
+    "sphinx",
+    "sphinxcontrib-bibtex",
+    "sphinx_autosummary_accessors",
+    "sphinx_book_theme",
+    "sphinx_copybutton",
 ]
+all = ["neatnet[tests,docs]"]
+
 
 [tool.setuptools.packages.find]
 include = ["neatnet", "neatnet.*"]
@@ -126,13 +128,13 @@ pyarrow = "*"
 pyogrio = "*"
 scipy = "*"
 shapely = "*"
+mypy = ">=1.15.0,<2"
 pre-commit = "*"
 pytest = "*"
 pytest-cov = "*"
 pytest-xdist = "*"
 ruff = "*"
 yamllint = "*"
-mypy = ">=1.15.0,<2"
 
 [tool.pixi.pypi-dependencies]
 neatnet = { path = ".", editable = true }

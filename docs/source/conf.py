@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.abspath("../neatnet/"))
 import neatnet  # noqa
 
 project = "neatnet"
-copyright = "2024-, neatnet Developers"
+copyright = "2024-, neatnet Developers"  # noqa: A001
 author = "Martin Fleischmann, Anastassia Vybornova, James D. Gaboardi"
 
 version = neatnet.__version__

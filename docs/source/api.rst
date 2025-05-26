@@ -27,7 +27,7 @@ The minimal topology fixing can be done using another routine:
 
 
 Node Simplification
-------------------
+-------------------
 
 Some of the individual components are also exposed as independent functions (note that
 most are consumed by :func:`neatify`).
@@ -54,7 +54,7 @@ A subset dealing with face artifacts:
    get_artifacts
 
 Gap filling
-----------
+-----------
 
 Snapping and extending lines in case of imprecise topology:
 
