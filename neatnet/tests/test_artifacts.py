@@ -27,7 +27,6 @@ def test_get_artifacts_error():
 
 
 def test_FaceArtifacts():  # noqa: N802
-    pytest.importorskip("esda")
     osmnx = pytest.importorskip("osmnx")
     type_filter = (
         '["highway"~"living_street|motorway|motorway_link|pedestrian|primary'
