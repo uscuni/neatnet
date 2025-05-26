@@ -233,6 +233,7 @@ def _identify_degree_mismatch(
 ) -> gpd.GeoSeries:
     """Helper to identify difference of observed vs. expected node degree."""
     nodes = _nodes_degrees_from_edges(edges.geometry)
+    nodes = nodes.set_crs(edges.crs)
     nix, eix = edges.sindex.query(nodes.geometry, **sindex_kws)
     coo_vals = ([True] * len(nix), (nix, eix))
     coo_shape = (len(nodes), len(edges))
@@ -268,9 +269,7 @@ def _nodes_degrees_from_edges(
 ) -> gpd.GeoDataFrame:
     """Helper to get network nodes and their degrees from edges' geometries."""
     node_points, degrees = _nodes_from_edges(edgelines, return_degrees=True)
-    nodes_gdf = gpd.GeoDataFrame(
-        {"degree": degrees, "geometry": node_points}, crs=None
-    )
+    nodes_gdf = gpd.GeoDataFrame({"degree": degrees, "geometry": node_points})
     return nodes_gdf
 
 
