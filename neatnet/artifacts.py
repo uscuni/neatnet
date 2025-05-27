@@ -115,7 +115,7 @@ class FaceArtifacts:
 
         if self.polygons.empty:
             warnings.warn(
-                "Input roads could not not be polygonized. "
+                "Input streets could not not be polygonized. "
                 "Identification of face artifacts not possible.",
                 UserWarning,
                 stacklevel=2,
@@ -253,9 +253,9 @@ def get_artifacts(
     Parameters
     ----------
     roads : geopandas.GeoDataFrame
-        Input roads that have been preprocessed.
+        Input streets that have been preprocessed.
     exclusion_mask : None | geopandas.GeoSeries = None
-        Polygons used to determine face artifacts to exclude from returned output.
+        Geometries used to determine face artifacts to exclude from returned output.
     predicate : str = 'intersects'
         The spatial predicate used to exclude face artifacts from returned output.
     threshold : None | float | int = None
@@ -1691,7 +1691,7 @@ def nx_gx_cluster(
     # merging lines between nodes to keep:
     buffered_nodes_to_keep = nodes_to_keep.buffer(eps).union_all()
 
-    # make queen contiguity graph on MINUSBUFFERED outline road segments,
+    # make queen contiguity graph on MINUSBUFFERED outline street segments,
     # and copy component labels into edges_on_boundary gdf
     edges_on_boundary = edges_on_boundary.explode(ignore_index=True)
     queen = graph.Graph.build_fuzzy_contiguity(

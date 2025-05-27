@@ -7,7 +7,7 @@ import numpy
 import pandas
 import pytest
 import shapely
-from pandas.testing import assert_series_equal
+from pandas.testing import assert_frame_equal, assert_series_equal
 
 import neatnet
 
@@ -903,7 +903,15 @@ class TestRotateLoopCoords:
             ),
         }
         gdf = geopandas.GeoDataFrame.from_features(data)
-        r = neatnet.fix_topology(gdf)
+        # see gh#224
+        with pytest.warns(
+            UserWarning,
+            match=(
+                "Unable to sort modes: '<' not supported between "
+                "instances of 'Point' and 'Point'"
+            ),
+        ):
+            r = neatnet.fix_topology(gdf)
         assert r.shape[0] == 3
 
 
@@ -1209,3 +1217,21 @@ class TestConsolidateNodes:
 
         assert_series_equal(known._status, observed._status)
         pytest.geom_test(known, observed, tolerance=0.000001)
+
+
+def test_fill_attrs():
+    known = pandas.DataFrame(
+        {
+            "attr1": ["a", "b"],
+            "attr2": [5, 5],
+            "attr3": ["W", "W"],
+            "attr4": [["i", "o", 6], ["i", "o", 6]],
+        }
+    )
+
+    observed = neatnet.nodes._fill_attrs(
+        pandas.DataFrame({"attr1": ["a", "b"]}),
+        pandas.Series([5, "W", ["i", "o", 6]], index=["attr2", "attr3", "attr4"]),
+    )
+
+    assert_frame_equal(known, observed)
