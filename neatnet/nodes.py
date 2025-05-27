@@ -460,7 +460,7 @@ def fix_topology(
     eps: float = 1e-4,
     **kwargs,
 ) -> gpd.GeoDataFrame:
-    """Fix road network topology. This ensures correct topology of the network by:
+    """Fix street network topology. This ensures correct topology of the network by:
 
         1.  Adding potentially missing nodes...
                 on intersections of individual LineString endpoints
@@ -483,7 +483,7 @@ def fix_topology(
     Returns
     -------
     gpd.GeoDataFrame
-        The input roads that now have fixed topology and are ready
+        The input streets that now have fixed topology and are ready
         to proceed through the simplification algorithm.
     """
     roads = roads[~roads.geometry.normalize().duplicated()].copy()
