@@ -5,12 +5,12 @@ import momepy
 def continuity(
     roads: geopandas.GeoDataFrame, angle_threshold: float = 120
 ) -> tuple[geopandas.GeoDataFrame, momepy.COINS]:
-    """Assign COINS-based information to roads.
+    """Assign COINS-based information to streets.
 
     Parameters
     ----------
     roads :  geopandas.GeoDataFrame
-        Road network.
+        Street network.
     angle_threshold : float = 120
         See the ``angle_threshold`` keyword argument in ``momepy.COINS()``.
 
@@ -61,7 +61,7 @@ def get_stroke_info(
     artifacts : geopandas.GeoSeries | geopandas.GeoDataFrame
         Polygons representing the artifacts.
     roads : geopandas.GeoSeries | geopandas.GeoDataFrame
-        LineStrings representing the road network.
+        LineStrings representing the street network.
 
     Returns
     -------
