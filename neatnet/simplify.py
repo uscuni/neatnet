@@ -691,8 +691,7 @@ def neatify(
 
     This algorithm is designed for use with only "street" network geometries as input.
     While passing in other types of pathing (e.g., sidewalks, canals) will likely yield
-    valid geometric results, those results will likely not represent the morphology
-    appropriately.
+    valid geometric results, that behavior is untested.
 
     Parameters
     ----------
