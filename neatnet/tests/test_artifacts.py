@@ -19,7 +19,7 @@ def test_get_artifacts_error():
         with pytest.warns(
             UserWarning,
             match=(
-                "Input roads could not not be polygonized. "
+                "Input streets could not not be polygonized. "
                 "Identification of face artifacts not possible."
             ),
         ):
