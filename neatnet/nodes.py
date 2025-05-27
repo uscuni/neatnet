@@ -1,3 +1,4 @@
+import collections.abc
 import typing
 
 import geopandas as gpd
@@ -8,6 +9,37 @@ import pyproj
 import shapely
 from scipy import sparse
 from sklearn.cluster import DBSCAN
+
+
+def _fill_attrs(gdf: gpd.GeoDataFrame, source_row: pd.Series) -> gpd.GeoDataFrame:
+    """Thoughtful attribute assignment to lines split into segments by new nodes –
+    taking list-like values into consideration. See gh#213. Regarding iterables,
+    currently only supports list values – others can be added based on input type
+    in the future on an ad hoc basis as problems arise. Called from within ``split()``.
+
+    Parameters
+    ----------
+    gdf : geopandas.GeoDataFrame
+        The new frame of split linestrings.
+    source_row: pandas.Series
+        The original source row.
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        The input ``gdf`` with updated columns based on values in ``source_row``.
+    """
+
+    def _populate_column(attr):
+        """Return the attribute if scalar, create vector of input if not."""
+        if isinstance(attr, collections.abc.Sequence) and not isinstance(attr, str):
+            attr = [attr] * gdf.shape[0]
+        return attr
+
+    for col in source_row.index.drop(["geometry", "_status"], errors="ignore"):
+        gdf[col] = _populate_column(source_row[col])
+
+    return gdf
 
 
 def split(
@@ -45,8 +77,7 @@ def split(
             lines_split = _snap_n_split(edge.item(), split, eps)
             if lines_split.shape[0] > 1:
                 gdf_split = gpd.GeoDataFrame(geometry=lines_split, crs=crs)
-                for c in row.index.drop(["geometry", "_status"], errors="ignore"):
-                    gdf_split[c] = row[c]
+                gdf_split = _fill_attrs(gdf_split, row)
                 gdf_split["_status"] = "changed"
                 cleaned_roads = pd.concat(
                     [cleaned_roads.drop(edge.index[0]), gdf_split],
@@ -429,7 +460,7 @@ def fix_topology(
     eps: float = 1e-4,
     **kwargs,
 ) -> gpd.GeoDataFrame:
-    """Fix road network topology. This ensures correct topology of the network by:
+    """Fix street network topology. This ensures correct topology of the network by:
 
         1.  Adding potentially missing nodes...
                 on intersections of individual LineString endpoints
@@ -452,7 +483,7 @@ def fix_topology(
     Returns
     -------
     gpd.GeoDataFrame
-        The input roads that now have fixed topology and are ready
+        The input streets that now have fixed topology and are ready
         to proceed through the simplification algorithm.
     """
     roads = roads[~roads.geometry.normalize().duplicated()].copy()

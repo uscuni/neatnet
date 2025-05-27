@@ -144,7 +144,7 @@ def neatify_singletons(
 
     This process extracts nodes from network edges before computing and labeling
     face artifacts with a ``{C, E, S}`` typology through ``momepy.COINS`` via the
-    constituent road geometries.
+    constituent street geometries.
 
     Next, each artifact is iterated over and constituent line geometries are either
     dropped or added in the following order of typologies:
@@ -160,14 +160,14 @@ def neatify_singletons(
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
     roads : geopandas.GeoDataFrame
-        Preprocessed road network data.
+        Preprocessed street network data.
     max_segment_length : float | int = 1
         Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
         Used in multiple internal geometric operations.
     compute_coins : bool = True
         Flag for computing and labeling artifacts with a ``{C, E, S}`` typology through
-        ``momepy.COINS`` via the constituent road geometries.
+        ``momepy.COINS`` via the constituent street geometries.
     min_dangle_length : float | int = 10
         The threshold for determining if linestrings are dangling slivers to be
         removed or not.
@@ -189,7 +189,7 @@ def neatify_singletons(
     Returns
     -------
     geopandas.GeoDataFrame
-        The road network line data following the singleton procedure.
+        The street network line data following the singleton procedure.
     """
 
     # Classify artifact typology
@@ -331,7 +331,7 @@ def neatify_pairs(
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
     roads : geopandas.GeoDataFrame
-        Preprocessed road network data.
+        Preprocessed street network data.
     max_segment_length : float | int = 1
         Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
@@ -355,7 +355,7 @@ def neatify_pairs(
     Returns
     -------
     geopandas.GeoDataFrame
-        The road network line data following the pairs procedure.
+        The street network line data following the pairs procedure.
     """
 
     # Extract network nodes and relate to artifacts
@@ -400,11 +400,11 @@ def neatify_pairs(
         sol_drop = "solution == 'drop_interline'"
         sol_iter = "solution == 'iterate'"
 
-        # Determine artifacts and road edges to drop
+        # Determine artifacts and street edges to drop
         _to_drop = artifacts_w_info.drop_duplicates("comp").query(sol_drop).drop_id
         _drop_roads = roads.drop(_to_drop.dropna().values)
 
-        # Re-run node cleaning on subset of fresh road edges
+        # Re-run node cleaning on subset of fresh street edges
         roads_cleaned = remove_interstitial_nodes(
             _drop_roads,
             aggfunc=agg,
@@ -508,7 +508,7 @@ def neatify_clusters(
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
     roads : geopandas.GeoDataFrame
-        Preprocessed road network data.
+        Preprocessed street network data.
     max_segment_length : float | int = 1
         Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
@@ -528,7 +528,7 @@ def neatify_clusters(
     Returns
     -------
     geopandas.GeoDataFrame
-        The road network line data following the clusters procedure.
+        The street network line data following the clusters procedure.
     """
 
     # Get nodes from the network
@@ -561,7 +561,7 @@ def neatify_clusters(
 
     cleaned_roads = roads.drop(to_drop)
 
-    # Create new roads with fixed geometry.
+    # Create new street with fixed geometry.
     # Note: ``to_add`` and ``to_drop`` lists shall be global and
     # this step should happen only once, not for every artifact
     new = gpd.GeoDataFrame(geometry=to_add, crs=roads.crs)
@@ -625,7 +625,7 @@ def get_solution(group: gpd.GeoDataFrame, roads: gpd.GeoDataFrame) -> pd.Series:
     group : geopandas.GeoDataFrame
         Dissolved group of connected planar artifacts.
     roads : geopandas.GeoDataFrame
-        Road network data.
+        Street network data.
 
     Returns
     -------
@@ -634,7 +634,7 @@ def get_solution(group: gpd.GeoDataFrame, roads: gpd.GeoDataFrame) -> pd.Series:
     """
 
     def _relate(loc: int) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
-        """Isolate intersecting & covering road geometries."""
+        """Isolate intersecting & covering street geometries."""
         _geom = group.geometry.iloc[loc]
         _roads = roads.iloc[roads.sindex.query(_geom, predicate="intersects")]
         _covers = _roads.iloc[_roads.sindex.query(_geom, predicate="covers")]
@@ -645,7 +645,7 @@ def get_solution(group: gpd.GeoDataFrame, roads: gpd.GeoDataFrame) -> pd.Series:
     roads_a, covers_a = _relate(0)
     roads_b, covers_b = _relate(1)
 
-    # Find the road segment that is contained within the cluster geometry
+    # Find the street segment that is contained within the cluster geometry
     shared = roads.index[roads.sindex.query(cluster_geom, predicate="contains")]
 
     if shared.empty or covers_a.empty or covers_b.empty:
@@ -690,10 +690,10 @@ def neatify(
     eps: float = 1e-4,
     n_loops: int = 2,
 ) -> gpd.GeoDataFrame:
-    """Top-level workflow for simplifying networks. The input raw road network data,
-    which must be in a projected coordinate reference system and is expected to be in
-    meters, is first preprocessed (topological corrections & node consolidation) before
-    two iterations of artifact detection and simplification.
+    """Top-level workflow for simplifying street networks. The input raw street network
+    data, which must be in a projected coordinate reference system and is expected to be
+    in meters, is first preprocessed (topological corrections & node consolidation)
+    before two iterations of artifact detection and simplification.
 
     Each iteration of the simplification procedure which includes (1.) the removal
     of false nodes; (2.) face artifact classification; and (3.) the line-based
@@ -703,13 +703,20 @@ def neatify(
     For further information on face artifact detection and extraction
     see :cite:`fleischmann_shape-based_2024`.
 
+    This algorithm is designed for use with only "street" network geometries as input.
+    While passing in other types of pathing (e.g., sidewalks, canals) will likely yield
+    valid geometric results, that behavior is untested.
+
     Parameters
     ----------
     roads : geopandas.GeoDataFrame
-        Raw road network data. This input *must* be in a projected coordinate reference
-        system and *should* be in meters. All defaults arguments assume meters.
+        Raw street network data. This input *must* be in a projected coordinate
+        reference system and *should* be in meters. All defaults arguments assume
+        meters. The internal algorithm is designed for use with street network
+        geometries, not  other types of pathing (e.g., sidewalks, canals), which
+        should be filtered out.
     exclusion_mask : None | geopandas.GeoSeries = None
-        Polygons used to determine face artifacts to exclude from returned output.
+        Geometries used to determine face artifacts to exclude from returned output.
     predicate : str = 'intersects'
         The spatial predicate used to exclude face artifacts from returned output.
     max_segment_length : float | int = 1
@@ -799,7 +806,7 @@ def neatify(
     Returns
     -------
     geopandas.GeoDataFrame
-        The final, simplified road network line data.
+        The final, simplified street network line data.
 
     Notes
     -----
@@ -897,7 +904,7 @@ def neatify_loop(
     Parameters
     ----------
     roads : geopandas.GeoDataFrame
-        Raw road network data.
+        Raw street network data.
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
     max_segment_length : float | int = 1
@@ -925,7 +932,7 @@ def neatify_loop(
     Returns
     -------
     geopandas.GeoDataFrame
-        The road network line data following 1 iteration of simplification.
+        The street network line data following 1 iteration of simplification.
     """
 
     # Remove edges fully within the artifact (dangles).
