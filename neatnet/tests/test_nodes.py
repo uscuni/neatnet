@@ -903,7 +903,15 @@ class TestRotateLoopCoords:
             ),
         }
         gdf = geopandas.GeoDataFrame.from_features(data)
-        r = neatnet.fix_topology(gdf)
+        # see gh#224
+        with pytest.warns(
+            UserWarning,
+            match=(
+                "Unable to sort modes: '<' not supported between "
+                "instances of 'Point' and 'Point'"
+            ),
+        ):
+            r = neatnet.fix_topology(gdf)
         assert r.shape[0] == 3
 
 
