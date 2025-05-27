@@ -13,9 +13,9 @@ from sklearn.cluster import DBSCAN
 
 def _fill_attrs(gdf: gpd.GeoDataFrame, source_row: pd.Series) -> gpd.GeoDataFrame:
     """Thoughtful attribute assignment to lines split into segments by new nodes –
-    taking list-like values into consideration. See gh#213. Currently only supports
-    list values – other can be added based on input type in the future on an ad hoc
-    basis as problems arise. Called from within ``split()``.
+    taking list-like values into consideration. See gh#213. Regarding iterables,
+    currently only supports list values – others can be added based on input type
+    in the future on an ad hoc basis as problems arise. Called from within ``split()``.
 
     Parameters
     ----------
@@ -27,7 +27,7 @@ def _fill_attrs(gdf: gpd.GeoDataFrame, source_row: pd.Series) -> gpd.GeoDataFram
     Returns
     -------
     geopandas.GeoDataFrame
-        The input ``gdf`` with update columns based on values in ``source_row``.
+        The input ``gdf`` with updated columns based on values in ``source_row``.
     """
 
     def _populate_column(attr):
