@@ -172,12 +172,23 @@ class TestCheckCRS:
             UserWarning,
             match=(
                 "The input `streets` data does not have an assigned "
-                "coordinate reference system. Results may not be expected."
+                "coordinate reference system. Assuming a projected CRS in meters."
             ),
         ):
             neatnet.simplify._check_input_crs(
                 AC_STREETS.set_crs(None, allow_override=True), None
             )
+
+    def test_projected_street_feet(self):
+        with pytest.warns(
+            UserWarning,
+            match=(
+                "The input `streets` data coordinate reference system is projected "
+                "but not in meters. All `neatnet` defaults assume meters. "
+                "Either reproject and rerun or proceed with caution."
+            ),
+        ):
+            neatnet.simplify._check_input_crs(AC_STREETS.to_crs(6441), None)
 
     def test_geographic_street(self):
         with pytest.raises(

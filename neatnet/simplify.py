@@ -50,10 +50,21 @@ def _check_input_crs(streets: gpd.GeoDataFrame, exclusion_mask: gpd.GeoSeries):
         )
 
     else:
-        if not streets.crs.is_projected:
+        if not streets_crs.is_projected:
             raise ValueError(
                 "The input `streets` data are not in a projected "
                 "coordinate reference system. Reproject and rerun."
+            )
+
+        if streets_crs.axis_info[0].unit_name != "metre":
+            warnings.warn(
+                (
+                    "The input `streets` data coordinate reference system is projected "
+                    "but not in meters. All `neatnet` defaults assume meters. "
+                    "Either reproject and rerun or proceed with caution."
+                ),
+                category=UserWarning,
+                stacklevel=2,
             )
 
     if exclusion_mask is not None and exclusion_mask.crs != streets_crs:
