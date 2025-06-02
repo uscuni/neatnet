@@ -43,7 +43,7 @@ def _check_input_crs(streets: gpd.GeoDataFrame, exclusion_mask: gpd.GeoSeries):
         warnings.warn(
             (
                 "The input `streets` data does not have an assigned "
-                "coordinate reference system. Results may not be expected."
+                "coordinate reference system. Assuming a projected CRS in meters."
             ),
             category=UserWarning,
             stacklevel=2,
