@@ -747,7 +747,7 @@ def one_remaining(
     es_mask : pandas.Series
         A mask for ``edges`` in the ``E`` and ``S`` continuity groups.
     max_segment_length : float | int
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
     split_points : list
         Points to be used for topological corrections.
@@ -825,7 +825,7 @@ def multiple_remaining(
     artifact : geopandas.GeoDataFrame
         The polygonal representation of the artifact.
     max_segment_length : float | int
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
     highest_hierarchy : geopandas.GeoDataFrame
         ``edges`` in the ``C`` continuity group – ``edges[~es_mask]``.
@@ -894,7 +894,7 @@ def one_remaining_c(
     es_mask : pandas.Series
         A mask for ``edges`` in the ``E`` and ``S`` continuity groups.
     max_segment_length : float | int = 1
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
     split_points : list
         Points to be used for topological corrections.
@@ -964,7 +964,7 @@ def loop(
     artifact : geopandas.GeoDataFrame
         The polygonal representation of the artifact.
     max_segment_length : float | int = 1
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
     clip_limit : float | int
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
@@ -1080,7 +1080,7 @@ def n1_g1_identical(
     geom : shapely.Polygon
         The polygonal representation of the artifact.
     max_segment_length : float | int = 1
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
     min_dangle_length : float | int = 10
         The threshold for determining if linestrings are dangling slivers to be
@@ -1168,7 +1168,7 @@ def nx_gx_identical(
         If the angle between two lines is too sharp, replace with a
         direct connection between the nodes.
     max_segment_length : float | int = 1
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
     clip_limit : float | int = 2
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
@@ -1616,7 +1616,7 @@ def nx_gx_cluster(
     to_add : list
         List collecting geometries to be added.
     max_segment_length : float | int = 1
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
     min_dangle_length : float | int = 20
         The threshold for determining if linestrings are dangling slivers to be

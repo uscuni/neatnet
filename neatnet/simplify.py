@@ -325,7 +325,7 @@ def neatify_pairs(
     streets : geopandas.GeoDataFrame
         Preprocessed street network data.
     max_segment_length : float | int = 1
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
         Used in multiple internal geometric operations.
     min_dangle_length : float | int = 20
@@ -502,7 +502,7 @@ def neatify_clusters(
     streets : geopandas.GeoDataFrame
         Preprocessed street network data.
     max_segment_length : float | int = 1
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
         Used in multiple internal geometric operations.
     eps : float = 1e-4
@@ -712,7 +712,7 @@ def neatify(
     predicate : str = 'intersects'
         The spatial predicate used to exclude face artifacts from returned output.
     max_segment_length : float | int = 1
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
         Used in multiple internal geometric operations.
     min_dangle_length : float | int
@@ -900,7 +900,7 @@ def neatify_loop(
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
     max_segment_length : float | int = 1
-        Additional nodes will be added so that all line segments
+        Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
         Used in multiple internal geometric operations.
     min_dangle_length : float | int = 20
