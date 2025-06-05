@@ -33,6 +33,47 @@ DEBUGGING = False
 logger = logging.getLogger(__name__)
 
 
+def _check_input_crs(streets: gpd.GeoDataFrame, exclusion_mask: gpd.GeoSeries):
+    """Ensure input data is in appropriate Coordinate reference systems."""
+
+    streets_crs = streets.crs
+    streets_has_crs = streets_crs is not None
+
+    if not streets_has_crs:
+        warnings.warn(
+            (
+                "The input `streets` data does not have an assigned "
+                "coordinate reference system. Assuming a projected CRS in meters."
+            ),
+            category=UserWarning,
+            stacklevel=2,
+        )
+
+    else:
+        if not streets_crs.is_projected:
+            raise ValueError(
+                "The input `streets` data are not in a projected "
+                "coordinate reference system. Reproject and rerun."
+            )
+
+        if streets_crs.axis_info[0].unit_name != "metre":
+            warnings.warn(
+                (
+                    "The input `streets` data coordinate reference system is projected "
+                    "but not in meters. All `neatnet` defaults assume meters. "
+                    "Either reproject and rerun or proceed with caution."
+                ),
+                category=UserWarning,
+                stacklevel=2,
+            )
+
+    if exclusion_mask is not None and exclusion_mask.crs != streets_crs:
+        raise ValueError(
+            "The input `streets` and `exclusion_mask` data are in "
+            "different coordinate reference systems. Reproject and rerun."
+        )
+
+
 def _link_nodes_artifacts(
     step: str,
     streets: gpd.GeoDataFrame,
@@ -807,7 +848,10 @@ def neatify(
     work with network data projected in feet if all default arguments are adjusted.
     """
 
+    _check_input_crs(streets, exclusion_mask)
+
     streets = fix_topology(streets, eps=eps)
+ 
     # Merge nearby nodes (up to double of distance used in skeleton).
     streets = consolidate_nodes(streets, tolerance=max_segment_length * 2.1)
 
