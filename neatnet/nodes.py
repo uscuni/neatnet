@@ -44,7 +44,7 @@ def _fill_attrs(gdf: gpd.GeoDataFrame, source_row: pd.Series) -> gpd.GeoDataFram
 
 def split(
     split_points: list | np.ndarray | gpd.GeoSeries,
-    cleaned_roads: gpd.GeoDataFrame,
+    cleaned_streets: gpd.GeoDataFrame,
     crs: str | pyproj.CRS,
     *,
     eps: float = 1e-4,
@@ -55,7 +55,7 @@ def split(
     ----------
     split_points : list | numpy.ndarray
         Points to split the ``cleaned_roads``.
-    cleaned_roads : geopandas.GeoDataFrame
+    cleaned_streets : geopandas.GeoDataFrame
         Line geometries to be split with ``split_points``.
     crs : str | pyproj.CRS
         Anything accepted by ``pyproj.CRS``.
@@ -69,8 +69,8 @@ def split(
     """
     split_points = gpd.GeoSeries(split_points, crs=crs)
     for split in split_points.drop_duplicates():
-        _, ix = cleaned_roads.sindex.nearest(split, max_distance=eps)
-        row = cleaned_roads.iloc[ix]
+        _, ix = cleaned_streets.sindex.nearest(split, max_distance=eps)
+        row = cleaned_streets.iloc[ix]
         edge = row.geometry
         if edge.shape[0] == 1:
             row = row.iloc[0]
@@ -79,8 +79,8 @@ def split(
                 gdf_split = gpd.GeoDataFrame(geometry=lines_split, crs=crs)
                 gdf_split = _fill_attrs(gdf_split, row)
                 gdf_split["_status"] = "changed"
-                cleaned_roads = pd.concat(
-                    [cleaned_roads.drop(edge.index[0]), gdf_split],
+                cleaned_streets = pd.concat(
+                    [cleaned_streets.drop(edge.index[0]), gdf_split],
                     ignore_index=True,
                 )
         elif edge.shape[0] > 1:
@@ -106,15 +106,15 @@ def split(
                     axis=1,
                 )
                 gdf_split["_status"] = "changed"
-                cleaned_roads = pd.concat(
-                    [cleaned_roads.drop(to_be_dropped), gdf_split],
+                cleaned_streets = pd.concat(
+                    [cleaned_streets.drop(to_be_dropped), gdf_split],
                     ignore_index=True,
                 )
-                cleaned_roads = gpd.GeoDataFrame(
-                    cleaned_roads, geometry="geometry", crs=crs
+                cleaned_streets = gpd.GeoDataFrame(
+                    cleaned_streets, geometry="geometry", crs=crs
                 )
 
-    return cleaned_roads.reset_index(drop=True)
+    return cleaned_streets.reset_index(drop=True)
 
 
 def _snap_n_split(e: shapely.LineString, s: shapely.Point, tol: float) -> np.ndarray:
@@ -223,14 +223,14 @@ def weld_edges(
     ).tolist()
 
 
-def induce_nodes(roads: gpd.GeoDataFrame, *, eps: float = 1e-4) -> gpd.GeoDataFrame:
+def induce_nodes(streets: gpd.GeoDataFrame, *, eps: float = 1e-4) -> gpd.GeoDataFrame:
     """Adding potentially missing nodes on intersections of individual LineString
     endpoints with the remaining network. The idea behind is that if a line ends
     on an intersection with another, there should be a node on both of them.
 
     Parameters
     ----------
-    roads : geopandas.GeoDataFrame
+    streets : geopandas.GeoDataFrame
         Input LineString geometries.
     eps : float = 1e-4
         Tolerance epsilon for point snapping passed into ``nodes.split()``.
@@ -238,25 +238,25 @@ def induce_nodes(roads: gpd.GeoDataFrame, *, eps: float = 1e-4) -> gpd.GeoDataFr
     Returns
     -------
     geopandas.GeoDataFrame
-        Updated ``roads`` with (potentially) added nodes.
+        Updated ``streets`` with (potentially) added nodes.
     """
 
     sindex_kws = {"predicate": "dwithin", "distance": 1e-4}
 
     # identify degree mismatch cases
-    nodes_degree_mismatch = _identify_degree_mismatch(roads, sindex_kws)
+    nodes_degree_mismatch = _identify_degree_mismatch(streets, sindex_kws)
 
     # ensure loop topology cases:
     #   - loop nodes intersecting non-loops
     #   - loop nodes intersecting other loops
-    nodes_off_loops, nodes_on_loops = _makes_loop_contact(roads, sindex_kws)
+    nodes_off_loops, nodes_on_loops = _makes_loop_contact(streets, sindex_kws)
 
     # all nodes to induce
     nodes_to_induce = pd.concat(
         [nodes_degree_mismatch, nodes_off_loops, nodes_on_loops]
     )
 
-    return split(nodes_to_induce.geometry, roads, roads.crs, eps=eps)
+    return split(nodes_to_induce.geometry, streets, streets.crs, eps=eps)
 
 
 def _identify_degree_mismatch(
@@ -455,7 +455,7 @@ def _rotate_loop_coords(
 
 
 def fix_topology(
-    roads: gpd.GeoDataFrame,
+    streets: gpd.GeoDataFrame,
     *,
     eps: float = 1e-4,
     **kwargs,
@@ -473,7 +473,7 @@ def fix_topology(
 
     Parameters
     ----------
-    roads : geopandas.GeoDataFrame
+    streets : geopandas.GeoDataFrame
         Input LineString geometries.
     eps : float = 1e-4
         Tolerance epsilon for point snapping passed into ``nodes.split()``.
@@ -486,9 +486,9 @@ def fix_topology(
         The input streets that now have fixed topology and are ready
         to proceed through the simplification algorithm.
     """
-    roads = roads[~roads.geometry.normalize().duplicated()].copy()
-    roads_w_nodes = induce_nodes(roads, eps=eps)
-    return remove_interstitial_nodes(roads_w_nodes, **kwargs)
+    streets = streets[~streets.geometry.normalize().duplicated()].copy()
+    streets_w_nodes = induce_nodes(streets, eps=eps)
+    return remove_interstitial_nodes(streets_w_nodes, **kwargs)
 
 
 def consolidate_nodes(

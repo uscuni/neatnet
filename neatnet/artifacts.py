@@ -232,7 +232,7 @@ class FaceArtifacts:
 
 
 def get_artifacts(
-    roads: gpd.GeoDataFrame,
+    streets: gpd.GeoDataFrame,
     *,
     exclusion_mask: None | gpd.GeoSeries = None,
     predicate: str = "intersects",
@@ -252,7 +252,7 @@ def get_artifacts(
 
     Parameters
     ----------
-    roads : geopandas.GeoDataFrame
+    streets : geopandas.GeoDataFrame
         Input streets that have been preprocessed.
     exclusion_mask : None | geopandas.GeoSeries = None
         Geometries used to determine face artifacts to exclude from returned output.
@@ -328,8 +328,8 @@ def get_artifacts(
     """
     with warnings.catch_warnings():  # the second loop likey won't find threshold
         warnings.filterwarnings("ignore", message="No threshold found")
-        fas = FaceArtifacts(roads)
-    polys = fas.polygons.set_crs(roads.crs)
+        fas = FaceArtifacts(streets)
+    polys = fas.polygons.set_crs(streets.crs)
 
     # rook neighbors
     rook = graph.Graph.build_contiguity(polys, rook=True)

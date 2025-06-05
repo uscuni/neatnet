@@ -3,21 +3,21 @@ import momepy
 
 
 def continuity(
-    roads: geopandas.GeoDataFrame, angle_threshold: float = 120
+    streets: geopandas.GeoDataFrame, angle_threshold: float = 120
 ) -> tuple[geopandas.GeoDataFrame, momepy.COINS]:
     """Assign COINS-based information to streets.
 
     Parameters
     ----------
-    roads :  geopandas.GeoDataFrame
+    streets : geopandas.GeoDataFrame
         Street network.
     angle_threshold : float = 120
         See the ``angle_threshold`` keyword argument in ``momepy.COINS()``.
 
     Returns
     -------
-    roads : geopandas.GeoDataFrame
-        The input ``roads`` with additional columns describing COINS information.
+    streets : geopandas.GeoDataFrame
+        The input ``streets`` with additional columns describing COINS information.
     coins : momepy.COINS
         **This is not used in production.**
 
@@ -26,27 +26,27 @@ def continuity(
     The returned ``coins`` object is not used in production, but is
     very helpful in testing & debugging. See gh:neatnet#49.
     """
-    roads = roads.copy()
+    streets = streets.copy()
 
     # Measure continuity of street network
-    coins = momepy.COINS(roads, angle_threshold=angle_threshold, flow_mode=True)
+    coins = momepy.COINS(streets, angle_threshold=angle_threshold, flow_mode=True)
 
     # Assing continuity group
     group, end = coins.stroke_attribute(True)
-    roads["coins_group"] = group
-    roads["coins_end"] = end
+    streets["coins_group"] = group
+    streets["coins_end"] = end
 
     # Assign length of each continuity group and a number of segments within the group.
-    coins_grouped = roads.length.groupby(roads.coins_group)
-    roads["coins_len"] = coins_grouped.sum()[roads.coins_group].values
-    roads["coins_count"] = coins_grouped.size()[roads.coins_group].values
+    coins_grouped = streets.length.groupby(streets.coins_group)
+    streets["coins_len"] = coins_grouped.sum()[streets.coins_group].values
+    streets["coins_count"] = coins_grouped.size()[streets.coins_group].values
 
-    return roads, coins
+    return streets, coins
 
 
 def get_stroke_info(
     artifacts: geopandas.GeoSeries | geopandas.GeoDataFrame,
-    roads: geopandas.GeoSeries | geopandas.GeoDataFrame,
+    streets: geopandas.GeoSeries | geopandas.GeoDataFrame,
     typify: bool = False,
 ) -> tuple[list[int], list[int], list[int], list[int]] | geopandas.GeoDataFrame:
     """Generate information about strokes within ``artifacts`` and the
@@ -61,7 +61,7 @@ def get_stroke_info(
     ----------
     artifacts : geopandas.GeoSeries | geopandas.GeoDataFrame
         Polygons representing the artifacts.
-    roads : geopandas.GeoSeries | geopandas.GeoDataFrame
+    streets : geopandas.GeoSeries | geopandas.GeoDataFrame
         LineStrings representing the street network.
     typify : bool = False
         ....
@@ -85,12 +85,12 @@ def get_stroke_info(
     s_ = []
 
     if typify:
-        roads["typology"] = "x"
+        streets["typology"] = "x"
 
     for geom in artifacts.geometry:
         singles = 0
         ends = 0
-        edges = roads.iloc[roads.sindex.query(geom, predicate="covers")]
+        edges = streets.iloc[streets.sindex.query(geom, predicate="covers")]
         ecg = edges.coins_group
         mains_index = []
         if typify:
@@ -128,15 +128,15 @@ def get_stroke_info(
         e_.append(ends)
         s_.append(singles)
         if typify:
-            roads.loc[mains_index, "typology"] = "C"
-            roads.loc[ends_index, "typology"] = "E"
-            roads.loc[singles_index, "typology"] = "S"
+            streets.loc[mains_index, "typology"] = "C"
+            streets.loc[ends_index, "typology"] = "E"
+            streets.loc[singles_index, "typology"] = "S"
 
     if typify:
         group_mapper = dict(
-            roads[roads["typology"] != "x"][["coins_group", "typology"]].values
+            streets[streets["typology"] != "x"][["coins_group", "typology"]].values
         )
-        roads["typology"] = roads["coins_group"].map(group_mapper)
-        return roads
+        streets["typology"] = streets["coins_group"].map(group_mapper)
+        return streets
     else:
         return strokes, c_, e_, s_
