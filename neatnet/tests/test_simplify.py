@@ -15,6 +15,33 @@ full_fua_data = pathlib.Path("data")
 ci_artifacts = pathlib.Path("ci_artifacts")
 
 
+AC = "apalachicola"
+AC_STREETS = geopandas.read_parquet(test_data / f"{AC}_original.parquet")
+AC_EXCLUSION_MASK = geopandas.GeoSeries(
+    [
+        shapely.Polygon(
+            (
+                (-9461361.807208396, 3469029.2708674935),
+                (-9461009.046874022, 3469029.2708674935),
+                (-9461009.046874022, 3469240.1785251377),
+                (-9461361.807208396, 3469240.1785251377),
+                (-9461361.807208396, 3469029.2708674935),
+            )
+        ),
+        shapely.Polygon(
+            (
+                (-9461429.266819818, 3469157.7482423405),
+                (-9461361.807208396, 3469157.7482423405),
+                (-9461361.807208396, 3469240.1785251377),
+                (-9461429.266819818, 3469240.1785251377),
+                (-9461429.266819818, 3469157.7482423405),
+            )
+        ),
+    ],
+    crs=AC_STREETS.crs,
+)
+
+
 @pytest.mark.parametrize(
     "scenario,tol,known_length",
     [
@@ -23,42 +50,16 @@ ci_artifacts = pathlib.Path("ci_artifacts")
     ],
 )
 def test_neatify_small(scenario, tol, known_length):
-    ac = "apalachicola"
+    original = AC_STREETS.copy()
 
-    original = geopandas.read_parquet(test_data / f"{ac}_original.parquet")
-
-    known = geopandas.read_parquet(test_data / f"{ac}_simplified_{scenario}.parquet")
-
-    if scenario == "exclusion_mask":
-        exclusion_mask = [
-            shapely.Polygon(
-                (
-                    (-9461361.807208396, 3469029.2708674935),
-                    (-9461009.046874022, 3469029.2708674935),
-                    (-9461009.046874022, 3469240.1785251377),
-                    (-9461361.807208396, 3469240.1785251377),
-                    (-9461361.807208396, 3469029.2708674935),
-                )
-            ),
-            shapely.Polygon(
-                (
-                    (-9461429.266819818, 3469157.7482423405),
-                    (-9461361.807208396, 3469157.7482423405),
-                    (-9461361.807208396, 3469240.1785251377),
-                    (-9461429.266819818, 3469240.1785251377),
-                    (-9461429.266819818, 3469157.7482423405),
-                )
-            ),
-        ]
-        exclusion_mask = geopandas.GeoSeries(exclusion_mask, crs=original.crs)
-    else:
-        exclusion_mask = None
+    known = geopandas.read_parquet(test_data / f"{AC}_simplified_{scenario}.parquet")
+    exclusion_mask = AC_EXCLUSION_MASK.copy() if scenario == "exclusion_mask" else None
 
     observed = neatnet.neatify(original, exclusion_mask=exclusion_mask)
     observed_length = observed.geometry.length.sum()
 
     # storing GH artifacts
-    artifact_dir = ci_artifacts / ac
+    artifact_dir = ci_artifacts / AC
     artifact_dir.mkdir(parents=True, exist_ok=True)
     observed.to_parquet(artifact_dir / f"simplified_{scenario}.parquet")
 
@@ -72,7 +73,7 @@ def test_neatify_small(scenario, tol, known_length):
         observed.drop(columns=["_status", "geometry"]),
     )
 
-    pytest.geom_test(known, observed, tolerance=tol, aoi=f"{ac}_{scenario}")
+    pytest.geom_test(known, observed, tolerance=tol, aoi=f"{AC}_{scenario}")
 
 
 @pytest.mark.parametrize(
@@ -156,3 +157,56 @@ def test_neatify_fallback():
         simple = neatnet.neatify(streets)
         # only topology is fixed
         assert simple.shape == (31, 2)
+
+
+class TestCheckCRS:
+    def test_projected_street_matching_mask(self):
+        assert neatnet.simplify._check_input_crs(AC_STREETS, AC_EXCLUSION_MASK) is None
+
+    def test_projected_street_no_mask(self):
+        assert neatnet.simplify._check_input_crs(AC_STREETS, None) is None
+
+    def test_projected_street_mismatch_mask(self):
+        with pytest.raises(
+            ValueError,
+            match=(
+                "The input `streets` and `exclusion_mask` data are in "
+                "different coordinate reference systems. Reproject and rerun."
+            ),
+        ):
+            neatnet.simplify._check_input_crs(
+                AC_STREETS, AC_EXCLUSION_MASK.to_crs(4326)
+            )
+
+    def test_no_crs_street_no_mask(self):
+        with pytest.warns(
+            UserWarning,
+            match=(
+                "The input `streets` data does not have an assigned "
+                "coordinate reference system. Assuming a projected CRS in meters."
+            ),
+        ):
+            neatnet.simplify._check_input_crs(
+                AC_STREETS.set_crs(None, allow_override=True), None
+            )
+
+    def test_projected_street_feet(self):
+        with pytest.warns(
+            UserWarning,
+            match=(
+                "The input `streets` data coordinate reference system is projected "
+                "but not in meters. All `neatnet` defaults assume meters. "
+                "Either reproject and rerun or proceed with caution."
+            ),
+        ):
+            neatnet.simplify._check_input_crs(AC_STREETS.to_crs(6441), None)
+
+    def test_geographic_street(self):
+        with pytest.raises(
+            ValueError,
+            match=(
+                "The input `streets` data are not in a projected "
+                "coordinate reference system. Reproject and rerun."
+            ),
+        ):
+            neatnet.simplify._check_input_crs(AC_STREETS.to_crs(4326), None)

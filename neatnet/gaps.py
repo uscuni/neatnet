@@ -33,7 +33,6 @@ def close_gaps(
     --------
     neatnet.extend_lines
     neatnet.remove_interstitial_nodes
-
     """
     geom = gdf.geometry.array
     coords = shapely.get_coordinates(geom)
@@ -74,7 +73,7 @@ def extend_lines(
     barrier: None | gpd.GeoDataFrame | gpd.GeoSeries = None,
     extension: int | float = 0,
 ) -> gpd.GeoDataFrame:
-    """Extends lines from gdf to itself or target within a set tolerance.
+    """Extends lines from ``gdf`` to itself or target within a set tolerance.
 
     Extends unjoined ends of LineString segments to join with other segments or target.
     If ``target`` is passed, extend lines to target. Otherwise extend lines to itself.
@@ -270,7 +269,7 @@ def _extend_line(
 def _get_extrapolated_line(
     coords: np.ndarray, tolerance: float, point: bool = False
 ) -> tuple[float, float] | shapely.LineString:
-    """Creates a shapely line extrapoled in p1->p2 direction."""
+    """Creates a shapely line extrapolated in p1->p2 direction."""
 
     p1 = coords[:2]
     p2 = coords[2:]
