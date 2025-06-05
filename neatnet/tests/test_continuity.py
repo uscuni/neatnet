@@ -10,8 +10,8 @@ import neatnet
 
 
 @pytest.fixture
-def roads() -> geopandas.GeoDataFrame:
-    """Toy set of 'roads' for testing only."""
+def streets() -> geopandas.GeoDataFrame:
+    """Toy set of 'streets' for testing only."""
     inita = 2
     final = 8
     grid = list(range(inita, final))
@@ -42,8 +42,8 @@ def roads() -> geopandas.GeoDataFrame:
     )
 
 
-def test_continuity(roads):
-    observed_continuity, observed_coins = neatnet.continuity.continuity(roads)
+def test_continuity(streets):
+    observed_continuity, observed_coins = neatnet.continuity.continuity(streets)
 
     assert isinstance(observed_continuity, geopandas.GeoDataFrame)
     known_continuity = (
@@ -88,15 +88,15 @@ def test_continuity(roads):
     assert len(observed_coins.angle_pairs) == 36
 
 
-def test_get_stroke_info(roads):
+def test_get_stroke_info(streets):
     known_strokes = [0, 0, 2, 1, 1, 1, 2]
     known_c_ = [0, 0, 0, 0, 0, 1, 0]
     known_e_ = [0, 0, 1, 0, 0, 0, 1]
     known_s_ = [0, 0, 1, 1, 1, 0, 1]
 
     observed = neatnet.continuity.get_stroke_info(
-        neatnet.artifacts.get_artifacts(roads, threshold=1)[0],
-        neatnet.continuity.continuity(roads.copy())[0],
+        neatnet.artifacts.get_artifacts(streets, threshold=1)[0],
+        neatnet.continuity.continuity(streets.copy())[0],
     )
 
     observed_strokes = observed[0]
