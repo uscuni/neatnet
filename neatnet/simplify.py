@@ -851,7 +851,7 @@ def neatify(
     _check_input_crs(streets, exclusion_mask)
 
     streets = fix_topology(streets, eps=eps)
- 
+
     # Merge nearby nodes (up to double of distance used in skeleton).
     streets = consolidate_nodes(streets, tolerance=max_segment_length * 2.1)
 
