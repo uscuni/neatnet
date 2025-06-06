@@ -259,6 +259,52 @@ def test_get_components(edgelines, ignore, known):
     numpy.testing.assert_array_equal(observed, known)
 
 
+def test_get_components_bowtie():
+    # see gh:214
+    p00, p01 = shapely.Point(1, 0), shapely.Point(1, 1)
+    p02, p03 = shapely.Point(1, 3), shapely.Point(1, 5)
+    p04, p05 = shapely.Point(3, 3), shapely.Point(3, 1)
+    p06, p07 = shapely.Point(0, 1), shapely.Point(5, 1)
+
+    l00 = shapely.LineString((p00, p01))
+    l01 = shapely.LineString((p01, p02))
+    l02 = shapely.LineString((p02, p03))
+    l03 = shapely.LineString((p02, p04))
+    l04 = shapely.LineString((p04, p05))
+    l05 = shapely.LineString((p06, p01))
+    l06 = shapely.LineString((p01, p05))
+    l07 = shapely.LineString((p05, p07))
+
+    # bowtie ----------------------------------------------
+    # left edge loop points
+    b01, b02, b03 = shapely.Point(6, 1), shapely.Point(6, 3), shapely.Point(7, 2)
+
+    # right edge loop points
+    b04, b05, b06 = shapely.Point(12, 1), shapely.Point(12, 3), shapely.Point(11, 2)
+
+    # two middle edges points
+    b07, b08 = shapely.Point(8, 3), shapely.Point(10, 3)
+    b09, b10 = shapely.Point(10, 1), shapely.Point(8, 1)
+
+    # left and right loops
+    loop1 = shapely.LineString((b03, b01, b02, b03))
+    loop2 = shapely.LineString((b06, b04, b05, b06))
+
+    # lower & upper middle edges
+    mid1 = shapely.LineString((b03, b07, b08, b06))
+    mid2 = shapely.LineString((b06, b09, b10, b03))
+
+    edges = geopandas.GeoDataFrame(
+        geometry=[l00, l01, l02, l03, l04, l05, l06, l07, loop1, loop2, mid1, mid2]
+    )
+
+    known = numpy.array([1.0, 2.0, 3.0, 0.0, 0.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0])
+
+    observed = neatnet.nodes.get_components(edges.explode(ignore_index=True).geometry)
+
+    numpy.testing.assert_array_equal(observed, known)
+
+
 line_124 = shapely.LineString((point_1, point_2, point_4))
 line_1234 = shapely.LineString((point_1, point_2, point_3, point_4))
 line_245 = shapely.LineString((point_2, point_4, point_5))
