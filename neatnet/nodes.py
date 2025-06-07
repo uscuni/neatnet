@@ -459,10 +459,6 @@ def remove_interstitial_nodes(
         merge_geometries
     )
     aggregated_geometry = gpd.GeoDataFrame(g, geometry=gdf.geometry.name, crs=gdf.crs)
-    if (aggregated_geometry.geom_type != "LineString").any():
-        raise ValueError(
-            "Aggregated edges contain other types that basic LineString geometries."
-        )
 
     # Recombine
     aggregated = aggregated_geometry.join(aggregated_data)
