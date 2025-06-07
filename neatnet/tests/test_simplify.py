@@ -62,6 +62,7 @@ def test_neatify_small(scenario, tol, known_length):
     artifact_dir = ci_artifacts / AC
     artifact_dir.mkdir(parents=True, exist_ok=True)
     observed.to_parquet(artifact_dir / f"simplified_{scenario}.parquet")
+    pytest.difference_plot(AC, artifact_dir, known, observed)
 
     assert pytest.approx(observed_length, rel=0.0001) == known_length
     assert observed.index.dtype == numpy.dtype("int64")
