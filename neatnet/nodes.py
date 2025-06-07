@@ -2,6 +2,7 @@ import collections.abc
 import typing
 
 import geopandas as gpd
+import momepy
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -131,6 +132,53 @@ def _status(x: pd.Series) -> str:
     return "changed"
 
 
+def isolate_bowtie_nodes(edgelines: list | np.ndarray | gpd.GeoSeries) -> gpd.GeoSeries:
+    r"""
+    Bowties are rare edgecase whereby a component has:
+    * 2 unique nodes
+    * 2 edges that are loops
+    * 4 edges that have only 3 unique coord-pairs *after* sorting.
+
+        |\ /‾‾\ /|
+        | *    * |
+        |/ \__/ \|
+
+    Although extremely rare, these cases throw a wrench in the
+    efficient logic of ``get_components()``. See gh#214.
+    """
+
+    ignore = []
+
+    mm_nx = momepy.gdf_to_nx(gpd.GeoDataFrame(geometry=edgelines))
+    mm_nx_cc = nx.connected_components(mm_nx)
+
+    potential_bowtie_cc_nodes = []
+    for cc in list(mm_nx_cc):
+        # potential bowties only have 2 unique nodes
+        if len(cc) == 2:
+            potential_bowtie_cc_nodes += [list(cc)]
+
+    if potential_bowtie_cc_nodes:
+        for potential_bowtie_cc in potential_bowtie_cc_nodes:
+            comp_edges = mm_nx.subgraph(potential_bowtie_cc).edges
+
+            # potential bowties have 2 edges that are loops
+            loops = [comp_edges[ce]["geometry"].is_closed for ce in comp_edges]
+
+            if sum(loops) == 2:
+                # -- failsafe
+                # ensure the 4 edges have only 3 unique coord-pairs after sorting.
+                sorted_edge_coords = [sorted(ce[:2]) for ce in comp_edges]
+                unique_sorted_edge_coords = np.unique(sorted_edge_coords, axis=0)
+
+                if unique_sorted_edge_coords.shape[0] == 3:
+                    ignore += potential_bowtie_cc
+
+    return gpd.GeoSeries([shapely.Point(i) for i in ignore]).sort_values(
+        ignore_index=True
+    )
+
+
 def get_components(
     edgelines: list | np.ndarray | gpd.GeoSeries,
     *,
@@ -155,6 +203,15 @@ def get_components(
     See [https://github.com/uscuni/neatnet/issues/56] for detailed explanation of
     output.
     """
+
+    bowtie_nodes = isolate_bowtie_nodes(edgelines)
+
+    if not bowtie_nodes.empty:
+        if ignore is not None:
+            ignore = pd.concat([ignore, bowtie_nodes], ignore_index=True)
+        else:
+            ignore = bowtie_nodes
+
     edgelines = np.array(edgelines)
     start_points = shapely.get_point(edgelines, 0)
     end_points = shapely.get_point(edgelines, -1)
@@ -166,6 +223,7 @@ def get_components(
     if ignore is not None:
         mask = np.isin(points, ignore)
         points = points[~mask]
+
     # query LineString geometry to identify points intersecting 2 geometries
     inp, res = shapely.STRtree(shapely.boundary(edgelines)).query(
         points, predicate="intersects"
