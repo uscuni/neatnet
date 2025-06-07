@@ -19,7 +19,7 @@ def test_get_artifacts_error():
         with pytest.warns(
             UserWarning,
             match=(
-                "Input roads could not not be polygonized. "
+                "Input streets could not not be polygonized. "
                 "Identification of face artifacts not possible."
             ),
         ):
@@ -27,7 +27,6 @@ def test_get_artifacts_error():
 
 
 def test_FaceArtifacts():  # noqa: N802
-    pytest.importorskip("esda")
     osmnx = pytest.importorskip("osmnx")
     type_filter = (
         '["highway"~"living_street|motorway|motorway_link|pedestrian|primary'
@@ -88,7 +87,7 @@ def test_FaceArtifacts():  # noqa: N802
     with pytest.warns(
         UserWarning,
         match=(
-            "Input roads could not not be polygonized. "
+            "Input streets could not not be polygonized. "
             "Identification of face artifacts not possible."
         ),
     ):

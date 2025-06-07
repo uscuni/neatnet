@@ -7,7 +7,7 @@ import numpy
 import pandas
 import pytest
 import shapely
-from pandas.testing import assert_series_equal
+from pandas.testing import assert_frame_equal, assert_series_equal
 
 import neatnet
 
@@ -63,56 +63,56 @@ line_3_42 = shapely.LineString((point_3, point_42))
 cases = range(1, 9)
 types = ["list", "array", "series"]
 
-# case 1: 1 road input -- not split
-cleaned_roads_1 = geopandas.GeoDataFrame(geometry=[line_1_2], crs=crs)
-known_1 = cleaned_roads_1.copy()
+# case 1: 1 street input -- not split
+cleaned_streets_1 = geopandas.GeoDataFrame(geometry=[line_1_2], crs=crs)
+known_1 = cleaned_streets_1.copy()
 
-# case 2: 1 road input -- split once
-cleaned_roads_2 = geopandas.GeoDataFrame(geometry=[line_1_4], crs=crs)
+# case 2: 1 street input -- split once
+cleaned_streets_2 = geopandas.GeoDataFrame(geometry=[line_1_4], crs=crs)
 known_2 = geopandas.GeoDataFrame(
     {"_status": ["changed", "changed"]},
     geometry=[line_1_2, line_2_4],
     crs=crs,
 )
 
-# case 3: 1 road input -- split twice
-cleaned_roads_3 = geopandas.GeoDataFrame(geometry=[line_1_4], crs=crs)
+# case 3: 1 street input -- split twice
+cleaned_streets_3 = geopandas.GeoDataFrame(geometry=[line_1_4], crs=crs)
 known_3 = geopandas.GeoDataFrame(
     {"_status": ["changed", "changed", "changed"]},
     geometry=[line_1_2, line_2_3, line_3_4],
     crs=crs,
 )
 
-# case 4: 2 roads input -- neither roads split
-cleaned_roads_4 = geopandas.GeoDataFrame(geometry=[line_1_2, line_2_4], crs=crs)
-known_4 = cleaned_roads_4.copy()
+# case 4: 2 streets input -- neither streets split
+cleaned_streets_4 = geopandas.GeoDataFrame(geometry=[line_1_2, line_2_4], crs=crs)
+known_4 = cleaned_streets_4.copy()
 
-# case 5: 2 roads input -- 1 road split once
-cleaned_roads_5 = geopandas.GeoDataFrame(geometry=[line_1_4, line_6_9], crs=crs)
+# case 5: 2 street input -- 1 street split once
+cleaned_streets_5 = geopandas.GeoDataFrame(geometry=[line_1_4, line_6_9], crs=crs)
 known_5 = geopandas.GeoDataFrame(
     {"_status": [numpy.nan, "changed", "changed"]},
     geometry=[line_6_9, line_1_2, line_2_4],
     crs=crs,
 )
 
-# case 6: 2 roads input -- 2 roads split once (unique splits)
-cleaned_roads_6 = cleaned_roads_5.copy()
+# case 6: 2 streets input -- 2 streets split once (unique splits)
+cleaned_streets_6 = cleaned_streets_5.copy()
 known_6 = geopandas.GeoDataFrame(
     {"_status": ["changed", "changed", "changed", "changed"]},
     geometry=[line_1_2, line_2_4, line_6_8, line_8_9],
     crs=crs,
 )
 
-# case 7: 2 roads input -- 2 roads split twice (unique splits)
-cleaned_roads_7 = cleaned_roads_5.copy()
+# case 7: 2 street input -- 2 streets split twice (unique splits)
+cleaned_streets_7 = cleaned_streets_5.copy()
 known_7 = geopandas.GeoDataFrame(
     {"_status": ["changed", "changed", "changed", "changed", "changed", "changed"]},
     geometry=[line_1_2, line_2_3, line_3_4, line_6_7, line_7_8, line_8_9],
     crs=crs,
 )
 
-# case 8: 2 roads input (perpendicular)-- 2 roads split once (intersection)
-cleaned_roads_8 = geopandas.GeoDataFrame(geometry=[line_1_4, line_24_42], crs=crs)
+# case 8: 2 streets input (perpendicular)-- 2 streets split once (intersection)
+cleaned_streets_8 = geopandas.GeoDataFrame(geometry=[line_1_4, line_24_42], crs=crs)
 known_8 = geopandas.GeoDataFrame(
     {"_status": ["changed", "changed", "changed", "changed"]},
     geometry=[line_1_3, line_3_4, line_24_3, line_3_42],
@@ -121,39 +121,39 @@ known_8 = geopandas.GeoDataFrame(
 
 
 @pytest.mark.parametrize(
-    "split_points,cleaned_roads,known",
+    "split_points,cleaned_streets,known",
     (
-        [split_list_2, cleaned_roads_1, known_1],  # case 1
-        [split_array_2, cleaned_roads_1, known_1],
-        [split_series_2, cleaned_roads_1, known_1],
-        [split_list_2, cleaned_roads_2, known_2],  # case 2
-        [split_array_2, cleaned_roads_2, known_2],
-        [split_series_2, cleaned_roads_2, known_2],
-        [split_list_2_3, cleaned_roads_3, known_3],  # case 3
-        [split_array_2_3, cleaned_roads_3, known_3],
-        [split_series_2_3, cleaned_roads_3, known_3],
-        [split_list_2, cleaned_roads_4, known_4],  # case 4
-        [split_array_2, cleaned_roads_4, known_4],
-        [split_series_2, cleaned_roads_4, known_4],
-        [split_list_2, cleaned_roads_5, known_5],  # case 5
-        [split_array_2, cleaned_roads_5, known_5],
-        [split_series_2, cleaned_roads_5, known_5],
-        [split_list_2_8, cleaned_roads_6, known_6],  # case 6
-        [split_array_2_8, cleaned_roads_6, known_6],
-        [split_series_2_8, cleaned_roads_6, known_6],
-        [split_list_2_3_7_8, cleaned_roads_7, known_7],  # case 7
-        [split_array_2_3_7_8, cleaned_roads_7, known_7],
-        [split_series_2_3_7_8, cleaned_roads_7, known_7],
-        [split_list_3, cleaned_roads_8, known_8],  # case 8
-        [split_array_3, cleaned_roads_8, known_8],
-        [split_series_3, cleaned_roads_8, known_8],
+        [split_list_2, cleaned_streets_1, known_1],  # case 1
+        [split_array_2, cleaned_streets_1, known_1],
+        [split_series_2, cleaned_streets_1, known_1],
+        [split_list_2, cleaned_streets_2, known_2],  # case 2
+        [split_array_2, cleaned_streets_2, known_2],
+        [split_series_2, cleaned_streets_2, known_2],
+        [split_list_2_3, cleaned_streets_3, known_3],  # case 3
+        [split_array_2_3, cleaned_streets_3, known_3],
+        [split_series_2_3, cleaned_streets_3, known_3],
+        [split_list_2, cleaned_streets_4, known_4],  # case 4
+        [split_array_2, cleaned_streets_4, known_4],
+        [split_series_2, cleaned_streets_4, known_4],
+        [split_list_2, cleaned_streets_5, known_5],  # case 5
+        [split_array_2, cleaned_streets_5, known_5],
+        [split_series_2, cleaned_streets_5, known_5],
+        [split_list_2_8, cleaned_streets_6, known_6],  # case 6
+        [split_array_2_8, cleaned_streets_6, known_6],
+        [split_series_2_8, cleaned_streets_6, known_6],
+        [split_list_2_3_7_8, cleaned_streets_7, known_7],  # case 7
+        [split_array_2_3_7_8, cleaned_streets_7, known_7],
+        [split_series_2_3_7_8, cleaned_streets_7, known_7],
+        [split_list_3, cleaned_streets_8, known_8],  # case 8
+        [split_array_3, cleaned_streets_8, known_8],
+        [split_series_3, cleaned_streets_8, known_8],
     ),
     ids=[f"case{c}-{t}" for c, t in list(itertools.product(cases, types))],
 )
-def test_split(split_points, cleaned_roads, known):
-    observed = neatnet.nodes.split(split_points, cleaned_roads, crs)
+def test_split(split_points, cleaned_streets, known):
+    observed = neatnet.nodes.split(split_points, cleaned_streets, crs)
     assert isinstance(observed, geopandas.GeoDataFrame)
-    assert observed.crs == known.crs == cleaned_roads.crs == crs
+    assert observed.crs == known.crs == cleaned_streets.crs == crs
     pytest.geom_test(observed.geometry, known.geometry)
     if "_status" in observed.columns:
         pandas.testing.assert_series_equal(observed["_status"], known["_status"])
@@ -257,6 +257,85 @@ case_ids_get_components = [
 def test_get_components(edgelines, ignore, known):
     observed = neatnet.nodes.get_components(edgelines, ignore=ignore)
     numpy.testing.assert_array_equal(observed, known)
+
+
+class TestBowtie:
+    # see gh:214
+
+    def setup_method(self):
+        p00, p01 = shapely.Point(1, 0), shapely.Point(1, 1)
+        p02, p03 = shapely.Point(1, 3), shapely.Point(1, 5)
+        p04, p05 = shapely.Point(3, 3), shapely.Point(3, 1)
+        p06, p07 = shapely.Point(0, 1), shapely.Point(5, 1)
+
+        l00 = shapely.LineString((p00, p01))
+        l01 = shapely.LineString((p01, p02))
+        l02 = shapely.LineString((p02, p03))
+        l03 = shapely.LineString((p02, p04))
+        l04 = shapely.LineString((p04, p05))
+        l05 = shapely.LineString((p06, p01))
+        l06 = shapely.LineString((p01, p05))
+        l07 = shapely.LineString((p05, p07))
+
+        # bowtie ----------------------------------------------
+        # left edge loop points
+        b01, b02, b03 = shapely.Point(6, 1), shapely.Point(6, 3), shapely.Point(7, 2)
+
+        # right edge loop points
+        b04, b05, b06 = shapely.Point(12, 1), shapely.Point(12, 3), shapely.Point(11, 2)
+
+        # two middle edges points
+        b07, b08 = shapely.Point(8, 3), shapely.Point(10, 3)
+        b09, b10 = shapely.Point(10, 1), shapely.Point(8, 1)
+
+        # left and right loops
+        loop1 = shapely.LineString((b03, b01, b02, b03))
+        loop2 = shapely.LineString((b06, b04, b05, b06))
+
+        # lower & upper middle edges
+        mid1 = shapely.LineString((b03, b07, b08, b06))
+        mid2 = shapely.LineString((b06, b09, b10, b03))
+
+        edges = geopandas.GeoDataFrame(
+            geometry=[l00, l01, l02, l03, l04, l05, l06, l07, loop1, loop2, mid1, mid2]
+        )
+
+        self.edges = edges.explode(ignore_index=True).geometry
+        self.bowtie_nodes = geopandas.GeoSeries([b03, b06])
+
+        self.known_comp_labels = numpy.array(
+            [1.0, 2.0, 3.0, 0.0, 0.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]
+        )
+
+    def test_get_components_bowtie(self):
+        known = self.known_comp_labels
+        observed = neatnet.nodes.get_components(self.edges)
+        numpy.testing.assert_array_equal(observed, known)
+
+    def test_get_components_bowtie_ignore(self):
+        known = self.known_comp_labels
+        observed = neatnet.nodes.get_components(self.edges, ignore=self.bowtie_nodes)
+        numpy.testing.assert_array_equal(observed, known)
+
+    def test_isolate_bowtie_nodes_list(self):
+        known = self.bowtie_nodes
+        observed = neatnet.nodes.isolate_bowtie_nodes(self.edges.geometry.tolist())
+        geopandas.testing.assert_geoseries_equal(observed, known)
+
+    def test_isolate_bowtie_nodes_array(self):
+        known = self.bowtie_nodes
+        observed = neatnet.nodes.isolate_bowtie_nodes(numpy.array(self.edges.geometry))
+        geopandas.testing.assert_geoseries_equal(observed, known)
+
+    def test_isolate_bowtie_nodes_geoseries(self):
+        known = self.bowtie_nodes
+        observed = neatnet.nodes.isolate_bowtie_nodes(self.edges.geometry)
+        geopandas.testing.assert_geoseries_equal(observed, known)
+
+    def test_isolate_bowtie_nodes_none(self):
+        known = geopandas.GeoSeries([])
+        observed = neatnet.nodes.isolate_bowtie_nodes(self.edges.geometry[:8])
+        geopandas.testing.assert_geoseries_equal(observed, known)
 
 
 line_124 = shapely.LineString((point_1, point_2, point_4))
@@ -903,7 +982,15 @@ class TestRotateLoopCoords:
             ),
         }
         gdf = geopandas.GeoDataFrame.from_features(data)
-        r = neatnet.fix_topology(gdf)
+        # see gh#224
+        with pytest.warns(
+            UserWarning,
+            match=(
+                "Unable to sort modes: '<' not supported between "
+                "instances of 'Point' and 'Point'"
+            ),
+        ):
+            r = neatnet.fix_topology(gdf)
         assert r.shape[0] == 3
 
 
@@ -1209,3 +1296,21 @@ class TestConsolidateNodes:
 
         assert_series_equal(known._status, observed._status)
         pytest.geom_test(known, observed, tolerance=0.000001)
+
+
+def test_fill_attrs():
+    known = pandas.DataFrame(
+        {
+            "attr1": ["a", "b"],
+            "attr2": [5, 5],
+            "attr3": ["W", "W"],
+            "attr4": [["i", "o", 6], ["i", "o", 6]],
+        }
+    )
+
+    observed = neatnet.nodes._fill_attrs(
+        pandas.DataFrame({"attr1": ["a", "b"]}),
+        pandas.Series([5, "W", ["i", "o", 6]], index=["attr2", "attr3", "attr4"]),
+    )
+
+    assert_frame_equal(known, observed)

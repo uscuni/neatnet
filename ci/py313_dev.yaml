@@ -4,11 +4,9 @@ channels:
   - conda-forge
 dependencies:
   - python=3.13
-  - geos  # for shapely
   - git
   - pip
   # testing
-  - matplotlib
   - pre-commit
   - pytest
   - pytest-cov
@@ -18,15 +16,16 @@ dependencies:
       - --pre \
         --index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple  \
         --extra-index-url https://pypi.org/simple
+      - matplotlib
+      - networkx
       - numpy
       - pandas
       - pyarrow
       - pyogrio
       - scipy
+      - shapely
       - git+https://github.com/gboeing/osmnx.git
       - git+https://github.com/geopandas/geopandas.git
       - git+https://github.com/pysal/esda.git
       - git+https://github.com/pysal/libpysal.git
       - git+https://github.com/pysal/momepy.git
-      - git+https://github.com/networkx/networkx.git
-      - git+https://github.com/shapely/shapely.git

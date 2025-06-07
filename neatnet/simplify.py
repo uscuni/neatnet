@@ -3,7 +3,6 @@ import typing
 import warnings
 
 import geopandas as gpd
-import momepy
 import numpy as np
 import pandas as pd
 import shapely
@@ -19,6 +18,8 @@ from .artifacts import (
 )
 from .continuity import continuity, get_stroke_info
 from .nodes import (
+    _nodes_degrees_from_edges,
+    _nodes_from_edges,
     _status,
     consolidate_nodes,
     fix_topology,
@@ -32,16 +33,57 @@ DEBUGGING = False
 logger = logging.getLogger(__name__)
 
 
+def _check_input_crs(streets: gpd.GeoDataFrame, exclusion_mask: gpd.GeoSeries):
+    """Ensure input data is in appropriate Coordinate reference systems."""
+
+    streets_crs = streets.crs
+    streets_has_crs = streets_crs is not None
+
+    if not streets_has_crs:
+        warnings.warn(
+            (
+                "The input `streets` data does not have an assigned "
+                "coordinate reference system. Assuming a projected CRS in meters."
+            ),
+            category=UserWarning,
+            stacklevel=2,
+        )
+
+    else:
+        if not streets_crs.is_projected:
+            raise ValueError(
+                "The input `streets` data are not in a projected "
+                "coordinate reference system. Reproject and rerun."
+            )
+
+        if streets_crs.axis_info[0].unit_name != "metre":
+            warnings.warn(
+                (
+                    "The input `streets` data coordinate reference system is projected "
+                    "but not in meters. All `neatnet` defaults assume meters. "
+                    "Either reproject and rerun or proceed with caution."
+                ),
+                category=UserWarning,
+                stacklevel=2,
+            )
+
+    if exclusion_mask is not None and exclusion_mask.crs != streets_crs:
+        raise ValueError(
+            "The input `streets` and `exclusion_mask` data are in "
+            "different coordinate reference systems. Reproject and rerun."
+        )
+
+
 def _link_nodes_artifacts(
     step: str,
-    roads: gpd.GeoDataFrame,
+    streets: gpd.GeoDataFrame,
     artifacts: gpd.GeoDataFrame,
     eps: None | float,
 ) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Helper to prep nodes & artifacts when simplifying singletons & pairs."""
 
     # Get nodes from the network
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
+    nodes = _nodes_degrees_from_edges(streets.geometry)
 
     if step == "singletons":
         node_geom = nodes.geometry
@@ -66,11 +108,11 @@ def _link_nodes_artifacts(
 
 
 def _classify_strokes(
-    artifacts: gpd.GeoDataFrame, roads: gpd.GeoDataFrame
+    artifacts: gpd.GeoDataFrame, streets: gpd.GeoDataFrame
 ) -> gpd.GeoDataFrame:
     """Classify artifacts with ``{C,E,S}`` typology."""
 
-    strokes, c_, e_, s_ = get_stroke_info(artifacts, roads)
+    strokes, c_, e_, s_ = get_stroke_info(artifacts, streets)
 
     artifacts["stroke_count"] = strokes
     artifacts["C"] = c_
@@ -81,7 +123,7 @@ def _classify_strokes(
 
 
 def _identify_non_planar(
-    artifacts: gpd.GeoDataFrame, roads: gpd.GeoDataFrame
+    artifacts: gpd.GeoDataFrame, streets: gpd.GeoDataFrame
 ) -> gpd.GeoDataFrame:
     """Filter artifacts caused by non-planar intersections."""
 
@@ -90,7 +132,9 @@ def _identify_non_planar(
     # TODO: Some 3CC artifacts were non-planar but not captured here.
 
     artifacts["non_planar"] = artifacts["stroke_count"] > artifacts["node_count"]
-    a_idx, r_idx = roads.sindex.query(artifacts.geometry.boundary, predicate="overlaps")
+    a_idx, r_idx = streets.sindex.query(
+        artifacts.geometry.boundary, predicate="overlaps"
+    )
     artifacts.iloc[np.unique(a_idx), artifacts.columns.get_loc("non_planar")] = True
 
     return artifacts
@@ -98,7 +142,7 @@ def _identify_non_planar(
 
 def neatify_singletons(
     artifacts: gpd.GeoDataFrame,
-    roads: gpd.GeoDataFrame,
+    streets: gpd.GeoDataFrame,
     *,
     max_segment_length: float | int = 1,
     compute_coins: bool = True,
@@ -113,7 +157,7 @@ def neatify_singletons(
 
     This process extracts nodes from network edges before computing and labeling
     face artifacts with a ``{C, E, S}`` typology through ``momepy.COINS`` via the
-    constituent road geometries.
+    constituent street geometries.
 
     Next, each artifact is iterated over and constituent line geometries are either
     dropped or added in the following order of typologies:
@@ -128,15 +172,15 @@ def neatify_singletons(
     ----------
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
-    roads : geopandas.GeoDataFrame
-        Preprocessed road network data.
+    streets : geopandas.GeoDataFrame
+        Preprocessed street network data.
     max_segment_length : float | int = 1
-        Additional vertices will be added so that all line segments
+        Additional nodes will be added so that all line segments
         are no longer than this value. Must be greater than 0.
         Used in multiple internal geometric operations.
     compute_coins : bool = True
         Flag for computing and labeling artifacts with a ``{C, E, S}`` typology through
-        ``momepy.COINS`` via the constituent road geometries.
+        ``momepy.COINS`` via the constituent street geometries.
     min_dangle_length : float | int = 10
         The threshold for determining if linestrings are dangling slivers to be
         removed or not.
@@ -158,19 +202,19 @@ def neatify_singletons(
     Returns
     -------
     geopandas.GeoDataFrame
-        The road network line data following the singleton procedure.
+        The street network line data following the singleton procedure.
     """
 
     # Extract network nodes and relate to artifacts
-    nodes, artifacts = _link_nodes_artifacts("singletons", roads, artifacts, eps)
+    nodes, artifacts = _link_nodes_artifacts("singletons", streets, artifacts, eps)
 
     # Compute number of stroke groups per artifact
     if compute_coins:
-        roads, _ = continuity(roads)
-    artifacts = _classify_strokes(artifacts, roads)
+        streets, _ = continuity(streets)
+    artifacts = _classify_strokes(artifacts, streets)
 
     # Filter artifacts caused by non-planar intersections
-    artifacts = _identify_non_planar(artifacts, roads)
+    artifacts = _identify_non_planar(artifacts, streets)
 
     # Count intersititial nodes (primes)
     _prime_count = artifacts["node_count"] - artifacts[["C", "E", "S"]].sum(axis=1)
@@ -200,7 +244,9 @@ def neatify_singletons(
         cestype = artifact.ces_type
 
         # Get edges relevant for an artifact
-        edges = roads.iloc[roads.sindex.query(artifact.buffered, predicate="covers")]
+        edges = streets.iloc[
+            streets.sindex.query(artifact.buffered, predicate="covers")
+        ]
 
         # Dispatch by typology
         try:
@@ -256,39 +302,41 @@ def neatify_singletons(
                 stacklevel=2,
             )
 
-    cleaned_roads = roads.drop(to_drop)
+    cleaned_streets = streets.drop(to_drop)
     # split lines on new nodes
-    cleaned_roads = split(split_points, roads.drop(to_drop), roads.crs)
+    cleaned_streets = split(split_points, streets.drop(to_drop), streets.crs)
 
     if to_add:
-        # Create new roads with fixed geometry.
+        # Create new streets with fixed geometry.
         # Note: ``to_add`` and ``to_drop`` lists shall be global and
         # this step should happen only once, not for every artifact
         _add_merged = gpd.GeoSeries(to_add).line_merge()
-        new = gpd.GeoDataFrame(geometry=_add_merged, crs=roads.crs).explode()
+        new = gpd.GeoDataFrame(geometry=_add_merged, crs=streets.crs).explode()
         new = new[~new.normalize().duplicated()].copy()
         new["_status"] = "new"
         new.geometry = new.simplify(max_segment_length * simplification_factor)
-        new_roads = pd.concat([cleaned_roads, new], ignore_index=True)
+        new_streets = pd.concat([cleaned_streets, new], ignore_index=True)
         agg: dict[str, str | typing.Callable] = {"_status": _status}
-        for c in cleaned_roads.columns.drop(cleaned_roads.active_geometry_name):
+        for c in cleaned_streets.columns.drop(cleaned_streets.active_geometry_name):
             if c != "_status":
                 agg[c] = "first"
-        non_empties = new_roads[~(new_roads.is_empty | new_roads.geometry.isna())]
-        new_roads = remove_interstitial_nodes(non_empties, aggfunc=agg)
+        non_empties = new_streets[~(new_streets.is_empty | new_streets.geometry.isna())]
+        new_streets = remove_interstitial_nodes(non_empties, aggfunc=agg)
 
-        final = new_roads
+        final = new_streets
     else:
-        final = cleaned_roads
+        final = cleaned_streets
 
     if "coins_group" in final.columns:
-        final = final.drop(columns=[c for c in roads.columns if c.startswith("coins_")])
+        final = final.drop(
+            columns=[c for c in streets.columns if c.startswith("coins_")]
+        )
     return final
 
 
 def neatify_pairs(
     artifacts: gpd.GeoDataFrame,
-    roads: gpd.GeoDataFrame,
+    streets: gpd.GeoDataFrame,
     *,
     max_segment_length: float | int = 1,
     min_dangle_length: float | int = 20,
@@ -315,8 +363,8 @@ def neatify_pairs(
     ----------
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
-    roads : geopandas.GeoDataFrame
-        Preprocessed road network data.
+    streets : geopandas.GeoDataFrame
+        Preprocessed street network data.
     max_segment_length : float | int = 1
         Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
@@ -340,18 +388,18 @@ def neatify_pairs(
     Returns
     -------
     geopandas.GeoDataFrame
-        The road network line data following the pairs procedure.
+        The street network line data following the pairs procedure.
     """
 
     # Extract network nodes and relate to artifacts
-    nodes, artifacts = _link_nodes_artifacts("pairs", roads, artifacts, None)
+    nodes, artifacts = _link_nodes_artifacts("pairs", streets, artifacts, None)
 
     # Compute number of stroke groups per artifact
-    roads, _ = continuity(roads)
-    artifacts = _classify_strokes(artifacts, roads)
+    streets, _ = continuity(streets)
+    artifacts = _classify_strokes(artifacts, streets)
 
     # Filter artifacts caused by non-planar intersections
-    artifacts = _identify_non_planar(artifacts, roads)
+    artifacts = _identify_non_planar(artifacts, streets)
 
     # Identify non-planar clusters
     _id_np = lambda x: sum(artifacts.loc[artifacts["comp"] == x.comp]["non_planar"])  # noqa: E731
@@ -362,7 +410,7 @@ def neatify_pairs(
 
     # Isolate planar artifacts
     _planar_grouped = artifacts_planar.groupby("comp")[artifacts_planar.columns]
-    _solutions = _planar_grouped.apply(get_solution, roads=roads)
+    _solutions = _planar_grouped.apply(get_solution, streets=streets)
     artifacts_w_info = artifacts.merge(_solutions, left_on="comp", right_index=True)
 
     # Isolate non-planar clusters of value 2 – e.g., artifact under highway
@@ -376,8 +424,8 @@ def neatify_pairs(
             "coins_end": lambda x: x.any(),
             "_status": _status,
         }
-        for c in roads.columns.drop(
-            [roads.active_geometry_name, "coins_count"], errors="ignore"
+        for c in streets.columns.drop(
+            [streets.active_geometry_name, "coins_count"], errors="ignore"
         ):
             if c not in agg:
                 agg[c] = "first"
@@ -385,13 +433,13 @@ def neatify_pairs(
         sol_drop = "solution == 'drop_interline'"
         sol_iter = "solution == 'iterate'"
 
-        # Determine artifacts and road edges to drop
+        # Determine artifacts and street edges to drop
         _to_drop = artifacts_w_info.drop_duplicates("comp").query(sol_drop).drop_id
-        _drop_roads = roads.drop(_to_drop.dropna().values)
+        _drop_streets = streets.drop(_to_drop.dropna().values)
 
-        # Re-run node cleaning on subset of fresh road edges
-        roads_cleaned = remove_interstitial_nodes(
-            _drop_roads,
+        # Re-run node cleaning on subset of fresh street edges
+        streets_cleaned = remove_interstitial_nodes(
+            _drop_streets,
             aggfunc=agg,
         )
 
@@ -418,15 +466,15 @@ def neatify_pairs(
         _1st = pd.DataFrame()
         _2nd = pd.DataFrame()
         for_skeleton = pd.DataFrame()
-        roads_cleaned = roads
+        streets_cleaned = streets
 
     # Generate counts of COINs groups for edges
     coins_count = (
-        roads_cleaned.groupby("coins_group", as_index=False)
+        streets_cleaned.groupby("coins_group", as_index=False)
         .geometry.count()
         .rename(columns={"geometry": "coins_count"})
     )
-    roads_cleaned = roads_cleaned.merge(coins_count, on="coins_group", how="left")
+    streets_cleaned = streets_cleaned.merge(coins_count, on="coins_group", how="left")
 
     # Add under non-planars to cluster dispatcher
     if not artifacts_under_np.empty:
@@ -435,9 +483,9 @@ def neatify_pairs(
     # Dispatch singleton simplifier
     if not merged_pairs.empty or not _1st.empty:
         # Merged pairs & first instance – w/o COINS
-        roads_cleaned = neatify_singletons(
+        streets_cleaned = neatify_singletons(
             pd.concat([merged_pairs, _1st]),
-            roads_cleaned,
+            streets_cleaned,
             max_segment_length=max_segment_length,
             clip_limit=clip_limit,
             compute_coins=False,
@@ -447,9 +495,9 @@ def neatify_pairs(
         )
         # Second instance – w/ COINS
         if not _2nd.empty:
-            roads_cleaned = neatify_singletons(
+            streets_cleaned = neatify_singletons(
                 _2nd,
-                roads_cleaned,
+                streets_cleaned,
                 max_segment_length=max_segment_length,
                 clip_limit=clip_limit,
                 compute_coins=True,
@@ -460,21 +508,21 @@ def neatify_pairs(
 
     # Dispatch cluster simplifier
     if not for_skeleton.empty:
-        roads_cleaned = neatify_clusters(
+        streets_cleaned = neatify_clusters(
             for_skeleton,
-            roads_cleaned,
+            streets_cleaned,
             max_segment_length=max_segment_length,
             simplification_factor=simplification_factor,
             min_dangle_length=min_dangle_length,
             consolidation_tolerance=consolidation_tolerance,
         )
 
-    return roads_cleaned
+    return streets_cleaned
 
 
 def neatify_clusters(
     artifacts: gpd.GeoDataFrame,
-    roads: gpd.GeoDataFrame,
+    streets: gpd.GeoDataFrame,
     *,
     max_segment_length: float | int = 1,
     eps: float = 1e-4,
@@ -492,8 +540,8 @@ def neatify_clusters(
     ----------
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
-    roads : geopandas.GeoDataFrame
-        Preprocessed road network data.
+    streets : geopandas.GeoDataFrame
+        Preprocessed street network data.
     max_segment_length : float | int = 1
         Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
@@ -513,11 +561,11 @@ def neatify_clusters(
     Returns
     -------
     geopandas.GeoDataFrame
-        The road network line data following the clusters procedure.
+        The street network line data following the clusters procedure.
     """
 
     # Get nodes from the network
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
+    nodes = gpd.GeoSeries(_nodes_from_edges(streets.geometry))
 
     # Collect changes
     to_drop: list[int] = []
@@ -527,8 +575,8 @@ def neatify_clusters(
         # Get artifact cluster polygon
         cluster_geom = artifact.union_all()
         # Get edges relevant for an artifact
-        edges = roads.iloc[
-            roads.sindex.query(cluster_geom, predicate="intersects")
+        edges = streets.iloc[
+            streets.sindex.query(cluster_geom, predicate="intersects")
         ].copy()
 
         # Clusters of 2 or more nodes and 2 or more continuity groups
@@ -544,26 +592,26 @@ def neatify_clusters(
             consolidation_tolerance=consolidation_tolerance,
         )
 
-    cleaned_roads = roads.drop(to_drop)
+    cleaned_streets = streets.drop(to_drop)
 
-    # Create new roads with fixed geometry.
+    # Create new street with fixed geometry.
     # Note: ``to_add`` and ``to_drop`` lists shall be global and
     # this step should happen only once, not for every artifact
-    new = gpd.GeoDataFrame(geometry=to_add, crs=roads.crs)
+    new = gpd.GeoDataFrame(geometry=to_add, crs=streets.crs)
     new["_status"] = "new"
     new["geometry"] = new.line_merge().simplify(
         max_segment_length * simplification_factor
     )
-    new_roads = pd.concat([cleaned_roads, new], ignore_index=True).explode()
+    new_streets = pd.concat([cleaned_streets, new], ignore_index=True).explode()
     agg: dict[str, str | typing.Callable] = {"_status": _status}
-    for c in new_roads.columns.drop(new_roads.active_geometry_name):
+    for c in new_streets.columns.drop(new_streets.active_geometry_name):
         if c != "_status":
             agg[c] = "first"
-    new_roads = remove_interstitial_nodes(
-        new_roads[~new_roads.is_empty], aggfunc=agg
+    new_streets = remove_interstitial_nodes(
+        new_streets[~new_streets.is_empty], aggfunc=agg
     ).drop_duplicates("geometry")
 
-    return new_roads
+    return new_streets
 
 
 def get_type(edges: gpd.GeoDataFrame, shared_edge: int) -> str:
@@ -602,15 +650,15 @@ def get_type(edges: gpd.GeoDataFrame, shared_edge: int) -> str:
     return "E"
 
 
-def get_solution(group: gpd.GeoDataFrame, roads: gpd.GeoDataFrame) -> pd.Series:
+def get_solution(group: gpd.GeoDataFrame, streets: gpd.GeoDataFrame) -> pd.Series:
     """Determine the solution for paired planar artifacts.
 
     Parameters
     ----------
     group : geopandas.GeoDataFrame
         Dissolved group of connected planar artifacts.
-    roads : geopandas.GeoDataFrame
-        Road network data.
+    streets : geopandas.GeoDataFrame
+        Street network data.
 
     Returns
     -------
@@ -619,27 +667,27 @@ def get_solution(group: gpd.GeoDataFrame, roads: gpd.GeoDataFrame) -> pd.Series:
     """
 
     def _relate(loc: int) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
-        """Isolate intersecting & covering road geometries."""
+        """Isolate intersecting & covering street geometries."""
         _geom = group.geometry.iloc[loc]
-        _roads = roads.iloc[roads.sindex.query(_geom, predicate="intersects")]
-        _covers = _roads.iloc[_roads.sindex.query(_geom, predicate="covers")]
-        return _roads, _covers
+        _streets = streets.iloc[streets.sindex.query(_geom, predicate="intersects")]
+        _covers = _streets.iloc[_streets.sindex.query(_geom, predicate="covers")]
+        return _streets, _covers
 
     cluster_geom = group.union_all()
 
-    roads_a, covers_a = _relate(0)
-    roads_b, covers_b = _relate(1)
+    streets_a, covers_a = _relate(0)
+    streets_b, covers_b = _relate(1)
 
-    # Find the road segment that is contained within the cluster geometry
-    shared = roads.index[roads.sindex.query(cluster_geom, predicate="contains")]
+    # Find the street segment that is contained within the cluster geometry
+    shared = streets.index[streets.sindex.query(cluster_geom, predicate="contains")]
 
     if shared.empty or covers_a.empty or covers_b.empty:
         return pd.Series({"solution": "non_planar", "drop_id": None})
 
     shared = shared.item()
 
-    if (np.invert(roads_b.index.isin(covers_a.index)).sum() == 1) or (
-        np.invert(roads_a.index.isin(covers_b.index)).sum() == 1
+    if (np.invert(streets_b.index.isin(covers_a.index)).sum() == 1) or (
+        np.invert(streets_a.index.isin(covers_b.index)).sum() == 1
     ):
         return pd.Series({"solution": "drop_interline", "drop_id": shared})
 
@@ -656,7 +704,7 @@ def get_solution(group: gpd.GeoDataFrame, roads: gpd.GeoDataFrame) -> pd.Series:
 
 
 def neatify(
-    roads: gpd.GeoDataFrame,
+    streets: gpd.GeoDataFrame,
     *,
     exclusion_mask: None | gpd.GeoSeries = None,
     predicate: str = "intersects",
@@ -675,10 +723,10 @@ def neatify(
     eps: float = 1e-4,
     n_loops: int = 2,
 ) -> gpd.GeoDataFrame:
-    """Top-level workflow for simplifying networks. The input raw road network data,
-    which must be in a projected coordinate reference system and is expected to be in
-    meters, is first preprocessed (topological corrections & node consolidation) before
-    two iterations of artifact detection and simplification.
+    """Top-level workflow for simplifying street networks. The input raw street network
+    data, which must be in a projected coordinate reference system and is expected to be
+    in meters, is first preprocessed (topological corrections & node consolidation)
+    before two iterations of artifact detection and simplification.
 
     Each iteration of the simplification procedure which includes (1.) the removal
     of false nodes; (2.) face artifact classification; and (3.) the line-based
@@ -688,13 +736,20 @@ def neatify(
     For further information on face artifact detection and extraction
     see :cite:`fleischmann_shape-based_2024`.
 
+    This algorithm is designed for use with only "street" network geometries as input.
+    While passing in other types of pathing (e.g., sidewalks, canals) will likely yield
+    valid geometric results, that behavior is untested.
+
     Parameters
     ----------
-    roads : geopandas.GeoDataFrame
-        Raw road network data. This input *must* be in a projected coordinate reference
-        system and *should* be in meters. All defaults arguments assume meters.
+    streets : geopandas.GeoDataFrame
+        Raw street network data. This input *must* be in a projected coordinate
+        reference system and *should* be in meters. All defaults arguments assume
+        meters. The internal algorithm is designed for use with street network
+        geometries, not  other types of pathing (e.g., sidewalks, canals), which
+        should be filtered out.
     exclusion_mask : None | geopandas.GeoSeries = None
-        Polygons used to determine face artifacts to exclude from returned output.
+        Geometries used to determine face artifacts to exclude from returned output.
     predicate : str = 'intersects'
         The spatial predicate used to exclude face artifacts from returned output.
     max_segment_length : float | int = 1
@@ -784,7 +839,7 @@ def neatify(
     Returns
     -------
     geopandas.GeoDataFrame
-        The final, simplified road network line data.
+        The final, simplified street network line data.
 
     Notes
     -----
@@ -793,13 +848,16 @@ def neatify(
     work with network data projected in feet if all default arguments are adjusted.
     """
 
-    roads = fix_topology(roads, eps=eps)
+    _check_input_crs(streets, exclusion_mask)
+
+    streets = fix_topology(streets, eps=eps)
+
     # Merge nearby nodes (up to double of distance used in skeleton).
-    roads = consolidate_nodes(roads, tolerance=max_segment_length * 2.1)
+    streets = consolidate_nodes(streets, tolerance=max_segment_length * 2.1)
 
     # Identify artifacts
     artifacts, threshold = get_artifacts(
-        roads,
+        streets,
         exclusion_mask=exclusion_mask,
         predicate=predicate,
         threshold=artifact_threshold,
@@ -812,8 +870,8 @@ def neatify(
     )
 
     # Loop 1
-    new_roads = neatify_loop(
-        roads,
+    new_streets = neatify_loop(
+        streets,
         artifacts,
         max_segment_length=max_segment_length,
         min_dangle_length=min_dangle_length,
@@ -824,13 +882,13 @@ def neatify(
     )
 
     # This is potentially fixing some minor erroneous edges coming from Voronoi
-    new_roads = induce_nodes(new_roads, eps=eps)
-    new_roads = new_roads[~new_roads.geometry.normalize().duplicated()].copy()
+    new_streets = induce_nodes(new_streets, eps=eps)
+    new_streets = new_streets[~new_streets.geometry.normalize().duplicated()].copy()
 
     for _ in range(2, n_loops + 1):
         # Identify artifacts based on the first loop network
         artifacts, _ = get_artifacts(
-            new_roads,
+            new_streets,
             threshold=threshold,
             threshold_fallback=artifact_threshold_fallback,
             area_threshold_blocks=area_threshold_blocks,
@@ -842,8 +900,8 @@ def neatify(
             predicate=predicate,
         )
 
-        new_roads = neatify_loop(
-            new_roads,
+        new_streets = neatify_loop(
+            new_streets,
             artifacts,
             max_segment_length=max_segment_length,
             min_dangle_length=min_dangle_length,
@@ -854,14 +912,14 @@ def neatify(
         )
 
         # This is potentially fixing some minor erroneous edges coming from Voronoi
-        new_roads = induce_nodes(new_roads, eps=eps)
-        new_roads = new_roads[~new_roads.geometry.normalize().duplicated()].copy()
+        new_streets = induce_nodes(new_streets, eps=eps)
+        new_streets = new_streets[~new_streets.geometry.normalize().duplicated()].copy()
 
-    return new_roads
+    return new_streets
 
 
 def neatify_loop(
-    roads: gpd.GeoDataFrame,
+    streets: gpd.GeoDataFrame,
     artifacts: gpd.GeoDataFrame,
     *,
     max_segment_length: float | int = 1,
@@ -881,8 +939,8 @@ def neatify_loop(
 
     Parameters
     ----------
-    roads : geopandas.GeoDataFrame
-        Raw road network data.
+    streets : geopandas.GeoDataFrame
+        Raw street network data.
     artifacts : geopandas.GeoDataFrame
         Face artifact polygons.
     max_segment_length : float | int = 1
@@ -910,13 +968,13 @@ def neatify_loop(
     Returns
     -------
     geopandas.GeoDataFrame
-        The road network line data following 1 iteration of simplification.
+        The street network line data following 1 iteration of simplification.
     """
 
     # Remove edges fully within the artifact (dangles).
-    _, r_idx = roads.sindex.query(artifacts.geometry, predicate="contains")
+    _, r_idx = streets.sindex.query(artifacts.geometry, predicate="contains")
     # Dropping may lead to new false nodes – drop those
-    roads = remove_interstitial_nodes(roads.drop(roads.index[r_idx]))
+    streets = remove_interstitial_nodes(streets.drop(streets.index[r_idx]))
 
     # Filter singleton artifacts
     rook = graph.Graph.build_contiguity(artifacts, rook=True)
@@ -935,17 +993,17 @@ def neatify_loop(
 
     if not singles.empty:
         # NOTE: this drops attributes
-        roads = neatify_singletons(
+        streets = neatify_singletons(
             singles,
-            roads,
+            streets,
             max_segment_length=max_segment_length,
             simplification_factor=simplification_factor,
             consolidation_tolerance=consolidation_tolerance,
         )
     if not doubles.empty:
-        roads = neatify_pairs(
+        streets = neatify_pairs(
             doubles,
-            roads,
+            streets,
             max_segment_length=max_segment_length,
             min_dangle_length=min_dangle_length,
             clip_limit=clip_limit,
@@ -953,9 +1011,9 @@ def neatify_loop(
             consolidation_tolerance=consolidation_tolerance,
         )
     if not clusters.empty:
-        roads = neatify_clusters(
+        streets = neatify_clusters(
             clusters,
-            roads,
+            streets,
             max_segment_length=max_segment_length,
             simplification_factor=simplification_factor,
             eps=eps,
@@ -963,6 +1021,8 @@ def neatify_loop(
             consolidation_tolerance=consolidation_tolerance,
         )
 
-    if "coins_group" in roads.columns:
-        roads = roads.drop(columns=[c for c in roads.columns if c.startswith("coins_")])
-    return roads
+    if "coins_group" in streets.columns:
+        streets = streets.drop(
+            columns=[c for c in streets.columns if c.startswith("coins_")]
+        )
+    return streets

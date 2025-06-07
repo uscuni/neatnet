@@ -1,3 +1,4 @@
+import collections.abc
 import typing
 
 import geopandas as gpd
@@ -11,9 +12,40 @@ from scipy import sparse
 from sklearn.cluster import DBSCAN
 
 
+def _fill_attrs(gdf: gpd.GeoDataFrame, source_row: pd.Series) -> gpd.GeoDataFrame:
+    """Thoughtful attribute assignment to lines split into segments by new nodes –
+    taking list-like values into consideration. See gh#213. Regarding iterables,
+    currently only supports list values – others can be added based on input type
+    in the future on an ad hoc basis as problems arise. Called from within ``split()``.
+
+    Parameters
+    ----------
+    gdf : geopandas.GeoDataFrame
+        The new frame of split linestrings.
+    source_row: pandas.Series
+        The original source row.
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        The input ``gdf`` with updated columns based on values in ``source_row``.
+    """
+
+    def _populate_column(attr):
+        """Return the attribute if scalar, create vector of input if not."""
+        if isinstance(attr, collections.abc.Sequence) and not isinstance(attr, str):
+            attr = [attr] * gdf.shape[0]
+        return attr
+
+    for col in source_row.index.drop(["geometry", "_status"], errors="ignore"):
+        gdf[col] = _populate_column(source_row[col])
+
+    return gdf
+
+
 def split(
     split_points: list | np.ndarray | gpd.GeoSeries,
-    cleaned_roads: gpd.GeoDataFrame,
+    cleaned_streets: gpd.GeoDataFrame,
     crs: str | pyproj.CRS,
     *,
     eps: float = 1e-4,
@@ -24,7 +56,7 @@ def split(
     ----------
     split_points : list | numpy.ndarray
         Points to split the ``cleaned_roads``.
-    cleaned_roads : geopandas.GeoDataFrame
+    cleaned_streets : geopandas.GeoDataFrame
         Line geometries to be split with ``split_points``.
     crs : str | pyproj.CRS
         Anything accepted by ``pyproj.CRS``.
@@ -38,19 +70,18 @@ def split(
     """
     split_points = gpd.GeoSeries(split_points, crs=crs)
     for split in split_points.drop_duplicates():
-        _, ix = cleaned_roads.sindex.nearest(split, max_distance=eps)
-        row = cleaned_roads.iloc[ix]
+        _, ix = cleaned_streets.sindex.nearest(split, max_distance=eps)
+        row = cleaned_streets.iloc[ix]
         edge = row.geometry
         if edge.shape[0] == 1:
             row = row.iloc[0]
             lines_split = _snap_n_split(edge.item(), split, eps)
             if lines_split.shape[0] > 1:
                 gdf_split = gpd.GeoDataFrame(geometry=lines_split, crs=crs)
-                for c in row.index.drop(["geometry", "_status"], errors="ignore"):
-                    gdf_split[c] = row[c]
+                gdf_split = _fill_attrs(gdf_split, row)
                 gdf_split["_status"] = "changed"
-                cleaned_roads = pd.concat(
-                    [cleaned_roads.drop(edge.index[0]), gdf_split],
+                cleaned_streets = pd.concat(
+                    [cleaned_streets.drop(edge.index[0]), gdf_split],
                     ignore_index=True,
                 )
         elif edge.shape[0] > 1:
@@ -76,15 +107,15 @@ def split(
                     axis=1,
                 )
                 gdf_split["_status"] = "changed"
-                cleaned_roads = pd.concat(
-                    [cleaned_roads.drop(to_be_dropped), gdf_split],
+                cleaned_streets = pd.concat(
+                    [cleaned_streets.drop(to_be_dropped), gdf_split],
                     ignore_index=True,
                 )
-                cleaned_roads = gpd.GeoDataFrame(
-                    cleaned_roads, geometry="geometry", crs=crs
+                cleaned_streets = gpd.GeoDataFrame(
+                    cleaned_streets, geometry="geometry", crs=crs
                 )
 
-    return cleaned_roads.reset_index(drop=True)
+    return cleaned_streets.reset_index(drop=True)
 
 
 def _snap_n_split(e: shapely.LineString, s: shapely.Point, tol: float) -> np.ndarray:
@@ -99,6 +130,53 @@ def _status(x: pd.Series) -> str:
     if len(x) == 1:
         return x.iloc[0]
     return "changed"
+
+
+def isolate_bowtie_nodes(edgelines: list | np.ndarray | gpd.GeoSeries) -> gpd.GeoSeries:
+    r"""
+    Bowties are rare edgecase whereby a component has:
+    * 2 unique nodes
+    * 2 edges that are loops
+    * 4 edges that have only 3 unique coord-pairs *after* sorting.
+
+        |\ /‾‾\ /|
+        | *    * |
+        |/ \__/ \|
+
+    Although extremely rare, these cases throw a wrench in the
+    efficient logic of ``get_components()``. See gh#214.
+    """
+
+    ignore = []
+
+    mm_nx = momepy.gdf_to_nx(gpd.GeoDataFrame(geometry=edgelines))
+    mm_nx_cc = nx.connected_components(mm_nx)
+
+    potential_bowtie_cc_nodes = []
+    for cc in list(mm_nx_cc):
+        # potential bowties only have 2 unique nodes
+        if len(cc) == 2:
+            potential_bowtie_cc_nodes += [list(cc)]
+
+    if potential_bowtie_cc_nodes:
+        for potential_bowtie_cc in potential_bowtie_cc_nodes:
+            comp_edges = mm_nx.subgraph(potential_bowtie_cc).edges
+
+            # potential bowties have 2 edges that are loops
+            loops = [comp_edges[ce]["geometry"].is_closed for ce in comp_edges]
+
+            if sum(loops) == 2:
+                # -- failsafe
+                # ensure the 4 edges have only 3 unique coord-pairs after sorting.
+                sorted_edge_coords = [sorted(ce[:2]) for ce in comp_edges]
+                unique_sorted_edge_coords = np.unique(sorted_edge_coords, axis=0)
+
+                if unique_sorted_edge_coords.shape[0] == 3:
+                    ignore += potential_bowtie_cc
+
+    return gpd.GeoSeries([shapely.Point(i) for i in ignore]).sort_values(
+        ignore_index=True
+    )
 
 
 def get_components(
@@ -125,6 +203,15 @@ def get_components(
     See [https://github.com/uscuni/neatnet/issues/56] for detailed explanation of
     output.
     """
+
+    bowtie_nodes = isolate_bowtie_nodes(edgelines)
+
+    if not bowtie_nodes.empty:
+        if ignore is not None:
+            ignore = pd.concat([ignore, bowtie_nodes], ignore_index=True)
+        else:
+            ignore = bowtie_nodes
+
     edgelines = np.array(edgelines)
     start_points = shapely.get_point(edgelines, 0)
     end_points = shapely.get_point(edgelines, -1)
@@ -136,6 +223,7 @@ def get_components(
     if ignore is not None:
         mask = np.isin(points, ignore)
         points = points[~mask]
+
     # query LineString geometry to identify points intersecting 2 geometries
     inp, res = shapely.STRtree(shapely.boundary(edgelines)).query(
         points, predicate="intersects"
@@ -193,14 +281,14 @@ def weld_edges(
     ).tolist()
 
 
-def induce_nodes(roads: gpd.GeoDataFrame, *, eps: float = 1e-4) -> gpd.GeoDataFrame:
+def induce_nodes(streets: gpd.GeoDataFrame, *, eps: float = 1e-4) -> gpd.GeoDataFrame:
     """Adding potentially missing nodes on intersections of individual LineString
     endpoints with the remaining network. The idea behind is that if a line ends
     on an intersection with another, there should be a node on both of them.
 
     Parameters
     ----------
-    roads : geopandas.GeoDataFrame
+    streets : geopandas.GeoDataFrame
         Input LineString geometries.
     eps : float = 1e-4
         Tolerance epsilon for point snapping passed into ``nodes.split()``.
@@ -208,38 +296,70 @@ def induce_nodes(roads: gpd.GeoDataFrame, *, eps: float = 1e-4) -> gpd.GeoDataFr
     Returns
     -------
     geopandas.GeoDataFrame
-        Updated ``roads`` with (potentially) added nodes.
+        Updated ``streets`` with (potentially) added nodes.
     """
 
     sindex_kws = {"predicate": "dwithin", "distance": 1e-4}
 
     # identify degree mismatch cases
-    nodes_degree_mismatch = _identify_degree_mismatch(roads, sindex_kws)
+    nodes_degree_mismatch = _identify_degree_mismatch(streets, sindex_kws)
 
     # ensure loop topology cases:
     #   - loop nodes intersecting non-loops
     #   - loop nodes intersecting other loops
-    nodes_off_loops, nodes_on_loops = _makes_loop_contact(roads, sindex_kws)
+    nodes_off_loops, nodes_on_loops = _makes_loop_contact(streets, sindex_kws)
 
     # all nodes to induce
     nodes_to_induce = pd.concat(
         [nodes_degree_mismatch, nodes_off_loops, nodes_on_loops]
     )
 
-    return split(nodes_to_induce.geometry, roads, roads.crs, eps=eps)
+    return split(nodes_to_induce.geometry, streets, streets.crs, eps=eps)
 
 
 def _identify_degree_mismatch(
     edges: gpd.GeoDataFrame, sindex_kws: dict
 ) -> gpd.GeoSeries:
     """Helper to identify difference of observed vs. expected node degree."""
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(edges)), lines=False)
+    nodes = _nodes_degrees_from_edges(edges.geometry)
+    nodes = nodes.set_crs(edges.crs)
     nix, eix = edges.sindex.query(nodes.geometry, **sindex_kws)
     coo_vals = ([True] * len(nix), (nix, eix))
     coo_shape = (len(nodes), len(edges))
     intersects = sparse.coo_array(coo_vals, shape=coo_shape, dtype=np.bool_)
     nodes["expected_degree"] = intersects.sum(axis=1)
     return nodes[nodes["degree"] != nodes["expected_degree"]].geometry
+
+
+def _nodes_from_edges(
+    edgelines: list | np.ndarray | gpd.GeoSeries,
+    return_degrees=False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+    """Helper to get network nodes from edges' geometries."""
+    edgelines = np.array(edgelines)
+    start_points = shapely.get_point(edgelines, 0)
+    end_points = shapely.get_point(edgelines, -1)
+    node_coords = np.unique(
+        shapely.get_coordinates(np.concatenate([start_points, end_points])),
+        axis=0,
+        return_counts=return_degrees,
+    )
+    if return_degrees:
+        node_coords, degrees = node_coords
+    node_points = shapely.points(node_coords)
+    if return_degrees:
+        return node_points, degrees
+    else:
+        return node_points
+
+
+def _nodes_degrees_from_edges(
+    edgelines: list | np.ndarray | gpd.GeoSeries,
+) -> gpd.GeoDataFrame:
+    """Helper to get network nodes and their degrees from edges' geometries."""
+    node_points, degrees = _nodes_from_edges(edgelines, return_degrees=True)
+    nodes_gdf = gpd.GeoDataFrame({"degree": degrees, "geometry": node_points})
+    return nodes_gdf
 
 
 def _makes_loop_contact(
@@ -337,11 +457,7 @@ def remove_interstitial_nodes(
     aggregated = aggregated_geometry.join(aggregated_data)
 
     # Derive nodes
-    nodes = momepy.nx_to_gdf(
-        momepy.node_degree(momepy.gdf_to_nx(aggregated[[aggregated.geometry.name]])),
-        lines=False,
-    )
-
+    nodes = _nodes_from_edges(aggregated.geometry)
     # Bifurcate edges into loops and non-loops
     loops, not_loops = _loops_and_non_loops(aggregated)
 
@@ -350,10 +466,10 @@ def remove_interstitial_nodes(
     #   - that endpoint shares a node with an intersecting line
     fixed_loops = []
     fixed_index = []
-    node_ix, loop_ix = loops.sindex.query(nodes.geometry, predicate="intersects")
+    node_ix, loop_ix = loops.sindex.query(nodes, predicate="intersects")
     for ix in np.unique(loop_ix):
         loop_geom = loops.geometry.iloc[ix]
-        target_nodes = nodes.geometry.iloc[node_ix[loop_ix == ix]]
+        target_nodes = nodes[node_ix[loop_ix == ix]]
         if len(target_nodes) == 2:
             new_sequence = _rotate_loop_coords(loop_geom, not_loops)
             fixed_loops.append(shapely.LineString(new_sequence))
@@ -397,12 +513,12 @@ def _rotate_loop_coords(
 
 
 def fix_topology(
-    roads: gpd.GeoDataFrame,
+    streets: gpd.GeoDataFrame,
     *,
     eps: float = 1e-4,
     **kwargs,
 ) -> gpd.GeoDataFrame:
-    """Fix road network topology. This ensures correct topology of the network by:
+    """Fix street network topology. This ensures correct topology of the network by:
 
         1.  Adding potentially missing nodes...
                 on intersections of individual LineString endpoints
@@ -415,7 +531,7 @@ def fix_topology(
 
     Parameters
     ----------
-    roads : geopandas.GeoDataFrame
+    streets : geopandas.GeoDataFrame
         Input LineString geometries.
     eps : float = 1e-4
         Tolerance epsilon for point snapping passed into ``nodes.split()``.
@@ -425,12 +541,12 @@ def fix_topology(
     Returns
     -------
     gpd.GeoDataFrame
-        The input roads that now have fixed topology and are ready
+        The input streets that now have fixed topology and are ready
         to proceed through the simplification algorithm.
     """
-    roads = roads[~roads.geometry.normalize().duplicated()].copy()
-    roads_w_nodes = induce_nodes(roads, eps=eps)
-    return remove_interstitial_nodes(roads_w_nodes, **kwargs)
+    streets = streets[~streets.geometry.normalize().duplicated()].copy()
+    streets_w_nodes = induce_nodes(streets, eps=eps)
+    return remove_interstitial_nodes(streets_w_nodes, **kwargs)
 
 
 def consolidate_nodes(
@@ -473,7 +589,7 @@ def consolidate_nodes(
     elif isinstance(gdf, np.ndarray):
         gdf = gpd.GeoDataFrame(geometry=gdf)
 
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(gdf)), lines=False)
+    nodes = _nodes_degrees_from_edges(gdf.geometry)
 
     if preserve_ends:
         # keep at least one meter of original geometry around each end
