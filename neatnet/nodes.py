@@ -147,16 +147,9 @@ def isolate_bowtie_nodes(edgelines: list | np.ndarray | gpd.GeoSeries) -> gpd.Ge
     efficient logic of ``get_components()``. See gh#214.
     """
 
-    if isinstance(edgelines, list):
-        edgelines = np.array(edgelines)
-    if isinstance(edgelines, np.ndarray):
-        edgelines = gpd.GeoSeries(edgelines)
-    if isinstance(edgelines, gpd.GeoSeries):
-        edgelines = edgelines.to_frame("geometry")
-
     ignore = []
 
-    mm_nx = momepy.gdf_to_nx(edgelines)
+    mm_nx = momepy.gdf_to_nx(gpd.GeoDataFrame(geometry=edgelines))
     mm_nx_cc = nx.connected_components(mm_nx)
 
     potential_bowtie_cc_nodes = []
