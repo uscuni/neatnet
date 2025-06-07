@@ -181,7 +181,9 @@ def isolate_bowtie_nodes(edgelines: list | np.ndarray | gpd.GeoSeries) -> gpd.Ge
                 if unique_sorted_edge_coords.shape[0] == 3:
                     ignore += potential_bowtie_cc
 
-    return gpd.GeoSeries([shapely.Point(i) for i in ignore])
+    return gpd.GeoSeries([shapely.Point(i) for i in ignore]).sort_values(
+        ignore_index=True
+    )
 
 
 def get_components(
