@@ -2,6 +2,7 @@ import collections.abc
 import typing
 
 import geopandas as gpd
+import momepy
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -131,6 +132,58 @@ def _status(x: pd.Series) -> str:
     return "changed"
 
 
+def isolate_bowtie_nodes(edgelines: list | np.ndarray | gpd.GeoSeries) -> gpd.GeoSeries:
+    r"""
+    Bowties are rare edgecase whereby a component has:
+    * 2 unique nodes
+    * 2 edges that are loops
+    * 4 edges that have only 3 unique coord-pairs *after* sorting.
+
+        |\ /‾‾\ /|
+        | *    * |
+        |/ \__/ \|
+
+    Although extremely rare, these cases throw a wrench in the
+    efficient logic of ``get_components()``. See gh#214.
+    """
+
+    if isinstance(edgelines, list):
+        edgelines = np.array(edgelines)
+    if isinstance(edgelines, np.ndarray):
+        edgelines = gpd.GeoSeries(edgelines)
+    if isinstance(edgelines, gpd.GeoSeries):
+        edgelines = edgelines.to_frame("geometry")
+
+    ignore = []
+
+    mm_nx = momepy.gdf_to_nx(edgelines)
+    mm_nx_cc = nx.connected_components(mm_nx)
+
+    potential_bowtie_cc_nodes = []
+    for cc in list(mm_nx_cc):
+        # potential bowties only have 2 unique nodes
+        if len(cc) == 2:
+            potential_bowtie_cc_nodes += [list(cc)]
+
+    if potential_bowtie_cc_nodes:
+        for potential_bowtie_cc in potential_bowtie_cc_nodes:
+            comp_edges = mm_nx.subgraph(potential_bowtie_cc).edges
+
+            # potential bowties have 2 edges that are loops
+            loops = [comp_edges[ce]["geometry"].is_closed for ce in comp_edges]
+
+            if sum(loops) == 2:
+                # -- failsafe
+                # ensure the 4 edges have only 3 unique coord-pairs after sorting.
+                sorted_edge_coords = [sorted(ce[:2]) for ce in comp_edges]
+                unique_sorted_edge_coords = np.unique(sorted_edge_coords, axis=0)
+
+                if unique_sorted_edge_coords.shape[0] == 3:
+                    ignore += potential_bowtie_cc
+
+    return gpd.GeoSeries([shapely.Point(i) for i in ignore])
+
+
 def get_components(
     edgelines: list | np.ndarray | gpd.GeoSeries,
     *,
@@ -156,98 +209,47 @@ def get_components(
     output.
     """
 
-    # 1. convert edges geoseries to numpy array
-    edgelines = np.array(edgelines)
-    n_edgelines = len(edgelines)
-    ix_edgelines = np.arange(n_edgelines)
+    bowtie_nodes = isolate_bowtie_nodes(edgelines)
 
-    # 2. fetch edge starting & ending points
+    if not bowtie_nodes.empty:
+        if ignore is not None:
+            ignore = pd.concat([ignore, bowtie_nodes], ignore_index=True)
+        else:
+            ignore = bowtie_nodes
+
+    edgelines = np.array(edgelines)
     start_points = shapely.get_point(edgelines, 0)
     end_points = shapely.get_point(edgelines, -1)
-
-    # 3. generate array for all bounds of edgelines
-    all_bounds_edgelines = np.array(
-        list(
-            zip(
-                shapely.get_coordinates(start_points),
-                shapely.get_coordinates(end_points),
-                strict=True,
-            )
+    points = shapely.points(
+        np.unique(
+            shapely.get_coordinates(np.concatenate([start_points, end_points])), axis=0
         )
     )
-
-    # 4. generate array for all bounding points of edgelines
-    all_bounding_points = all_bounds_edgelines.reshape(n_edgelines * 2, 2)
-
-    # 5. create loop mask for *bounding points* of edgelines
-    all_bounding_points_in_loop_mask = np.repeat(shapely.is_closed(edgelines), 2)
-
-    # 6. isolate unique non-loop bounding point coordinates
-    unique_non_loop_bounding_coords = np.unique(
-        all_bounding_points[~all_bounding_points_in_loop_mask], axis=0
-    )
-
-    # 7. query non-loop edgelines for intersecting non-loop bounding points
-    unique_nls_elb_ix, _ = shapely.STRtree(shapely.boundary(edgelines)).query(
-        shapely.points(unique_non_loop_bounding_coords), predicate="intersects"
-    )
-
-    # 8. isolate unique non-loop bounding points indices & counts
-    unique, counts = np.unique(unique_nls_elb_ix, return_counts=True)
-
-    # 9. submask A - a mask for intersecting 2 points
-    _broadcaster = unique_non_loop_bounding_coords[unique[counts == 2]]
-    mask_count_2_points = (all_bounding_points == _broadcaster[:, None]).all(2).any(0)
-
-    # 10. submask B - points that are not part of loops
-    in_loops = all_bounding_points[all_bounding_points_in_loop_mask]
-    mask_not_loop_points = ~np.isin(all_bounding_points, in_loops)[:, 0]
-
-    # 11. initial mask - preliminary points filter to consider for merging
-    mask_consider_for_merge = mask_count_2_points & mask_not_loop_points
-
-    # 12. preliminary translation of point to edges filter to consider for merging
-    _mask_points_to_edgelines = mask_consider_for_merge.reshape(n_edgelines, 2)
-
-    # 13. edges filter to consider for merging
-    mask_edgelines_to_merge = ~np.all(~_mask_points_to_edgelines, axis=1)
-
-    # 14. nearly final edges to merge
-    prelim_edgelines_to_merge = edgelines[mask_edgelines_to_merge]
-
-    # 15. candidate bounds of edgelines to merge
-    edgelines_points_candidates = all_bounds_edgelines[
-        np.isin(edgelines, prelim_edgelines_to_merge)
-    ].reshape(prelim_edgelines_to_merge.shape[0] * 2, 2)
-
-    # 16. isolate "final" set of nodes to merge – coords and labels
-    points = shapely.points(np.unique(edgelines_points_candidates, axis=0))
-
-    # 17. remove known points to ignore from consideration
     if ignore is not None:
-        mask_ignore = np.isin(points, ignore)
-        points = points[~mask_ignore]
+        mask = np.isin(points, ignore)
+        points = points[~mask]
 
-    # 18. query final set of nodes & edges to create relationship
-    to_merge_node_ix, to_merge_edge_ix = shapely.STRtree(edgelines).query(
+    # query LineString geometry to identify points intersecting 2 geometries
+    inp, res = shapely.STRtree(shapely.boundary(edgelines)).query(
         points, predicate="intersects"
     )
-
-    # 19. final masking of edges sharing degree-2 nodes
-    unique, counts = np.unique(to_merge_node_ix, return_counts=True)
-    final_mask = np.isin(to_merge_node_ix, unique[counts == 2])
-    to_merge_node_ix = to_merge_node_ix[final_mask]
-    to_merge_edge_ix = to_merge_edge_ix[final_mask]
-
-    # 20. generate graph topology & label components
-    g = nx.Graph(list(zip((to_merge_node_ix * -1) - 1, to_merge_edge_ix, strict=True)))
+    unique, counts = np.unique(inp, return_counts=True)
+    mask = np.isin(inp, unique[counts == 2])
+    merge_res = res[mask]
+    merge_inp = inp[mask]
+    closed = np.arange(len(edgelines))[shapely.is_closed(edgelines)]
+    mask = np.isin(merge_res, closed) | np.isin(merge_inp, closed)
+    merge_res = merge_res[~mask]
+    merge_inp = merge_inp[~mask]
+    g = nx.Graph(list(zip((merge_inp * -1) - 1, merge_res, strict=True)))
     components = {
         i: {v for v in k if v > -1} for i, k in enumerate(nx.connected_components(g))
     }
     component_labels = {value: key for key in components for value in components[key]}
-    labels = pd.Series(component_labels, index=ix_edgelines)
-    max_label = n_edgelines - 1 if pd.isna(labels.max()) else int(labels.max())
-    filling = pd.Series(range(max_label + 1, max_label + n_edgelines + 1))
+    labels = pd.Series(component_labels, index=range(len(edgelines)))
+
+    max_label = len(edgelines) - 1 if pd.isna(labels.max()) else int(labels.max())
+    filling = pd.Series(range(max_label + 1, max_label + len(edgelines) + 1))
     labels = labels.fillna(filling)
 
     return labels.values
