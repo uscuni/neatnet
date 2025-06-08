@@ -12,28 +12,28 @@ __all__ = [
 
 
 def close_gaps(
-    gdf: gpd.GeoDataFrame | gpd.GeoSeries, tolerance: float
+    gdf: gpd.GeoSeries | gpd.GeoDataFrame, tolerance: float
 ) -> gpd.GeoSeries:
     """Close gaps in LineString geometry where it should be contiguous.
-
     Snaps both lines to a centroid of a gap in between.
 
     Parameters
     ----------
-    gdf : GeoDataFrame | GeoSeries
-        GeoDataFrame  or GeoSeries containing LineString representation of a network.
+    gdf : geopandas.GeoSeries | geopandas.GeoDataFrame
+        LineString representations of a network.
     tolerance : float
-        nodes within a tolerance will be snapped together
+        Nodes within ``tolerance`` will be snapped together.
 
     Returns
     -------
-    GeoSeries
+    geopandas.GeoSeries
 
     See also
     --------
     neatnet.extend_lines
     neatnet.remove_interstitial_nodes
     """
+
     geom = gdf.geometry.array
     coords = shapely.get_coordinates(geom)
     indices = shapely.get_num_coordinates(geom)
@@ -69,8 +69,8 @@ def extend_lines(
     gdf: gpd.GeoDataFrame,
     tolerance: float,
     *,
-    target: None | gpd.GeoDataFrame | gpd.GeoSeries = None,
-    barrier: None | gpd.GeoDataFrame | gpd.GeoSeries = None,
+    target: None | gpd.GeoSeries | gpd.GeoDataFrame = None,
+    barrier: None | gpd.GeoSeries | gpd.GeoDataFrame = None,
     extension: int | float = 0,
 ) -> gpd.GeoDataFrame:
     """Extends lines from ``gdf`` to itself or target within a set tolerance.
@@ -84,24 +84,23 @@ def extend_lines(
 
     Parameters
     ----------
-    gdf : GeoDataFrame
-        GeoDataFrame containing LineString geometry
+    gdf : geopandas.GeoDataFrame
+        GeoDataFrame containing LineString geometry.
     tolerance : float
-        tolerance in snapping (by how much could be each segment
-        extended).
-    target : None | GeoDataFrame | GeoSeries
-        target geometry to which ``gdf`` gets extended. Has to be
-        (Multi)LineString geometry.
-    barrier : None | GeoDataFrame | GeoSeries = None
-        extended line is not used if it intersects barrier
+        Tolerance in snapping (by how much could be each segment extended).
+    target : None | geopandas.GeoSeries | geopandas.GeoDataFrame
+        Target geometry to which ``gdf`` gets extended.
+        Has to be (Multi)LineString geometry.
+    barrier : None | geopandas.GeoSeries | geopandas.GeoDataFrame = None
+        Extended line is not used if it intersects barrier.
     extension : int | float = 0
-        by how much to extend line beyond the snapped geometry. Useful
+        By how much to extend line beyond the snapped geometry. Useful
         when creating enclosures to avoid floating point imprecision.
 
     Returns
     -------
-    GeoDataFrame
-        GeoDataFrame of with extended geometry
+    geopandas.GeoDataFrame
+        GeoDataFrame with extended geometries.
 
     See also
     --------
