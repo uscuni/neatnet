@@ -99,14 +99,6 @@ class FaceArtifacts:
         height_maxs: float = 0.008,
         prominence: float = 0.00075,
     ):
-        try:
-            from esda import shape
-        except (ImportError, ModuleNotFoundError) as err:
-            raise ImportError(
-                "The `esda` package is required. You can install it using "
-                "`pip install esda` or `conda install esda -c conda-forge`."
-            ) from err
-
         # Polygonize street network
         polygons = gpd.GeoSeries(
             shapely.polygonize(  # polygonize

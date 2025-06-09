@@ -6,6 +6,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import shapely
+from geopandas.testing import assert_geoseries_equal
 from libpysal import graph
 from scipy import sparse
 
@@ -850,6 +851,11 @@ def neatify(
 
     _check_input_crs(streets, exclusion_mask)
 
+    # Record state of initial input to compare with results from
+    # -- topo fix & node consolidation if there are no artifacts
+    raw_streets = streets.copy()
+
+    # NOTE: this keeps attributes but resets index
     streets = fix_topology(streets, eps=eps)
 
     # Merge nearby nodes (up to double of distance used in skeleton).
@@ -868,6 +874,31 @@ def neatify(
         isoareal_threshold_circles_enclosed=isoareal_threshold_circles_enclosed,
         isoperimetric_threshold_circles_touching=isoperimetric_threshold_circles_touching,
     )
+
+    # If no artifacts return either the raw streets or topologically-fixed streets
+    if artifacts.empty:
+        try:
+            assert_geoseries_equal(streets.geometry, raw_streets.geometry)
+            warnings.warn(
+                (
+                    "No topological corrections performed on input `streets` "
+                    "and no artifacts were detected. Returning as is."
+                ),
+                UserWarning,
+                stacklevel=2,
+            )
+            return raw_streets
+        except AssertionError:
+            warnings.warn(
+                (
+                    "Topological corrections performed on input `streets` "
+                    "but no artifacts were detected. Returning the results of "
+                    "`fix_topology()` and `consolidate_nodes()`."
+                ),
+                UserWarning,
+                stacklevel=2,
+            )
+            return streets
 
     # Loop 1
     new_streets = neatify_loop(
@@ -899,6 +930,9 @@ def neatify(
             exclusion_mask=exclusion_mask,
             predicate=predicate,
         )
+
+        if artifacts.empty:
+            return new_streets.reset_index(drop=True)
 
         new_streets = neatify_loop(
             new_streets,

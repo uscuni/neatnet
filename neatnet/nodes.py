@@ -9,6 +9,7 @@ import pandas as pd
 import pyproj
 import shapely
 from scipy import sparse
+from scipy.cluster import hierarchy
 from sklearn.cluster import DBSCAN
 
 
@@ -134,7 +135,7 @@ def _status(x: pd.Series) -> str:
 
 def isolate_bowtie_nodes(edgelines: list | np.ndarray | gpd.GeoSeries) -> gpd.GeoSeries:
     r"""
-    Bowties are rare edgecase whereby a component has:
+    Bowties are a rare edgecase whereby a component has:
     * 2 unique nodes
     * 2 edges that are loops
     * 4 edges that have only 3 unique coord-pairs *after* sorting.
@@ -167,7 +168,7 @@ def isolate_bowtie_nodes(edgelines: list | np.ndarray | gpd.GeoSeries) -> gpd.Ge
 
             if sum(loops) == 2:
                 # -- failsafe
-                # ensure the 4 edges have only 3 unique coord-pairs after sorting.
+                # ensure the 4 edges have only 3 unique coord-pairs after sorting
                 sorted_edge_coords = [sorted(ce[:2]) for ce in comp_edges]
                 unique_sorted_edge_coords = np.unique(sorted_edge_coords, axis=0)
 
@@ -184,7 +185,9 @@ def get_components(
     *,
     ignore: None | gpd.GeoSeries = None,
 ) -> np.ndarray:
-    """Associate edges with connected component labels and return.
+    """Determine groups of chained edges ("components" in this function) that are
+    linked by degree-2 nodes. These edges are given component labels that are then
+    used to aggregate the chained edges into single, LineString geometries.
 
     Parameters
     ----------
@@ -196,53 +199,72 @@ def get_components(
     Returns
     -------
     np.ndarray
-        Edge connected component labels.
+        Component labels to aggregate chains of edges bounded by
+        degree-2 nodes into single, LineString geometries.
 
     Notes
     -----
-    See [https://github.com/uscuni/neatnet/issues/56] for detailed explanation of
-    output.
+    See [https://github.com/uscuni/neatnet/issues/56] and
+    [https://github.com/uscuni/neatnet/pull/235] for detailed explanation of output.
     """
 
+    # 1. tease out any "bowtie" cases - don't consider those nodes to merge
     bowtie_nodes = isolate_bowtie_nodes(edgelines)
-
     if not bowtie_nodes.empty:
         if ignore is not None:
             ignore = pd.concat([ignore, bowtie_nodes], ignore_index=True)
         else:
             ignore = bowtie_nodes
 
+    # 2. convert to numpy array for operations
     edgelines = np.array(edgelines)
+
+    # 3. isolate starting and ending nodes of edges
     start_points = shapely.get_point(edgelines, 0)
     end_points = shapely.get_point(edgelines, -1)
+
+    # 4. consider only unique nodes
     points = shapely.points(
         np.unique(
             shapely.get_coordinates(np.concatenate([start_points, end_points])), axis=0
         )
     )
+
+    # 5. filter out any pre-defined nodes to ignore when considering merging
     if ignore is not None:
         mask = np.isin(points, ignore)
         points = points[~mask]
 
-    # query LineString geometry to identify points intersecting 2 geometries
+    # 6. query nodes that intersect non-loop edges
     inp, res = shapely.STRtree(shapely.boundary(edgelines)).query(
         points, predicate="intersects"
     )
+
+    # 7. filter nodes that intersect exactly 2 edges
     unique, counts = np.unique(inp, return_counts=True)
     mask = np.isin(inp, unique[counts == 2])
-    merge_res = res[mask]
+    # node index to consider for merging
     merge_inp = inp[mask]
+    # edge index to consider for merging
+    merge_res = res[mask]
+
+    # 8. generate loop index from input edgelines
     closed = np.arange(len(edgelines))[shapely.is_closed(edgelines)]
-    mask = np.isin(merge_res, closed) | np.isin(merge_inp, closed)
+
+    # 9. update mask with loop edges
+    mask = np.isin(merge_inp, closed) | np.isin(merge_res, closed)
+
+    # 10. invert mask for final filter of nodes/edges to merge
     merge_res = merge_res[~mask]
     merge_inp = merge_inp[~mask]
+
+    # 11. generate network component topology for edges to merge
     g = nx.Graph(list(zip((merge_inp * -1) - 1, merge_res, strict=True)))
     components = {
         i: {v for v in k if v > -1} for i, k in enumerate(nx.connected_components(g))
     }
     component_labels = {value: key for key in components for value in components[key]}
     labels = pd.Series(component_labels, index=range(len(edgelines)))
-
     max_label = len(edgelines) - 1 if pd.isna(labels.max()) else int(labels.max())
     filling = pd.Series(range(max_label + 1, max_label + len(edgelines) + 1))
     labels = labels.fillna(filling)
@@ -550,7 +572,7 @@ def fix_topology(
 
 
 def consolidate_nodes(
-    gdf: gpd.GeoDataFrame,
+    gdf: np.ndarray | gpd.GeoSeries | gpd.GeoDataFrame,
     *,
     tolerance: float = 2.0,
     preserve_ends: bool = False,
@@ -568,8 +590,8 @@ def consolidate_nodes(
 
     Parameters
     ----------
-    gdf : geopandas.GeoDataFrame
-        GeoDataFrame with LineStrings (usually representing street network).
+    gdf : numpy.ndarray | geopandas.GeoSeries | geopandas.GeoDataFrame
+        LineString geometries (usually representing street network).
     tolerance : float = 2.0
         The maximum distance between two nodes for one to be considered
         as in the neighborhood of the other. Nodes within tolerance are
@@ -582,11 +604,17 @@ def consolidate_nodes(
     geopandas.GeoSeries
         Updated input ``gdf`` of LineStrings with consolidated nodes.
     """
-    from scipy.cluster import hierarchy
 
-    if isinstance(gdf, gpd.GeoSeries):
-        gdf = gdf.to_frame("geometry")
-    elif isinstance(gdf, np.ndarray):
+    def _get_labels(nodes: gpd.GeoDataFrame) -> np.ndarray:
+        """Generate node cluster labels that avoids a chaining effect."""
+        linkage = hierarchy.linkage(shapely.get_coordinates(nodes), method="average")
+        labels = (
+            hierarchy.fcluster(linkage, tolerance, criterion="distance").astype(str)
+            + f"_{nodes.name}"
+        )
+        return labels
+
+    if not isinstance(gdf, gpd.GeoDataFrame):
         gdf = gpd.GeoDataFrame(geometry=gdf)
 
     nodes = _nodes_degrees_from_edges(gdf.geometry)
@@ -602,25 +630,17 @@ def consolidate_nodes(
             gdf["_status"] = "original"
             return gdf
 
-    # get clusters of nodes which should be consolidated
-    # first get components of possible clusters to and then do the linkage itself
-    # otherwise is dead slow and needs a ton of memory
+    # Get node cluster to be consolidated. First, get components of possible clusters
+    # then do the linkage itself. Otherwise, it's dead slow and needs a ton of memory.
     db = DBSCAN(eps=tolerance, min_samples=2).fit(nodes.get_coordinates())
     comp_labels = db.labels_
     mask = comp_labels > -1
     components = comp_labels[mask]
     nodes_to_merge = nodes[mask]
 
-    def get_labels(nodes):
-        linkage = hierarchy.linkage(shapely.get_coordinates(nodes), method="average")
-        labels = (
-            hierarchy.fcluster(linkage, tolerance, criterion="distance").astype(str)
-            + f"_{nodes.name}"
-        )
-        return labels
-
+    # get grouped node cluster labels to determines which nodes must change
     grouped = (
-        pd.Series(nodes_to_merge.geometry).groupby(components).transform(get_labels)
+        pd.Series(nodes_to_merge.geometry).groupby(components).transform(_get_labels)
     )
     nodes["lab"] = grouped
     unique, counts = np.unique(nodes["lab"].dropna(), return_counts=True)
@@ -633,7 +653,6 @@ def consolidate_nodes(
         return gdf
 
     gdf = gdf.copy()
-    # get geometry
     geom = gdf.geometry.copy()
     status = pd.Series("original", index=geom.index)
 
