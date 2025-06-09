@@ -881,8 +881,8 @@ def neatify(
             assert_geoseries_equal(streets.geometry, raw_streets.geometry)
             warnings.warn(
                 (
-                    "Input `streets` already topologically "
-                    "correct and simplified. Returning as is."
+                    "No topological corrections performed on input `streets` "
+                    "and no artifacts were detected. Returning as is."
                 ),
                 UserWarning,
                 stacklevel=2,
@@ -891,8 +891,8 @@ def neatify(
         except AssertionError:
             warnings.warn(
                 (
-                    "Input `streets` already simplified, but topological "
-                    "correction was needed. Returning the results of "
+                    "Topological corrections performed on input `streets` "
+                    "but no artifacts were detected. Returning the results of "
                     "`fix_topology()` and `consolidate_nodes()`."
                 ),
                 UserWarning,

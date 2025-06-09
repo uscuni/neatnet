@@ -160,8 +160,8 @@ class TestNeatifyFallback:
         warns_fixed_topo = pytest.warns(
             UserWarning,
             match=re.escape(
-                "Input `streets` already simplified, but topological "
-                "correction was needed. Returning the results of "
+                "Topological corrections performed on input `streets` "
+                "but no artifacts were detected. Returning the results of "
                 "`fix_topology()` and `consolidate_nodes()`."
             ),
         )
@@ -176,8 +176,8 @@ class TestNeatifyFallback:
         warns_ok_topo = pytest.warns(
             UserWarning,
             match=(
-                "Input `streets` already topologically correct "
-                "and simplified. Returning as is."
+                "No topological corrections performed on input `streets` "
+                "and no artifacts were detected. Returning as is."
             ),
         )
 
