@@ -931,6 +931,9 @@ def neatify(
             predicate=predicate,
         )
 
+        if artifacts.empty:
+            return new_streets.reset_index(drop=True)
+
         new_streets = neatify_loop(
             new_streets,
             artifacts,
