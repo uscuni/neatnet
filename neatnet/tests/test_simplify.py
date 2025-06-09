@@ -115,17 +115,6 @@ def test_neatify_full_fua(aoi, tol, known_length):
         pytest.geom_test(known, observed, tolerance=tol, aoi=aoi)
 
 
-# def test_already_simplified():
-#     roads = geopandas.GeoDataFrame(
-#         geometry=geopandas.GeoSeries(
-#             [shapely.box(100, 100, 210, 110), shapely.box(210, 110, 220, 150)]
-#         )
-#         .map(shapely.get_coordinates)
-#         .explode()
-#         .pipe(lambda series: shapely.linestrings(list(zip(series[:-1], series[1:]))))
-#     )
-
-
 @pytest.mark.wuhan
 def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
     known = geopandas.read_parquet(full_fua_data / aoi / "simplified.parquet")

@@ -329,19 +329,6 @@ def get_artifacts(
     with warnings.catch_warnings():  # the second loop likey won't find threshold
         warnings.filterwarnings("ignore", message="No threshold found")
         fas = FaceArtifacts(streets)
-    """
-    # early terminate if no face artifacts possible
-    if threshold is None and not fas.threshold:
-
-        # could not be polygonized
-        non_polygonized_input = fas.polygons.empty
-
-        # no face artifacts were found
-        no_artifacts = fas.face_artifacts is None
-
-        if non_polygonized_input or no_artifacts:
-            return gpd.GeoDataFrame(geometry=[]), None
-    """
     polys = fas.polygons.set_crs(streets.crs)
 
     # rook neighbors
