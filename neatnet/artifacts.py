@@ -327,11 +327,21 @@ def get_artifacts(
         May also be the returned value of ``threshold`` or ``threshold_fallback``.
     """
     with warnings.catch_warnings():  # the second loop likey won't find threshold
-        warnings.filterwarnings(
-            "ignore", message="Input streets could not not be polygonized."
-        )
         warnings.filterwarnings("ignore", message="No threshold found")
         fas = FaceArtifacts(streets)
+    """
+    # early terminate if no face artifacts possible
+    if threshold is None and not fas.threshold:
+
+        # could not be polygonized
+        non_polygonized_input = fas.polygons.empty
+
+        # no face artifacts were found
+        no_artifacts = fas.face_artifacts is None
+
+        if non_polygonized_input or no_artifacts:
+            return gpd.GeoDataFrame(geometry=[]), None
+    """
     polys = fas.polygons.set_crs(streets.crs)
 
     # rook neighbors
@@ -341,8 +351,6 @@ def get_artifacts(
     polys["is_artifact"] = False
     # ...unless the fai is below the threshold
     if threshold is None:
-        if not fas.threshold and fas.polygons.empty:
-            return gpd.GeoDataFrame(geometry=[]), None
         if not fas.threshold and threshold_fallback:
             warnings.warn(
                 "No threshold for artifact detection found. Using the set "
@@ -358,15 +366,6 @@ def get_artifacts(
             )
         else:
             threshold = fas.threshold
-
-    polys = fas.polygons.set_crs(streets.crs)
-
-    # rook neighbors
-    rook = graph.Graph.build_contiguity(polys, rook=True)
-    polys["neighbors"] = rook.neighbors
-
-    # polygons are not artifacts
-    polys["is_artifact"] = False
     polys.loc[polys["face_artifact_index"] < threshold, "is_artifact"] = True
 
     # compute area, isoareal quotient, and isoperimetric quotient

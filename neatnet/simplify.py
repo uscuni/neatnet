@@ -6,6 +6,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import shapely
+from geopandas.testing import assert_geoseries_equal
 from libpysal import graph
 from scipy import sparse
 
@@ -874,11 +875,30 @@ def neatify(
         isoperimetric_threshold_circles_touching=isoperimetric_threshold_circles_touching,
     )
 
-    # If initial input topo is OK and there are no artifacts return
-    if artifacts.empty and gpd.testing.assert_geoseries_equal(
-        streets.geometry, raw_streets.geometry
-    ):
-        return streets.reset_index(drop=True)
+    # If no artifacts return either the raw streets or topologically-fixed streets
+    if artifacts.empty:
+        try:
+            assert_geoseries_equal(streets.geometry, raw_streets.geometry)
+            warnings.warn(
+                (
+                    "Input `streets` already topologically "
+                    "correct and simplified. Returning as is."
+                ),
+                UserWarning,
+                stacklevel=2,
+            )
+            return raw_streets
+        except AssertionError:
+            warnings.warn(
+                (
+                    "Input `streets` already simplified, but topological "
+                    "correction was needed. Returning the results of "
+                    "`fix_topology()` and `consolidate_nodes()`."
+                ),
+                UserWarning,
+                stacklevel=2,
+            )
+            return streets
 
     # Loop 1
     new_streets = neatify_loop(

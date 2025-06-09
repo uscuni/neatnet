@@ -1,4 +1,5 @@
 import pathlib
+import re
 
 import geopandas
 import momepy
@@ -152,12 +153,51 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
         pytest.geom_test(known, observed, tolerance=tol, aoi=aoi)
 
 
-def test_neatify_fallback():
-    streets = geopandas.read_file(momepy.datasets.get_path("bubenec"), layer="streets")
-    with pytest.warns(UserWarning, match="No threshold for artifact"):
-        simple = neatnet.neatify(streets)
-        # only topology is fixed
-        assert simple.shape == (31, 2)
+class TestNeatifyFallback:
+    def setup_method(self):
+        self.streets = geopandas.read_file(
+            momepy.datasets.get_path("bubenec"), layer="streets"
+        )
+        self.known_records = 31
+        self.warns_fallback = pytest.warns(
+            UserWarning,
+            match=(
+                "No threshold for artifact detection found. "
+                "Using the set fallback value of 7."
+            ),
+        )
+
+    def test_bad_topo(self):
+        warns_fixed_topo = pytest.warns(
+            UserWarning,
+            match=re.escape(
+                "Input `streets` already simplified, but topological "
+                "correction was needed. Returning the results of "
+                "`fix_topology()` and `consolidate_nodes()`."
+            ),
+        )
+
+        with self.warns_fallback, warns_fixed_topo:
+            observed = neatnet.neatify(self.streets)
+
+        assert observed.shape[0] == self.known_records
+        assert (observed["_status"] == "original").all()
+
+    def test_good_topo(self):
+        warns_ok_topo = pytest.warns(
+            UserWarning,
+            match=(
+                "Input `streets` already topologically correct "
+                "and simplified. Returning as is."
+            ),
+        )
+
+        with self.warns_fallback, warns_ok_topo:
+            observed = neatnet.neatify(
+                neatnet.fix_topology(self.streets)[["geometry"]].copy()
+            )
+
+        assert observed.shape[0] == self.known_records
 
 
 class TestCheckCRS:
