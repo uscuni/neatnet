@@ -11,7 +11,10 @@
 ```py
 import neatnet
 
-simplified = neatnet.neatify(gdf)
+# Milton Keynes, UK
+original = neatnet.utils.fetch_milton_keynes()
+
+simplified = neatnet.neatify(original)
 ```
 
 ## Contribution
