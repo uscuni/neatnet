@@ -779,7 +779,6 @@ def one_remaining(
             poly=artifact.geometry,
             snap_to=relevant_targets.geometry.iloc[target_nearest],  # snap to nearest
             max_segment_length=max_segment_length,
-            buffer=clip_limit,  # TODO: figure out if we need this
             clip_limit=clip_limit,
             consolidation_tolerance=consolidation_tolerance,
         )
