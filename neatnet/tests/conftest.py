@@ -123,8 +123,8 @@ def geom_test(
                 g2_len = g2.length
 
                 # original index per geometry
-                g1_curr_ix = row.curr_ix
-                g2_prop_ix = collection2.loc[ix, "prop_ix"]  # type: ignore[valid-type,attr-defined]
+                g1_curr_ix = collection2.loc[ix, "non_norm_ix"]  # type: ignore[valid-type,attr-defined]
+                g2_prop_ix = collection2.loc[ix, "non_norm_ix"]  # type: ignore[valid-type,attr-defined]
 
                 unexpected_bad[ix] = {
                     "n_coords": {"g1": g1_n_coords, "g2": g2_n_coords},
@@ -134,18 +134,26 @@ def geom_test(
                 }
 
         if unexpected_bad:
-            curr_ixs = [v["g1"]["non_norm_ix"] for k, v in unexpected_bad.items()]
-            prop_ixs = [v["g2"]["non_norm_ix"] for k, v in unexpected_bad.items()]
+            # record normalized index from known and subset
+            known_ix = list(unexpected_bad.keys())
+            curr_compare = collection1.loc[known_ix].copy()  # type: ignore[valid-type,attr-defined]
+            prop_compare = collection2.loc[known_ix].copy()  # type: ignore[valid-type,attr-defined]
 
+            # record original, non-normalized index from known & observed
+            curr_ixs_norm = [v["g1"]["non_norm_ix"] for k, v in unexpected_bad.items()]
+            curr_compare["non_norm_ix"] = curr_ixs_norm
+
+            prop_ixs_norm = [v["g2"]["non_norm_ix"] for k, v in unexpected_bad.items()]
+            prop_compare["non_norm_ix"] = prop_ixs_norm
+
+            # record $n$ neighbors for each known & observed
             curr_neighs = [v["g1"]["n_neigbors"] for k, v in unexpected_bad.items()]
-            prop_neighs = [v["g2"]["n_neigbors"] for k, v in unexpected_bad.items()]
-
-            curr_compare = collection1.loc[curr_ixs].copy()  # type: ignore[valid-type,attr-defined]
-            prop_compare = collection2.loc[prop_ixs].copy()  # type: ignore[valid-type,attr-defined]
-
             curr_compare["n_neigbors"] = curr_neighs
+
+            prop_neighs = [v["g2"]["n_neigbors"] for k, v in unexpected_bad.items()]
             prop_compare["n_neigbors"] = prop_neighs
 
+            # curate
             curr_compare.to_parquet(
                 save_dir / "known_to_compare_simplified_{scenario}.parquet"
             )
@@ -160,10 +168,10 @@ def geom_test(
     return True
 
 
-def norm_sort(gdf: geopandas.GeoDataFrame, ix_name: str) -> geopandas.GeoDataFrame:
+def norm_sort(gdf: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
     """Sort GeoDataFrame by normalized geometry."""
     gdf.geometry = gdf.normalize()
-    gdf = gdf.sort_values(by="geometry").reset_index(names=ix_name)
+    gdf = gdf.sort_values(by="geometry").reset_index(names="non_norm_ix")
     return gdf
 
 
