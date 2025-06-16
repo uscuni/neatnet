@@ -60,8 +60,8 @@ def test_neatify_small(scenario, tol, known_length):
     observed_length = observed.geometry.length.sum()
 
     # normalize & sort geometry for testing & comparison
-    known = pytest.norm_sort(known, "curr_ix")
-    observed = pytest.norm_sort(observed, "prop_ix")
+    known = pytest.norm_sort(known)
+    observed = pytest.norm_sort(observed)
 
     # storing GH artifacts
     artifact_dir = ci_artifacts / AC
@@ -77,8 +77,8 @@ def test_neatify_small(scenario, tol, known_length):
     assert observed.shape == known.shape
     assert_series_equal(known["_status"], observed["_status"])
     assert_frame_equal(
-        known.drop(columns=["curr_ix", "_status", "geometry"]),
-        observed.drop(columns=["prop_ix", "_status", "geometry"]),
+        known.drop(columns=["non_norm_ix", "_status", "geometry"]),
+        observed.drop(columns=["non_norm_ix", "_status", "geometry"]),
     )
 
     pytest.geom_test(
@@ -107,8 +107,8 @@ def test_neatify_full_fua(aoi, tol, known_length):
     assert "highway" in observed.columns
 
     # normalize & sort geometry for testing & comparison
-    known = pytest.norm_sort(known, "curr_ix")
-    observed = pytest.norm_sort(observed, "prop_ix")
+    known = pytest.norm_sort(known)
+    observed = pytest.norm_sort(observed)
 
     # storing GH artifacts
     artifact_dir = ci_artifacts / aoi
@@ -122,8 +122,8 @@ def test_neatify_full_fua(aoi, tol, known_length):
     if pytest.ubuntu and pytest.env_type != "oldest":
         assert_series_equal(known["_status"], observed["_status"])
         assert_frame_equal(
-            known.drop(columns=["curr_ix", "_status", "geometry"]),
-            observed.drop(columns=["prop_ix", "_status", "geometry"]),
+            known.drop(columns=["non_norm_ix", "_status", "geometry"]),
+            observed.drop(columns=["non_norm_ix", "_status", "geometry"]),
         )
         pytest.geom_test(
             known,
@@ -145,8 +145,8 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
     assert "highway" in observed.columns
 
     # normalize & sort geometry for testing & comparison
-    known = pytest.norm_sort(known, "curr_ix")
-    observed = pytest.norm_sort(observed, "prop_ix")
+    known = pytest.norm_sort(known)
+    observed = pytest.norm_sort(observed)
 
     # storing GH artifacts
     artifact_dir = ci_artifacts / aoi
@@ -160,8 +160,8 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
     if pytest.ubuntu and pytest.env_type != "oldest":
         assert_series_equal(known["_status"], observed["_status"])
         assert_frame_equal(
-            known.drop(columns=["curr_ix", "_status", "geometry"]),
-            observed.drop(columns=["prop_ix", "_status", "geometry"]),
+            known.drop(columns=["non_norm_ix", "_status", "geometry"]),
+            observed.drop(columns=["non_norm_ix", "_status", "geometry"]),
         )
         pytest.geom_test(
             known,

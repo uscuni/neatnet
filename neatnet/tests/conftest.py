@@ -106,7 +106,7 @@ def geom_test(
             # determine geometry equivalence
             g1 = collection1.loc[ix].geometry  # type: ignore[valid-type,attr-defined]
             g2 = collection2.loc[ix].geometry  # type: ignore[valid-type,attr-defined]
-            equal_geom = shapely.equals_exact(g1, g2, tolerance=0.2)
+            equal_geom = shapely.equals_exact(g1, g2, tolerance=tolerance)
 
             # determine topological equivalence
             g1_topo = len(collection1.sindex.query(g1, predicate="touches"))  # type: ignore[valid-type,attr-defined]
