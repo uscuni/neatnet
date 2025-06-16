@@ -77,7 +77,7 @@ def geom_test(
     collection2: geometry_collection,  # type: ignore[valid-type]
     tolerance: float = 1e-1,
     aoi: None | str = None,
-    save_dir: None | str | pathlib.Path = None,
+    save_dir: str | pathlib.Path = "",
 ) -> bool:
     """Testing helper -- geometry verification."""
 
@@ -87,28 +87,28 @@ def geom_test(
     if not is_geopandas(collection2):
         collection2 = geopandas.GeoSeries(collection2)
 
-    geoms1 = collection1.geometry
-    geoms2 = collection2.geometry
+    geoms1 = collection1.geometry  # type: ignore[valid-type]
+    geoms2 = collection2.geometry  # type: ignore[valid-type]
 
     try:
         assert shapely.equals_exact(geoms1, geoms2, tolerance=tolerance).all()
     except AssertionError:
         unexpected_bad = {}
 
-        for row in collection1.itertuples():
+        for row in collection1.itertuples():  # type: ignore[valid-type]
             ix = row.Index
 
             # skip if known bad case
             do_check = ix not in KNOWN_BAD_GEOMS[aoi]  # type: ignore[index]
 
             # determine geometry equivalence
-            g1 = collection1.loc[ix].geometry
-            g2 = collection2.loc[ix].geometry
+            g1 = collection1.loc[ix].geometry  # type: ignore[valid-type]
+            g2 = collection2.loc[ix].geometry  # type: ignore[valid-type]
             equal_geom = shapely.equals_exact(g1, g2, tolerance=0.2)
 
             # determine topological equivalence
-            g1_topo = len(collection1.sindex.query(g1, predicate="touches"))
-            g2_topo = len(collection2.sindex.query(g2, predicate="touches"))
+            g1_topo = len(collection1.sindex.query(g1, predicate="touches"))  # type: ignore[valid-type]
+            g2_topo = len(collection2.sindex.query(g2, predicate="touches"))  # type: ignore[valid-type]
             equal_topo = g1_topo == g2_topo
 
             if do_check and not equal_geom and not equal_topo:
@@ -122,7 +122,7 @@ def geom_test(
 
                 # original index per geometry
                 g1_curr_ix = row.curr_ix
-                g2_prop_ix = collection2.loc[ix, "prop_ix"]
+                g2_prop_ix = collection2.loc[ix, "prop_ix"]  # type: ignore[valid-type]
 
                 unexpected_bad[ix] = {
                     "n_coords": {"g1": g1_n_coords, "g2": g2_n_coords},
@@ -138,8 +138,8 @@ def geom_test(
             curr_neighs = [v["g1"]["n_neigbors"] for k, v in unexpected_bad.items()]
             prop_neighs = [v["g2"]["n_neigbors"] for k, v in unexpected_bad.items()]
 
-            curr_compare = collection1.loc[curr_ixs].copy()
-            prop_compare = collection2.loc[prop_ixs].copy()
+            curr_compare = collection1.loc[curr_ixs].copy()  # type: ignore[valid-type]
+            prop_compare = collection2.loc[prop_ixs].copy()  # type: ignore[valid-type]
 
             curr_compare["n_neigbors"] = curr_neighs
             prop_compare["n_neigbors"] = prop_neighs
