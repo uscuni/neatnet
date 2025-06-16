@@ -83,11 +83,11 @@ def geom_test(
 
     if not is_geopandas(collection1):
         collection1 = geopandas.GeoDataFrame(geometry=collection1)
-        collection1.geometry = collection1.geometry.normalize()
+        collection1.geometry = collection1.geometry.normalize()  # type: ignore[attr-defined]
 
     if not is_geopandas(collection2):
         collection2 = geopandas.GeoDataFrame(geometry=collection2)
-        collection2.geometry = collection2.geometry.normalize()
+        collection2.geometry = collection2.geometry.normalize()  # type: ignore[attr-defined]
 
     geoms1 = collection1.geometry  # type: ignore[valid-type,attr-defined]
     geoms2 = collection2.geometry  # type: ignore[valid-type,attr-defined]
