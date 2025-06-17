@@ -920,7 +920,7 @@ def one_remaining_c(
         new_connections, splitters = voronoi_skeleton(
             edges[es_mask].geometry,  # use edges that are being dropped
             poly=artifact.geometry,
-            # snap_to=highest_hierarchy.dissolve("coins_group").geometry,  # snap to Cs
+            snap_to=highest_hierarchy.dissolve("coins_group").geometry,  # snap to Cs
             max_segment_length=max_segment_length,
             clip_limit=clip_limit,
             consolidation_tolerance=consolidation_tolerance,
