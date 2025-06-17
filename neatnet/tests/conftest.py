@@ -97,21 +97,28 @@ def geom_test(
     except AssertionError:
         unexpected_bad = {}
 
+        do_checks = []
+        equal_geoms = []
+        equal_topos = []
+
         for row in collection1.itertuples():  # type: ignore[valid-type,attr-defined]
             ix = row.Index
 
             # skip if known bad case
             do_check = ix not in KNOWN_BAD_GEOMS[aoi]  # type: ignore[index]
+            do_checks.append(do_check)  ################################################
 
             # determine geometry equivalence
             g1 = collection1.loc[ix].geometry  # type: ignore[valid-type,attr-defined]
             g2 = collection2.loc[ix].geometry  # type: ignore[valid-type,attr-defined]
             equal_geom = shapely.equals_exact(g1, g2, tolerance=tolerance)
+            equal_geoms.append(equal_geom)  ############################################
 
             # determine topological equivalence
             g1_topo = len(collection1.sindex.query(g1, predicate="touches"))  # type: ignore[valid-type,attr-defined]
             g2_topo = len(collection2.sindex.query(g2, predicate="touches"))  # type: ignore[valid-type,attr-defined]
             equal_topo = g1_topo == g2_topo
+            equal_topos.append(equal_topo)  ############################################
 
             if do_check and not equal_geom and not equal_topo:
                 # constituent coordinates per geometry
@@ -132,6 +139,12 @@ def geom_test(
                     "n_neigbors": {"g1": g1_topo, "g2": g2_topo},
                     "non_norm_ix": {"g1": g1_curr_ix, "g2": g2_prop_ix},
                 }
+
+        print(f"\n{aoi}\n\n")
+        print(f"\n{sum(do_checks)=}\n\n")
+        print(f"\n{sum(equal_geoms)=}\n\n")
+        print(f"\n{sum(equal_topos)=}\n\n")
+        print(f"\n{unexpected_bad}\n\n")
 
         if unexpected_bad:
             # record normalized index from known and subset

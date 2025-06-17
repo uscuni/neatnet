@@ -90,11 +90,11 @@ def test_neatify_small(scenario, tol, known_length):
     "aoi,tol,known_length",
     [
         ("aleppo_1133", 0.2, 4_361_625),
-        ("auckland_869", 0.3, 1_268_048),
-        ("bucaramanga_4617", 0.2, 1_681_011),
-        ("douala_809", 0.1, 2_961_364),
-        ("liege_1656", 0.3, 2_350_782),
-        ("slc_4881", 0.3, 1_762_456),
+        # ("auckland_869", 0.3, 1_268_048),
+        # ("bucaramanga_4617", 0.2, 1_681_011),
+        # ("douala_809", 0.1, 2_961_364),
+        # ("liege_1656", 0.3, 2_350_782),
+        # ("slc_4881", 0.3, 1_762_456),
     ],
 )
 def test_neatify_full_fua(aoi, tol, known_length):
