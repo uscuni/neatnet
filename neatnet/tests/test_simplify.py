@@ -60,16 +60,17 @@ def test_neatify_small(scenario, tol, known_length):
     observed_length = observed.geometry.length.sum()
 
     # normalize & sort geometry for testing & comparison
-    known = pytest.norm_sort(known)
     observed = pytest.norm_sort(observed)
+
+    # determine $n$ topological neighbors
+    observed = pytest.n_touches(observed)
 
     # storing GH artifacts
     artifact_dir = ci_artifacts / AC
     artifact_dir.mkdir(parents=True, exist_ok=True)
-
     observed.to_parquet(artifact_dir / f"simplified_{scenario}.parquet")
 
-    pytest.difference_plot(AC, artifact_dir, known, observed)
+    pytest.difference_plot(f"{AC}_{scenario}", artifact_dir, known, observed)
 
     assert pytest.approx(observed_length, rel=0.0001) == known_length
     assert observed.index.dtype == numpy.dtype("int64")
@@ -107,13 +108,16 @@ def test_neatify_full_fua(aoi, tol, known_length):
     assert "highway" in observed.columns
 
     # normalize & sort geometry for testing & comparison
-    known = pytest.norm_sort(known)
     observed = pytest.norm_sort(observed)
+
+    # determine $n$ topological neighbors
+    observed = pytest.n_touches(observed)
 
     # storing GH artifacts
     artifact_dir = ci_artifacts / aoi
     artifact_dir.mkdir(parents=True, exist_ok=True)
     observed.to_parquet(artifact_dir / "simplified.parquet")
+
     pytest.difference_plot(aoi, artifact_dir, known, observed)
 
     assert pytest.approx(observed_length, rel=0.0001) == known_length
@@ -145,13 +149,16 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
     assert "highway" in observed.columns
 
     # normalize & sort geometry for testing & comparison
-    known = pytest.norm_sort(known)
     observed = pytest.norm_sort(observed)
+
+    # determine $n$ topological neighbors
+    observed = pytest.n_touches(observed)
 
     # storing GH artifacts
     artifact_dir = ci_artifacts / aoi
     artifact_dir.mkdir(parents=True, exist_ok=True)
     observed.to_parquet(artifact_dir / "simplified.parquet")
+
     pytest.difference_plot(aoi, artifact_dir, known, observed)
 
     assert pytest.approx(observed_length, rel=0.0001) == known_length
