@@ -70,8 +70,12 @@ def test_neatify_small(scenario, tol, known_length):
     # storing GH artifacts
     artifact_dir = ci_artifacts / AC
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    known.to_parquet(artifact_dir / f"_known_{scenario}.parquet")
     observed.to_parquet(artifact_dir / f"simplified_{scenario}.parquet")
+
+    #############################################################
+    # remove this before merging #246 & replace "known"
+    known.to_parquet(artifact_dir / f"_known_{scenario}.parquet")
+    #############################################################
 
     pytest.difference_plot(f"{AC}_{scenario}", artifact_dir, known, observed)
 
@@ -94,11 +98,11 @@ def test_neatify_small(scenario, tol, known_length):
     "aoi,tol,known_length",
     [
         ("aleppo_1133", 0.2, 4_361_625),
-        # ("auckland_869", 0.3, 1_268_048),
-        # ("bucaramanga_4617", 0.2, 1_681_011),
-        # ("douala_809", 0.1, 2_961_364),
-        # ("liege_1656", 0.3, 2_350_782),
-        # ("slc_4881", 0.3, 1_762_456),
+        ("auckland_869", 0.3, 1_268_048),
+        ("bucaramanga_4617", 0.2, 1_681_011),
+        ("douala_809", 0.1, 2_961_364),
+        ("liege_1656", 0.3, 2_350_782),
+        ("slc_4881", 0.3, 1_762_456),
     ],
 )
 def test_neatify_full_fua(aoi, tol, known_length):
@@ -121,8 +125,12 @@ def test_neatify_full_fua(aoi, tol, known_length):
     # storing GH artifacts
     artifact_dir = ci_artifacts / aoi
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    known.to_parquet(artifact_dir / "_known_.parquet")
     observed.to_parquet(artifact_dir / "simplified.parquet")
+
+    #############################################################
+    # remove this before merging #246 & replace "known"
+    known.to_parquet(artifact_dir / "_known.parquet")
+    #############################################################
 
     pytest.difference_plot(aoi, artifact_dir, known, observed)
 
@@ -165,8 +173,12 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
     # storing GH artifacts
     artifact_dir = ci_artifacts / aoi
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    known.to_parquet(artifact_dir / "_known_.parquet")
     observed.to_parquet(artifact_dir / "simplified.parquet")
+
+    #############################################################
+    # remove this before merging #246 & replace "known"
+    known.to_parquet(artifact_dir / "_known.parquet")
+    #############################################################
 
     pytest.difference_plot(aoi, artifact_dir, known, observed)
 

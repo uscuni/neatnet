@@ -96,7 +96,6 @@ def geom_test(
         assert shapely.equals_exact(geoms1, geoms2, tolerance=tolerance).all()
     except AssertionError:
         unexpected_bad = {}
-
         do_checks = []
         equal_geoms = []
         equal_topos = []
@@ -106,21 +105,21 @@ def geom_test(
 
             # skip if known bad case
             do_check = ix not in KNOWN_BAD_GEOMS[aoi]  # type: ignore[index]
-            do_checks.append(do_check)  ################################################
+            do_checks.append(do_check)
 
             # determine geometry equivalence
             g1 = collection1.loc[ix].geometry  # type: ignore[valid-type,attr-defined]
             g2 = collection2.loc[ix].geometry  # type: ignore[valid-type,attr-defined]
             equal_geom = shapely.equals_exact(g1, g2, tolerance=tolerance)
-            equal_geoms.append(equal_geom)  ############################################
+            equal_geoms.append(equal_geom)
 
             # determine topological equivalence
             g1_topo = len(collection1.sindex.query(g1, predicate="touches"))  # type: ignore[valid-type,attr-defined]
             g2_topo = len(collection2.sindex.query(g2, predicate="touches"))  # type: ignore[valid-type,attr-defined]
             equal_topo = g1_topo == g2_topo
-            equal_topos.append(equal_topo)  ############################################
+            equal_topos.append(equal_topo)
 
-            if do_check and not equal_geom and not equal_topo:
+            if do_check and (not equal_geom or not equal_topo):
                 # constituent coordinates per geometry
                 g1_n_coords = shapely.get_coordinates(g1).shape[0]
                 g2_n_coords = shapely.get_coordinates(g2).shape[0]
@@ -130,8 +129,8 @@ def geom_test(
                 g2_len = g2.length
 
                 # original index per geometry
-                g1_curr_ix = collection2.loc[ix, "non_norm_ix"]  # type: ignore[valid-type,attr-defined]
-                g2_prop_ix = collection2.loc[ix, "non_norm_ix"]  # type: ignore[valid-type,attr-defined]
+                g1_curr_ix = int(collection2.loc[ix, "non_norm_ix"])  # type: ignore[valid-type,attr-defined]
+                g2_prop_ix = int(collection2.loc[ix, "non_norm_ix"])  # type: ignore[valid-type,attr-defined]
 
                 unexpected_bad[ix] = {
                     "n_coords": {"g1": g1_n_coords, "g2": g2_n_coords},
@@ -140,44 +139,60 @@ def geom_test(
                     "non_norm_ix": {"g1": g1_curr_ix, "g2": g2_prop_ix},
                 }
 
-        print(f"\n{aoi=}\n\n")
-        print(f"\n{sum(do_checks)=}\n\n")
-        print(f"\n{sum(equal_geoms)=}\n\n")
-        print(f"\n{sum(equal_topos)=}\n\n")
-        print(f"\n{unexpected_bad}\n\n")
-
-        raise RuntimeError("stop and print") from None
-
         if unexpected_bad:
             # record normalized index from known and subset
             known_ix = list(unexpected_bad.keys())
             curr_compare = collection1.loc[known_ix].copy()  # type: ignore[valid-type,attr-defined]
             prop_compare = collection2.loc[known_ix].copy()  # type: ignore[valid-type,attr-defined]
 
-            # record original, non-normalized index from known & observed
-            curr_ixs_norm = [v["g1"]["non_norm_ix"] for k, v in unexpected_bad.items()]
-            curr_compare["non_norm_ix"] = curr_ixs_norm
+            # record $n$ coords in each known & observed
+            curr_compare["n_coords"] = [
+                v["n_coords"]["g1"] for k, v in unexpected_bad.items()
+            ]
+            prop_compare["n_coords"] = [
+                v["n_coords"]["g2"] for k, v in unexpected_bad.items()
+            ]
 
-            prop_ixs_norm = [v["g2"]["non_norm_ix"] for k, v in unexpected_bad.items()]
-            prop_compare["non_norm_ix"] = prop_ixs_norm
+            # record length for each known & observed
+            curr_compare["length"] = [
+                v["length"]["g1"] for k, v in unexpected_bad.items()
+            ]
+            prop_compare["length"] = [
+                v["length"]["g2"] for k, v in unexpected_bad.items()
+            ]
 
             # record $n$ neighbors for each known & observed
-            curr_neighs = [v["g1"]["n_neigbors"] for k, v in unexpected_bad.items()]
-            curr_compare["n_neigbors"] = curr_neighs
+            curr_compare["n_neigbors"] = [
+                v["n_neigbors"]["g1"] for k, v in unexpected_bad.items()
+            ]
+            prop_compare["n_neigbors"] = [
+                v["n_neigbors"]["g2"] for k, v in unexpected_bad.items()
+            ]
 
-            prop_neighs = [v["g2"]["n_neigbors"] for k, v in unexpected_bad.items()]
-            prop_compare["n_neigbors"] = prop_neighs
+            # record original, non-normalized index from known & observed
+            curr_compare["non_norm_ix"] = [
+                v["non_norm_ix"]["g1"] for k, v in unexpected_bad.items()
+            ]
+            prop_compare["non_norm_ix"] = [
+                v["non_norm_ix"]["g2"] for k, v in unexpected_bad.items()
+            ]
 
             # curate
             curr_compare.to_parquet(
-                save_dir / "known_to_compare_simplified_{scenario}.parquet"
+                save_dir / f"known_to_compare_simplified_{aoi}.parquet"
             )
             prop_compare.to_parquet(
-                save_dir / "observed_to_compare_simplified_{scenario}.parquet"
+                save_dir / f"observed_to_compare_simplified_{aoi}.parquet"
             )
 
+            n_geoms = len(do_checks)
             raise AssertionError(
-                f"Problem in '{aoi}' – check locs:\n{unexpected_bad}"
+                f"Problem in '{aoi}'\n\n"
+                f"Total geoms:   {n_geoms}\n"
+                f"Checked geoms: {sum(do_checks)}\n"
+                f"!= geoms:      {n_geoms - sum(equal_geoms)}\n"
+                f"!= topos:      {n_geoms - sum(equal_topos)}\n\n"
+                f"Check locs:\n{unexpected_bad}"
             ) from None
 
     return True
@@ -190,7 +205,7 @@ def norm_sort(gdf: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
     return gdf
 
 
-def n_touches(edgelines):
+def n_touches(edgelines: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
     """$n$ shares bounds with, excluding self"""
     inp, res = edgelines.sindex.query(edgelines.geometry, predicate="touches")
     counts = pandas.DataFrame({"inp": inp, "res": res})
