@@ -190,6 +190,17 @@ def norm_sort(gdf: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
     return gdf
 
 
+def n_touches(edgelines):
+    """$n$ shares bounds with, excluding self"""
+    inp, res = edgelines.sindex.query(edgelines.geometry, predicate="touches")
+    counts = pandas.DataFrame({"inp": inp, "res": res})
+
+    edgelines["neighs"] = counts.groupby("inp")["res"].agg(len)
+    edgelines["neighs"] = edgelines["neighs"].fillna(0).astype(int)
+
+    return edgelines
+
+
 def difference_plot(
     aoi: str,
     writedir: pathlib.Path,
@@ -256,4 +267,5 @@ def pytest_configure(config):  # noqa: ARG001
     pytest.polygonize = polygonize
     pytest.geom_test = geom_test
     pytest.norm_sort = norm_sort
+    pytest.n_touches = n_touches
     pytest.difference_plot = difference_plot

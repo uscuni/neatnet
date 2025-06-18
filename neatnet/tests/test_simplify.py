@@ -63,10 +63,14 @@ def test_neatify_small(scenario, tol, known_length):
     known = pytest.norm_sort(known)
     observed = pytest.norm_sort(observed)
 
+    # determine $n$ topological neighbors
+    known = pytest.n_touches(known)
+    observed = pytest.n_touches(observed)
+
     # storing GH artifacts
     artifact_dir = ci_artifacts / AC
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    known.to_parquet(artifact_dir / "_known_.parquet")
+    known.to_parquet(artifact_dir / f"_known_{scenario}.parquet")
     observed.to_parquet(artifact_dir / f"simplified_{scenario}.parquet")
 
     pytest.difference_plot(f"{AC}_{scenario}", artifact_dir, known, observed)
@@ -110,6 +114,10 @@ def test_neatify_full_fua(aoi, tol, known_length):
     known = pytest.norm_sort(known)
     observed = pytest.norm_sort(observed)
 
+    # determine $n$ topological neighbors
+    known = pytest.n_touches(known)
+    observed = pytest.n_touches(observed)
+
     # storing GH artifacts
     artifact_dir = ci_artifacts / aoi
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -149,6 +157,10 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
     # normalize & sort geometry for testing & comparison
     known = pytest.norm_sort(known)
     observed = pytest.norm_sort(observed)
+
+    # determine $n$ topological neighbors
+    known = pytest.n_touches(known)
+    observed = pytest.n_touches(observed)
 
     # storing GH artifacts
     artifact_dir = ci_artifacts / aoi
