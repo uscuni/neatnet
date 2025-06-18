@@ -140,11 +140,13 @@ def geom_test(
                     "non_norm_ix": {"g1": g1_curr_ix, "g2": g2_prop_ix},
                 }
 
-        print(f"\n{aoi}\n\n")
+        print(f"\n{aoi=}\n\n")
         print(f"\n{sum(do_checks)=}\n\n")
         print(f"\n{sum(equal_geoms)=}\n\n")
         print(f"\n{sum(equal_topos)=}\n\n")
         print(f"\n{unexpected_bad}\n\n")
+
+        raise RuntimeError("stop and print") from None
 
         if unexpected_bad:
             # record normalized index from known and subset
@@ -226,7 +228,7 @@ def difference_plot(
         )
         differences.buffer(diff_buff).plot(ax=base, zorder=1, fc="r", alpha=0.6)
     base.set_title(f"known vs. observed differences - {aoi}")
-    matplotlib.pyplot.savefig(writedir / f"{aoi}.png", dpi=300, bbox_inches="tight")
+    matplotlib.pyplot.savefig(writedir / f"{aoi}.png", dpi=400, bbox_inches="tight")
 
 
 def pytest_addoption(parser):
