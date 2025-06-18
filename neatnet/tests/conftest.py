@@ -158,7 +158,7 @@ def difference_plot(
         )
         differences.buffer(diff_buff).plot(ax=base, zorder=1, fc="r", alpha=0.6)
     base.set_title(f"known vs. observed differences - {aoi}")
-    matplotlib.pyplot.savefig(writedir / f"{aoi}.png", dpi=300, bbox_inches="tight")
+    matplotlib.pyplot.savefig(writedir / f"{aoi}.png", dpi=500, bbox_inches="tight")
 
 
 def pytest_addoption(parser):
