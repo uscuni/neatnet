@@ -77,7 +77,7 @@ def geom_test(
     collection2: geometry_collection,  # type: ignore[valid-type]
     tolerance: float = 1e-1,
     aoi: None | str = None,
-    save_dir: pathlib.Path = "",
+    save_dir: pathlib.Path = pathlib.Path(""),
 ) -> bool:
     """Testing helper -- geometry verification."""
 
@@ -121,14 +121,14 @@ def _per_edge_check(geoms1, geoms2, tolerance, aoi, save_dir):
 
     def _prep_compare(compare_cases: dict):
         """Convert offender info into geodataframe and save."""
-        known = {
+        known: dict = {
             "index": [],
             "n_coords": [],
             "length": [],
             "n_neigbors": [],
             "geometry": [],
         }
-        observed = {
+        observed: dict = {
             "index": [],
             "n_coords": [],
             "length": [],
@@ -152,11 +152,11 @@ def _per_edge_check(geoms1, geoms2, tolerance, aoi, save_dir):
             observed["geometry"].append(info["geometry"]["g2"])
 
         # curate
-        known = geopandas.GeoDataFrame.from_dict(known, crs=geoms1.crs)
-        known.to_parquet(save_dir / "known_to_compare_simplified.parquet")
+        known_gdf = geopandas.GeoDataFrame.from_dict(known, crs=geoms1.crs)
+        known_gdf.to_parquet(save_dir / "known_to_compare_simplified.parquet")
 
-        observed = geopandas.GeoDataFrame.from_dict(observed, crs=geoms2.crs)
-        observed.to_parquet(save_dir / "observed_to_compare_simplified.parquet")
+        observed_gdf = geopandas.GeoDataFrame.from_dict(observed, crs=geoms2.crs)
+        observed_gdf.to_parquet(save_dir / "observed_to_compare_simplified.parquet")
 
     unexpected_bad = {}
     do_checks = []
