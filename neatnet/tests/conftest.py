@@ -39,7 +39,6 @@ geometry_collection = (
 #   - gh#77
 #   - gh#75
 #   - gh#74
-"""
 KNOWN_BAD_GEOMS = {
     "aleppo_1133": [],
     "auckland_869": [1412],
@@ -49,17 +48,6 @@ KNOWN_BAD_GEOMS = {
     "slc_4881": [1144, 1146],
     "wuhan_8989": [],
     "apalachicola_standard": [324],
-    "apalachicola_exclusion_mask": [],
-"""
-KNOWN_BAD_GEOMS = {
-    "aleppo_1133": [],
-    "auckland_869": [],
-    "bucaramanga_4617": [],
-    "douala_809": [],
-    "liege_1656": [],
-    "slc_4881": [],
-    "wuhan_8989": [],
-    "apalachicola_standard": [],
     "apalachicola_exclusion_mask": [],
 }
 ####################################################
