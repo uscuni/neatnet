@@ -68,16 +68,20 @@ class FaceArtifacts:
 
     Examples
     --------
-    >>> fa = neatnet.FaceArtifacts(street_network_prague)
+    >>> import neatnet
+    >>> street_network = neatnet.utils.fetch_milton_keynes()
+    >>> fa = neatnet.FaceArtifacts(street_network)
+
     >>> fa.threshold
-    6.9634555986177045
+    6.871098533987101
+
     >>> fa.face_artifacts.head()
                                                  geometry  face_artifact_index
-    6   POLYGON ((-744164.625 -1043922.362, -744167.39...             5.112844
-    9   POLYGON ((-744154.119 -1043804.734, -744152.07...             6.295660
-    10  POLYGON ((-744101.275 -1043738.053, -744103.80...             2.862871
-    12  POLYGON ((-744095.511 -1043623.478, -744095.35...             3.712403
-    17  POLYGON ((-744488.466 -1044533.317, -744489.33...             5.158554
+    3   POLYGON ((488794.034 241115.508, 488872.46 241...             6.400030
+    4   POLYGON ((489239.463 240755.356, 489247.313 24...             4.971164
+    5   POLYGON ((488723.061 242891.69, 488720.975 242...             4.497962
+    9   POLYGON ((488807.777 242937.144, 488807.206 24...             4.462863
+    10  POLYGON ((489188.949 240755.943, 489190.985 24...             5.670373
 
     Notes
     -----
