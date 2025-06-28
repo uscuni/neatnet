@@ -77,6 +77,7 @@ def geom_test(
     collection2: geometry_collection,  # type: ignore[valid-type]
     tolerance: float = 1e-1,
     aoi: None | str = None,
+    save_dir: pathlib.Path = pathlib.Path(""),
 ) -> bool:
     """Testing helper -- geometry verification."""
 
@@ -98,26 +99,116 @@ def geom_test(
     try:
         assert shapely.equals_exact(geoms1, geoms2, tolerance=tolerance).all()
     except AssertionError:
-        unexpected_bad = {}
-        for ix in geoms1.index:
-            g1 = geoms1.loc[ix]
-            g2 = geoms2.loc[ix]
-            if (
-                not shapely.equals_exact(g1, g2, tolerance=tolerance)
-                and ix not in KNOWN_BAD_GEOMS[aoi]  # type: ignore[index]
-            ):
-                unexpected_bad[ix] = {
-                    "n_coords": {
-                        "g1": shapely.get_coordinates(g1).shape[0],
-                        "g2": shapely.get_coordinates(g2).shape[0],
-                    },
-                    "length": {"g1": g1.length, "g2": g2.length},
-                }
-        if unexpected_bad:
-            raise AssertionError(
-                f"Problem in '{aoi}' – check locs: {unexpected_bad}"
-            ) from None
+        _per_edge_check(geoms1, geoms2, tolerance, aoi, save_dir)
+
     return True
+
+
+def _per_edge_check(geoms1, geoms2, tolerance, aoi, save_dir):
+    """Granular 1-1 comparison of known vs. observed edges. Curates offenders.
+
+    Checkes & records:
+        * number of coordinates
+        * length
+        * number of neighbors (touching - excluding self)
+
+    See ``geom_test()`` for parameter descriptions.
+    """
+
+    def _n_touches(edges: geopandas.GeoSeries, edge: shapely.LineString) -> int:
+        """number of neighbors (touching - excluding self)"""
+        return len(edges.sindex.query(edge, predicate="touches"))
+
+    def _prep_compare(compare_cases: dict):
+        """Convert offender info into geodataframe and save."""
+        known: dict = {
+            "index": [],
+            "n_coords": [],
+            "length": [],
+            "n_neigbors": [],
+            "geometry": [],
+        }
+        observed: dict = {
+            "index": [],
+            "n_coords": [],
+            "length": [],
+            "n_neigbors": [],
+            "geometry": [],
+        }
+
+        for ix, info in compare_cases.items():
+            # details of the known edge
+            known["index"].append(ix)
+            known["n_coords"].append(info["n_coords"]["g1"])
+            known["length"].append(info["length"]["g1"])
+            known["n_neigbors"].append(info["n_neigbors"]["g1"])
+            known["geometry"].append(info["geometry"]["g1"])
+
+            # details of the observed edge
+            observed["index"].append(ix)
+            observed["n_coords"].append(info["n_coords"]["g2"])
+            observed["length"].append(info["length"]["g2"])
+            observed["n_neigbors"].append(info["n_neigbors"]["g2"])
+            observed["geometry"].append(info["geometry"]["g2"])
+
+        # curate
+        known_gdf = geopandas.GeoDataFrame.from_dict(known, crs=geoms1.crs)
+        known_gdf.to_parquet(save_dir / "known_to_compare_simplified.parquet")
+
+        observed_gdf = geopandas.GeoDataFrame.from_dict(observed, crs=geoms2.crs)
+        observed_gdf.to_parquet(save_dir / "observed_to_compare_simplified.parquet")
+
+    unexpected_bad = {}
+    do_checks = []
+    equal_geoms = []
+    equal_topos = []
+
+    for ix in geoms1.index:
+        # skip if known bad case
+        do_check = ix not in KNOWN_BAD_GEOMS[aoi]
+        do_checks.append(do_check)
+
+        # determine geometry equivalence
+        g1 = geoms1.loc[ix]
+        g2 = geoms2.loc[ix]
+        equal_geom = shapely.equals_exact(g1, g2, tolerance=tolerance)
+        equal_geoms.append(equal_geom)
+
+        # determine topological equivalence
+        g1_topo = _n_touches(geoms1, g1)
+        g2_topo = _n_touches(geoms2, g2)
+        equal_topo = g1_topo == g2_topo
+        equal_topos.append(equal_topo)
+
+        if do_check and (not equal_geom or not equal_topo):
+            # constituent coordinates per geometry
+            g1_n_coords = shapely.get_coordinates(g1).shape[0]
+            g2_n_coords = shapely.get_coordinates(g2).shape[0]
+
+            # length per geometry
+            g1_len = g1.length
+            g2_len = g2.length
+
+            unexpected_bad[ix] = {
+                "n_coords": {"g1": g1_n_coords, "g2": g2_n_coords},
+                "length": {"g1": g1_len, "g2": g2_len},
+                "n_neigbors": {"g1": g1_topo, "g2": g2_topo},
+                "geometry": {"g1": g1, "g2": g2},
+            }
+
+    if unexpected_bad:
+        if save_dir:
+            _prep_compare(unexpected_bad)
+
+        n_geoms = len(do_checks)
+        raise AssertionError(
+            f"Problem in '{aoi}'\n\n"
+            f"Total geoms:   {n_geoms}\n"
+            f"Checked geoms: {sum(do_checks)}\n"
+            f"!= geoms:      {n_geoms - sum(equal_geoms)}\n"
+            f"!= topos:      {n_geoms - sum(equal_topos)}\n\n"
+            f"Check locs:\n{unexpected_bad}"
+        ) from None
 
 
 def difference_plot(

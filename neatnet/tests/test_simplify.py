@@ -75,7 +75,13 @@ def test_neatify_small(scenario, tol, known_length):
         observed.drop(columns=["_status", "geometry"]),
     )
 
-    pytest.geom_test(known, observed, tolerance=tol, aoi=f"{AC}_{scenario}")
+    pytest.geom_test(
+        known,
+        observed,
+        tolerance=tol,
+        aoi=f"{AC}_{scenario}",
+        save_dir=artifact_dir,
+    )
 
 
 @pytest.mark.parametrize(
@@ -112,7 +118,7 @@ def test_neatify_full_fua(aoi, tol, known_length):
             known.drop(columns=["_status", "geometry"]),
             observed.drop(columns=["_status", "geometry"]),
         )
-        pytest.geom_test(known, observed, tolerance=tol, aoi=aoi)
+        pytest.geom_test(known, observed, tolerance=tol, aoi=aoi, save_dir=artifact_dir)
 
 
 @pytest.mark.wuhan
@@ -139,7 +145,7 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
             known.drop(columns=["_status", "geometry"]),
             observed.drop(columns=["_status", "geometry"]),
         )
-        pytest.geom_test(known, observed, tolerance=tol, aoi=aoi)
+        pytest.geom_test(known, observed, tolerance=tol, aoi=aoi, save_dir=artifact_dir)
 
 
 class TestNeatifyFallback:
