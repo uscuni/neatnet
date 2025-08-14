@@ -14,6 +14,20 @@ import neatnet
 simplified = neatnet.neatify(gdf)
 ```
 
+## Installing
+
+You can install neatnet from PyPI or from conda-forge using the tool of your choice:
+
+```sh
+pip install neatnet
+```
+
+Or (recommended):
+
+```sh
+conda install neatnet -c conda-forge
+```
+
 ## Contribution
 
 While we consider the API stable, the project is young and may be evolving fast. All contributions are very welcome, see our guidelines in [`CONTRIBUTING.md`](https://github.com/uscuni/neatnet/blob/main/CONTRIBUTING.md).
