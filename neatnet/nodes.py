@@ -136,7 +136,7 @@ def _status(x: pd.Series) -> str:
 
 
 def _first_non_null(x: pd.Series):
-    "Return first observation that is not missing, unless all are."
+    """Return first observation that is not missing, unless all are."""
     non_null = x[~x.isna()]
     if non_null.empty:
         return x.iloc[0]
