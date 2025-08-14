@@ -19,6 +19,7 @@ from .artifacts import (
 )
 from .continuity import continuity, get_stroke_info
 from .nodes import (
+    _first_non_null,
     _nodes_degrees_from_edges,
     _nodes_from_edges,
     _status,
@@ -323,7 +324,9 @@ def neatify_singletons(
         agg: dict[str, str | typing.Callable] = {"_status": _status}
         for c in cleaned_streets.columns.drop(cleaned_streets.active_geometry_name):
             if c != "_status":
-                agg[c] = "first"
+                # returning first non null as we may be joining new with existing
+                # and want attributes from existing
+                agg[c] = _first_non_null
         non_empties = new_streets[~(new_streets.is_empty | new_streets.geometry.isna())]
         new_streets = remove_interstitial_nodes(non_empties, aggfunc=agg)
 
