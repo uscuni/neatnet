@@ -1,5 +1,6 @@
 import collections.abc
 import typing
+import warnings
 
 import geopandas as gpd
 import momepy
@@ -494,44 +495,56 @@ def remove_interstitial_nodes(
         target_nodes = nodes[node_ix[loop_ix == ix]]
         if len(target_nodes) == 2:
             new_sequence = _rotate_loop_coords(loop_geom, not_loops)
-            fixed_loops.append(shapely.LineString(new_sequence))
+            fixed_loops.append(new_sequence)
             fixed_index.append(ix)
 
     aggregated.loc[loops.index[fixed_index], aggregated.geometry.name] = fixed_loops
-    return aggregated.reset_index(drop=True)
+    return aggregated.reset_idex(drop=True)
 
 
 def _rotate_loop_coords(
     loop_geom: shapely.LineString, not_loops: gpd.GeoDataFrame
 ) -> np.ndarray:
-    """Rotate loop node coordinates if needed to ensure topology."""
+    """Rotate loop node coordinates if needed to ensure topology.
 
-    loop_coords = shapely.get_coordinates(loop_geom)
-    loop_points = gpd.GeoDataFrame(geometry=shapely.points(loop_coords))
-    loop_points_ix, _ = not_loops.sindex.query(
-        loop_points.geometry, predicate="dwithin", distance=1e-4
-    )
-
-    mode = loop_points.loc[loop_points_ix].geometry.mode()
-
-    # if there is a non-planar intersection, we may have multiple points. Check with
-    # entrypoints only in that case
-    if mode.shape[0] > 1:
+    The function is prone to errors with super weird configurations.
+    If it fails, return the original to avoid breaking the entire workflow.
+    """
+    try:
+        loop_coords = shapely.get_coordinates(loop_geom)
+        loop_points = gpd.GeoDataFrame(geometry=shapely.points(loop_coords))
         loop_points_ix, _ = not_loops.sindex.query(
             loop_points.geometry, predicate="dwithin", distance=1e-4
         )
-        new_mode = loop_points.loc[loop_points_ix].geometry.mode()
-        # if that did not help, just pick one to avoid failure and hope for the best
-        if new_mode.empty | new_mode.shape[0] > 1:
-            mode = mode.iloc[[0]]
 
-    new_start = mode.get_coordinates().values
-    _coords_match = (loop_coords == new_start).all(axis=1)
-    new_start_idx = np.where(_coords_match)[0].squeeze()
+        mode = loop_points.loc[loop_points_ix].geometry.mode()
 
-    rolled_coords = np.roll(loop_coords[:-1], -new_start_idx, axis=0)
-    new_sequence = np.append(rolled_coords, rolled_coords[[0]], axis=0)
-    return new_sequence
+        # if there is a non-planar intersection, we may have multiple points. Check with
+        # entrypoints only in that case
+        if mode.shape[0] > 1:
+            loop_points_ix, _ = not_loops.sindex.query(
+                loop_points.geometry, predicate="dwithin", distance=1e-4
+            )
+            new_mode = loop_points.loc[loop_points_ix].geometry.mode()
+            # if that did not help, just pick one to avoid failure and hope for the best
+            if new_mode.empty | new_mode.shape[0] > 1:
+                mode = mode.iloc[[0]]
+
+        new_start = mode.get_coordinates().values
+        _coords_match = (loop_coords == new_start).all(axis=1)
+        new_start_idx = np.where(_coords_match)[0].squeeze()
+
+        rolled_coords = np.roll(loop_coords[:-1], -new_start_idx, axis=0)
+        new_sequence = np.append(rolled_coords, rolled_coords[[0]], axis=0)
+        return shapely.LineString(new_sequence)
+
+    except ValueError:
+        warnings.warn(
+            f"Loop at a location {loop_geom.centroid} could not be re-ordered. "
+            "Topology might be suboptimal.",
+            stacklevel=3,
+        )
+        return loop_geom
 
 
 def fix_topology(
