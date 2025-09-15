@@ -499,7 +499,7 @@ def remove_interstitial_nodes(
             fixed_index.append(ix)
 
     aggregated.loc[loops.index[fixed_index], aggregated.geometry.name] = fixed_loops
-    return aggregated.reset_idex(drop=True)
+    return aggregated.reset_index(drop=True)
 
 
 def _rotate_loop_coords(
