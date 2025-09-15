@@ -540,7 +540,7 @@ def _rotate_loop_coords(
 
     except ValueError:
         warnings.warn(
-            f"Loop at a location {loop_geom.centroid} could not be re-ordered. "
+            f"Loop at {loop_geom.centroid} could not be re-ordered. "
             "Topology might be suboptimal.",
             stacklevel=3,
         )
