@@ -129,9 +129,19 @@ def _snap_n_split(e: shapely.LineString, s: shapely.Point, tol: float) -> np.nda
 
 def _status(x: pd.Series) -> str:
     """Determine the status of edge line(s)."""
+    if (x == "new").all():
+        return "new"
     if len(x) == 1:
         return x.iloc[0]
     return "changed"
+
+
+def _first_non_null(x: pd.Series):
+    """Return first observation that is not missing, unless all are."""
+    non_null = x[~x.isna()]
+    if non_null.empty:
+        return x.iloc[0]
+    return non_null.iloc[0]
 
 
 def isolate_bowtie_nodes(edgelines: list | np.ndarray | gpd.GeoSeries) -> gpd.GeoSeries:
