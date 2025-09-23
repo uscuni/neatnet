@@ -829,7 +829,9 @@ class TestRotateLoopCoords:
         self.line41302141 = shapely.LineString((self.p41, self.p30, self.p21, self.p41))
         self.line30214130 = shapely.LineString((self.p30, self.p21, self.p41, self.p30))
 
-        self.known = numpy.array([[3.0, 0.0], [2.0, 1.0], [4.0, 1.0], [3.0, 0.0]])
+        self.known = shapely.LineString(
+            numpy.array([[3.0, 0.0], [2.0, 1.0], [4.0, 1.0], [3.0, 0.0]])
+        )
 
     def test_needs_rotate_intersects_1(self):
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line41302141])
@@ -837,7 +839,7 @@ class TestRotateLoopCoords:
             edges[edges.is_ring].geometry,
             edges[~edges.is_ring],
         )
-        numpy.testing.assert_array_equal(observed, self.known)
+        assert shapely.equals_exact(observed, self.known)
 
     def test_needs_rotate_intersects_2(self):
         edges = geopandas.GeoDataFrame(
@@ -847,7 +849,7 @@ class TestRotateLoopCoords:
             edges[edges.is_ring].geometry,
             edges[~edges.is_ring],
         )
-        numpy.testing.assert_array_equal(observed, self.known)
+        assert shapely.equals_exact(observed, self.known)
 
     def test_no_rotate_intersects_1(self):
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line30214130])
@@ -855,7 +857,7 @@ class TestRotateLoopCoords:
             edges[edges.is_ring].geometry,
             edges[~edges.is_ring],
         )
-        numpy.testing.assert_array_equal(observed, self.known)
+        assert shapely.equals_exact(observed, self.known)
 
     def test_no_rotate_intersects_2(self):
         edges = geopandas.GeoDataFrame(
@@ -865,7 +867,7 @@ class TestRotateLoopCoords:
             edges[edges.is_ring].geometry,
             edges[~edges.is_ring],
         )
-        numpy.testing.assert_array_equal(observed, self.known)
+        assert shapely.equals_exact(observed, self.known)
 
     def test_pathological_case(self):
         data = {
