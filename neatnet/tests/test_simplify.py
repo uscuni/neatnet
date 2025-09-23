@@ -112,13 +112,13 @@ def test_neatify_full_fua(aoi, tol, known_length):
     assert pytest.approx(observed_length, rel=0.0001) == known_length
     assert observed.index.dtype == numpy.dtype("int64")
 
-    if pytest.ubuntu and pytest.env_type != "oldest":
-        assert_series_equal(known["_status"], observed["_status"])
-        assert_frame_equal(
-            known.drop(columns=["_status", "geometry"]),
-            observed.drop(columns=["_status", "geometry"]),
-        )
-        pytest.geom_test(known, observed, tolerance=tol, aoi=aoi, save_dir=artifact_dir)
+    # if pytest.ubuntu and pytest.env_type != "dev":
+    assert_series_equal(known["_status"], observed["_status"])
+    assert_frame_equal(
+        known.drop(columns=["_status", "geometry"]),
+        observed.drop(columns=["_status", "geometry"]),
+    )
+    pytest.geom_test(known, observed, tolerance=tol, aoi=aoi, save_dir=artifact_dir)
 
 
 @pytest.mark.wuhan
