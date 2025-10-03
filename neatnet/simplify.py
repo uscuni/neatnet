@@ -691,6 +691,9 @@ def get_solution(group: gpd.GeoDataFrame, streets: gpd.GeoDataFrame) -> pd.Serie
     if shared.empty or covers_a.empty or covers_b.empty:
         return pd.Series({"solution": "non_planar", "drop_id": None})
 
+    if len(shared) > 1:
+        return pd.Series({"solution": "skeleton", "drop_id": shared})
+
     shared = shared.item()
 
     if (np.invert(streets_b.index.isin(covers_a.index)).sum() == 1) or (
