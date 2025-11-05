@@ -40,13 +40,31 @@ If you use `neatnet` for a research purpose, please consider citing the original
 
 ### Canonical Citation (primary)
 
-*forthcoming*
+Fleischmann, M., Vybornova, A., Gaboardi, J.D., Brázdová, A., Dančejová, D., 2026. Adaptive continuity-preserving simplification of street networks. Computers, Environment and Urban Systems 123, 102354. https://doi.org/10.1016/j.compenvurbsys.2025.102354
+
+BibTeX:
+
+```bib
+@article{fleischmann2026Adaptive,
+  title = {Adaptive Continuity-Preserving Simplification of Street Networks},
+  author = {Fleischmann, Martin and Vybornova, Anastassia and Gaboardi, James D. and Br{\'a}zdov{\'a}, Anna and Dan{\v c}ejov{\'a}, Daniela},
+  year = 2026,
+  month = jan,
+  journal = {Computers, Environment and Urban Systems},
+  volume = {123},
+  pages = {102354},
+  issn = {01989715},
+  doi = {10.1016/j.compenvurbsys.2025.102354},
+  urldate = {2025-10-31},
+  langid = {english}
+}
+```
 
 ### Repository Citation (secondary)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14765801.svg)](https://doi.org/10.5281/zenodo.14765801)
 
-* **Fleischmann, M., Vybornova, A., & Gaboardi, J.D.** (2025). `uscuni/neatnet`. Zenodo. https://doi.org/10.5281/zenodo.14765801
+* **Fleischmann, M., Vybornova, A., & Gaboardi, J.D.** (2025). `uscuni/neatnet`. Zenodo. <https://doi.org/10.5281/zenodo.14765801>
 
 ## Funding
 
@@ -55,6 +73,7 @@ The development has been supported by the Charles University’s Primus program 
 ---------------------------------------
 
 This package developed & and maintained by:
+
 * [Martin Fleischmann](https://github.com/martinfleis)
 * [Anastassia Vybornova](https://github.com/anastassiavybornova)
 * [James D. Gaboardi](https://github.com/jGaboardi)

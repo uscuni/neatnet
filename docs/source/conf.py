@@ -40,6 +40,7 @@ extensions = [
 ]
 
 bibtex_bibfiles = ["_static/references.bib"]
+bibtex_reference_style = "author_year"
 
 master_doc = "index"
 
