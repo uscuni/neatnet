@@ -734,7 +734,12 @@ def neatify(
     eps: float = 1e-4,
     n_loops: int = 2,
 ) -> gpd.GeoDataFrame:
-    """Top-level workflow for simplifying street networks. The input raw street network
+    """Top-level workflow for simplifying street networks.
+
+    Follows the Adaptive Continuity-Preserving Simplification algorithm proposed by
+    :cite:`fleischmann2026Adaptive`.
+
+    The input raw street network
     data, which must be in a projected coordinate reference system and is expected to be
     in meters, is first preprocessed (topological corrections & node consolidation)
     before two iterations of artifact detection and simplification.
