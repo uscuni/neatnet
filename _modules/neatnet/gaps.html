@@ -1,0 +1,720 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>neatnet.gaps &#8212; neatnet 0.1.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a80dc075" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=98feffa1"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/neatnet/gaps';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">neatnet 0.1.5 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Adaptive simplification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../simple_preprocessing.html">Simple preprocessing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify.html">neatnet.neatify</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.fix_topology.html">neatnet.fix_topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.consolidate_nodes.html">neatnet.consolidate_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.remove_interstitial_nodes.html">neatnet.remove_interstitial_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.induce_nodes.html">neatnet.induce_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.FaceArtifacts.html">neatnet.FaceArtifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.get_artifacts.html">neatnet.get_artifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.close_gaps.html">neatnet.close_gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.extend_lines.html">neatnet.extend_lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.get_artifacts.html">neatnet.get_artifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_loop.html">neatnet.neatify_loop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_singletons.html">neatnet.neatify_singletons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_pairs.html">neatnet.neatify_pairs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_clusters.html">neatnet.neatify_clusters</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../references.html">References</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">For contributors</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference external" href="https://github.com/uscuni/neatnet">GitHub</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1></h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for neatnet.gaps</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">operator</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">geopandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gpd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shapely</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;close_gaps&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;extend_lines&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="close_gaps">
+<a class="viewcode-back" href="../../generated/neatnet.close_gaps.html#neatnet.close_gaps">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">close_gaps</span><span class="p">(</span>
+    <span class="n">gdf</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Close gaps in LineString geometry where it should be contiguous.</span>
+<span class="sd">    Snaps both lines to a centroid of a gap in between.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gdf : geopandas.GeoSeries | geopandas.GeoDataFrame</span>
+<span class="sd">        LineString representations of a network.</span>
+<span class="sd">    tolerance : float</span>
+<span class="sd">        Nodes within ``tolerance`` will be snapped together.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoSeries</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    neatnet.extend_lines</span>
+<span class="sd">    neatnet.remove_interstitial_nodes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">geom</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">array</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_num_coordinates</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
+
+    <span class="c1"># generate a list of start and end coordinates and create point geometries</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+        <span class="n">ix</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">ind</span>
+        <span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ix</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">ix</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">points</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">edges</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+    <span class="n">buffered</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">dissolved</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">union_all</span><span class="p">(</span><span class="n">buffered</span><span class="p">)</span>
+
+    <span class="n">exploded</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">shapely</span><span class="o">.</span><span class="n">get_geometry</span><span class="p">(</span><span class="n">dissolved</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">get_num_geometries</span><span class="p">(</span><span class="n">dissolved</span><span class="p">))</span>
+    <span class="p">]</span>
+
+    <span class="n">centroids</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">centroid</span><span class="p">(</span><span class="n">exploded</span><span class="p">)</span>
+
+    <span class="n">snapped</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">snap</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">shapely</span><span class="o">.</span><span class="n">union_all</span><span class="p">(</span><span class="n">centroids</span><span class="p">),</span> <span class="n">tolerance</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">(</span><span class="n">snapped</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">gdf</span><span class="o">.</span><span class="n">crs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="extend_lines">
+<a class="viewcode-back" href="../../generated/neatnet.extend_lines.html#neatnet.extend_lines">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">extend_lines</span><span class="p">(</span>
+    <span class="n">gdf</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">target</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">barrier</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">extension</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extends lines from ``gdf`` to itself or target within a set tolerance.</span>
+
+<span class="sd">    Extends unjoined ends of LineString segments to join with other segments or target.</span>
+<span class="sd">    If ``target`` is passed, extend lines to target. Otherwise extend lines to itself.</span>
+
+<span class="sd">    If ``barrier`` is passed, each extended line is checked for intersection with</span>
+<span class="sd">    ``barrier``. If they intersect, extended line is not returned. This can be</span>
+<span class="sd">    useful if you don&#39;t want to extend street network segments through buildings.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gdf : geopandas.GeoDataFrame</span>
+<span class="sd">        GeoDataFrame containing LineString geometry.</span>
+<span class="sd">    tolerance : float</span>
+<span class="sd">        Tolerance in snapping (by how much could be each segment extended).</span>
+<span class="sd">    target : None | geopandas.GeoSeries | geopandas.GeoDataFrame</span>
+<span class="sd">        Target geometry to which ``gdf`` gets extended.</span>
+<span class="sd">        Has to be (Multi)LineString geometry.</span>
+<span class="sd">    barrier : None | geopandas.GeoSeries | geopandas.GeoDataFrame = None</span>
+<span class="sd">        Extended line is not used if it intersects barrier.</span>
+<span class="sd">    extension : int | float = 0</span>
+<span class="sd">        By how much to extend line beyond the snapped geometry. Useful</span>
+<span class="sd">        when creating enclosures to avoid floating point imprecision.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoDataFrame</span>
+<span class="sd">        GeoDataFrame with extended geometries.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    neatnet.close_gaps</span>
+<span class="sd">    neatnet.remove_interstitial_nodes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># explode to avoid MultiLineStrings</span>
+    <span class="c1"># reset index due to the bug in GeoPandas explode</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">df</span>
+        <span class="n">itself</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">itself</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># get underlying shapely geometry</span>
+    <span class="n">geom</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">array</span>
+
+    <span class="c1"># extract array of coordinates and number per geometry</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_num_coordinates</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
+
+    <span class="c1"># generate a list of start and end coordinates and create point geometries</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+        <span class="n">ix</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">ind</span>
+        <span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ix</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">ix</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">points</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">edges</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+    <span class="c1"># query LineString geometry to identify points intersecting 2 geometries</span>
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">STRtree</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
+    <span class="n">inp</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span><span class="p">)</span>
+    <span class="n">unique</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">ends</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">unique</span><span class="p">[</span><span class="n">counts</span> <span class="o">==</span> <span class="mi">1</span><span class="p">])])</span>
+
+    <span class="n">new_geoms</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># iterate over cul-de-sac-like segments and attempt to snap them to street network</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ends</span><span class="p">:</span>
+        <span class="n">l_coords</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">geom</span><span class="p">[</span><span class="n">line</span><span class="p">])</span>
+
+        <span class="n">start</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">points</span><span class="p">(</span><span class="n">l_coords</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">points</span><span class="p">(</span><span class="n">l_coords</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">first</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span><span class="p">))</span>
+        <span class="n">second</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span><span class="p">))</span>
+        <span class="n">first</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">second</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="n">target</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">itself</span> <span class="k">else</span> <span class="n">target</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">first</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">second</span><span class="p">:</span>
+            <span class="n">snapped</span> <span class="o">=</span> <span class="n">_extend_line</span><span class="p">(</span><span class="n">l_coords</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">barrier</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">barrier</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                    <span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">(</span><span class="n">snapped</span><span class="p">),</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">size</span>
+                <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                <span class="n">new_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">geom</span><span class="p">[</span><span class="n">line</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">extension</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">new_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">(</span><span class="n">snapped</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">new_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">(</span>
+                            <span class="n">_extend_line</span><span class="p">(</span><span class="n">snapped</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="n">snap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">first</span> <span class="ow">and</span> <span class="n">second</span><span class="p">:</span>
+            <span class="n">snapped</span> <span class="o">=</span> <span class="n">_extend_line</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">l_coords</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">barrier</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">barrier</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                    <span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">(</span><span class="n">snapped</span><span class="p">),</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">size</span>
+                <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                <span class="n">new_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">geom</span><span class="p">[</span><span class="n">line</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">extension</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">new_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">(</span><span class="n">snapped</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">new_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">(</span>
+                            <span class="n">_extend_line</span><span class="p">(</span><span class="n">snapped</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="n">snap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">first</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">second</span><span class="p">:</span>
+            <span class="n">one_side</span> <span class="o">=</span> <span class="n">_extend_line</span><span class="p">(</span><span class="n">l_coords</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">)</span>
+            <span class="n">one_side_e</span> <span class="o">=</span> <span class="n">_extend_line</span><span class="p">(</span><span class="n">one_side</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="n">snap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">snapped</span> <span class="o">=</span> <span class="n">_extend_line</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">one_side_e</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">barrier</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">barrier</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                    <span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">(</span><span class="n">snapped</span><span class="p">),</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">size</span>
+                <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                <span class="n">new_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">geom</span><span class="p">[</span><span class="n">line</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">extension</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">new_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">(</span><span class="n">snapped</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">new_geoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">(</span>
+                            <span class="n">_extend_line</span><span class="p">(</span><span class="n">snapped</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="n">snap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+    <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ends</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">name</span><span class="p">)]</span> <span class="o">=</span> <span class="n">new_geoms</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_extend_line</span><span class="p">(</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">target</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">,</span>
+    <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">snap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extends a line geometry to snap on the target within a tolerance.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">snap</span><span class="p">:</span>
+        <span class="n">extrapolation</span> <span class="o">=</span> <span class="n">_get_extrapolated_line</span><span class="p">(</span>
+            <span class="n">coords</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">coords</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span>
+            <span class="n">tolerance</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">int_idx</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">extrapolation</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span><span class="p">)</span>
+        <span class="n">intersection</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">int_idx</span><span class="p">]</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">extrapolation</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">intersection</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">intersection</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">distances</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">ix</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">intersection</span><span class="p">:</span>
+                    <span class="n">distance</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">shapely</span><span class="o">.</span><span class="n">points</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+                    <span class="n">distances</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="n">distance</span>
+                    <span class="n">ix</span> <span class="o">=</span> <span class="n">ix</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="n">minimal</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">distances</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">new_point_coords</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">intersection</span><span class="p">[</span><span class="n">minimal</span><span class="p">])</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_point_coords</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">intersection</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">coo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">new_point_coords</span><span class="p">)</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">coo</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coo</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">return</span> <span class="n">coords</span>
+
+    <span class="n">extrapolation</span> <span class="o">=</span> <span class="n">_get_extrapolated_line</span><span class="p">(</span>
+        <span class="n">coords</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">coords</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span>
+        <span class="n">tolerance</span><span class="p">,</span>
+        <span class="n">point</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">coords</span><span class="p">,</span> <span class="n">extrapolation</span><span class="p">])</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_extrapolated_line</span><span class="p">(</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">shapely</span><span class="o">.</span><span class="n">LineString</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a shapely line extrapolated in p1-&gt;p2 direction.&quot;&quot;&quot;</span>
+
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">p2</span>
+
+    <span class="c1"># defining new point based on the vector between existing points</span>
+    <span class="k">if</span> <span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">-</span> <span class="n">tolerance</span>
+            <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span>
+                <span class="n">math</span><span class="o">.</span><span class="n">atan</span><span class="p">(</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="o">-</span> <span class="n">tolerance</span>
+            <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span>
+                <span class="n">math</span><span class="o">.</span><span class="n">atan</span><span class="p">(</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">+</span> <span class="n">tolerance</span>
+            <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span>
+                <span class="n">math</span><span class="o">.</span><span class="n">atan</span><span class="p">(</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="o">-</span> <span class="n">tolerance</span>
+            <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span>
+                <span class="n">math</span><span class="o">.</span><span class="n">atan</span><span class="p">(</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">+</span> <span class="n">tolerance</span>
+            <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span>
+                <span class="n">math</span><span class="o">.</span><span class="n">atan</span><span class="p">(</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="o">+</span> <span class="n">tolerance</span>
+            <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span>
+                <span class="n">math</span><span class="o">.</span><span class="n">atan</span><span class="p">(</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">-</span> <span class="n">tolerance</span>
+            <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span>
+                <span class="n">math</span><span class="o">.</span><span class="n">atan</span><span class="p">(</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="o">+</span> <span class="n">tolerance</span>
+            <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span>
+                <span class="n">math</span><span class="o">.</span><span class="n">atan</span><span class="p">(</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">p1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.000001</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">point</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">b</span>
+    <span class="k">return</span> <span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">])</span>
+</pre></div>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Martin Fleischmann, Anastassia Vybornova, James D. Gaboardi
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024-, neatnet Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

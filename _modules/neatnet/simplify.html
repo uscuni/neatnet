@@ -1,0 +1,1458 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>neatnet.simplify &#8212; neatnet 0.1.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a80dc075" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=98feffa1"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/neatnet/simplify';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">neatnet 0.1.5 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Adaptive simplification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../simple_preprocessing.html">Simple preprocessing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify.html">neatnet.neatify</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.fix_topology.html">neatnet.fix_topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.consolidate_nodes.html">neatnet.consolidate_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.remove_interstitial_nodes.html">neatnet.remove_interstitial_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.induce_nodes.html">neatnet.induce_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.FaceArtifacts.html">neatnet.FaceArtifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.get_artifacts.html">neatnet.get_artifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.close_gaps.html">neatnet.close_gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.extend_lines.html">neatnet.extend_lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.get_artifacts.html">neatnet.get_artifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_loop.html">neatnet.neatify_loop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_singletons.html">neatnet.neatify_singletons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_pairs.html">neatnet.neatify_pairs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_clusters.html">neatnet.neatify_clusters</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../references.html">References</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">For contributors</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference external" href="https://github.com/uscuni/neatnet">GitHub</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1></h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for neatnet.simplify</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">geopandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gpd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shapely</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">geopandas.testing</span><span class="w"> </span><span class="kn">import</span> <span class="n">assert_geoseries_equal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">libpysal</span><span class="w"> </span><span class="kn">import</span> <span class="n">graph</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">sparse</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.artifacts</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_artifacts</span><span class="p">,</span>
+    <span class="n">n1_g1_identical</span><span class="p">,</span>
+    <span class="n">nx_gx</span><span class="p">,</span>
+    <span class="n">nx_gx_cluster</span><span class="p">,</span>
+    <span class="n">nx_gx_identical</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.continuity</span><span class="w"> </span><span class="kn">import</span> <span class="n">continuity</span><span class="p">,</span> <span class="n">get_stroke_info</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.nodes</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_first_non_null</span><span class="p">,</span>
+    <span class="n">_nodes_degrees_from_edges</span><span class="p">,</span>
+    <span class="n">_nodes_from_edges</span><span class="p">,</span>
+    <span class="n">_status</span><span class="p">,</span>
+    <span class="n">consolidate_nodes</span><span class="p">,</span>
+    <span class="n">fix_topology</span><span class="p">,</span>
+    <span class="n">induce_nodes</span><span class="p">,</span>
+    <span class="n">remove_interstitial_nodes</span><span class="p">,</span>
+    <span class="n">split</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">DEBUGGING</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_input_crs</span><span class="p">(</span><span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">exclusion_mask</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensure input data is in appropriate Coordinate reference systems.&quot;&quot;&quot;</span>
+
+    <span class="n">streets_crs</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">crs</span>
+    <span class="n">streets_has_crs</span> <span class="o">=</span> <span class="n">streets_crs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">streets_has_crs</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;The input `streets` data does not have an assigned &quot;</span>
+                <span class="s2">&quot;coordinate reference system. Assuming a projected CRS in meters.&quot;</span>
+            <span class="p">),</span>
+            <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">streets_crs</span><span class="o">.</span><span class="n">is_projected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;The input `streets` data are not in a projected &quot;</span>
+                <span class="s2">&quot;coordinate reference system. Reproject and rerun.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">streets_crs</span><span class="o">.</span><span class="n">axis_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">unit_name</span> <span class="o">!=</span> <span class="s2">&quot;metre&quot;</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s2">&quot;The input `streets` data coordinate reference system is projected &quot;</span>
+                    <span class="s2">&quot;but not in meters. All `neatnet` defaults assume meters. &quot;</span>
+                    <span class="s2">&quot;Either reproject and rerun or proceed with caution.&quot;</span>
+                <span class="p">),</span>
+                <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">exclusion_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">exclusion_mask</span><span class="o">.</span><span class="n">crs</span> <span class="o">!=</span> <span class="n">streets_crs</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;The input `streets` and `exclusion_mask` data are in &quot;</span>
+            <span class="s2">&quot;different coordinate reference systems. Reproject and rerun.&quot;</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_link_nodes_artifacts</span><span class="p">(</span>
+    <span class="n">step</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="n">artifacts</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper to prep nodes &amp; artifacts when simplifying singletons &amp; pairs.&quot;&quot;&quot;</span>
+
+    <span class="c1"># Get nodes from the network</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">_nodes_degrees_from_edges</span><span class="p">(</span><span class="n">streets</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">step</span> <span class="o">==</span> <span class="s2">&quot;singletons&quot;</span><span class="p">:</span>
+        <span class="n">node_geom</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">geometry</span>
+        <span class="n">sindex_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;predicate&quot;</span><span class="p">:</span> <span class="s2">&quot;dwithin&quot;</span><span class="p">,</span> <span class="s2">&quot;distance&quot;</span><span class="p">:</span> <span class="n">eps</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">node_geom</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+        <span class="n">sindex_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;predicate&quot;</span><span class="p">:</span> <span class="s2">&quot;intersects&quot;</span><span class="p">}</span>
+
+    <span class="c1"># Link nodes to artifacts</span>
+    <span class="n">node_idx</span><span class="p">,</span> <span class="n">artifact_idx</span> <span class="o">=</span> <span class="n">artifacts</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">node_geom</span><span class="p">,</span> <span class="o">**</span><span class="n">sindex_kwargs</span><span class="p">)</span>
+
+    <span class="n">intersects</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">coo_array</span><span class="p">(</span>
+        <span class="p">([</span><span class="kc">True</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">node_idx</span><span class="p">),</span> <span class="p">(</span><span class="n">node_idx</span><span class="p">,</span> <span class="n">artifact_idx</span><span class="p">)),</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">artifacts</span><span class="p">)),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Compute number of nodes per artifact</span>
+    <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;node_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">intersects</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">artifacts</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_classify_strokes</span><span class="p">(</span>
+    <span class="n">artifacts</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Classify artifacts with ``{C,E,S}`` typology.&quot;&quot;&quot;</span>
+
+    <span class="n">strokes</span><span class="p">,</span> <span class="n">c_</span><span class="p">,</span> <span class="n">e_</span><span class="p">,</span> <span class="n">s_</span> <span class="o">=</span> <span class="n">get_stroke_info</span><span class="p">(</span><span class="n">artifacts</span><span class="p">,</span> <span class="n">streets</span><span class="p">)</span>
+
+    <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;stroke_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">strokes</span>
+    <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;C&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_</span>
+    <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;E&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">e_</span>
+    <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;S&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s_</span>
+
+    <span class="k">return</span> <span class="n">artifacts</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_identify_non_planar</span><span class="p">(</span>
+    <span class="n">artifacts</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Filter artifacts caused by non-planar intersections.&quot;&quot;&quot;</span>
+
+    <span class="c1"># Note from within `neatify_singletons()`</span>
+    <span class="c1"># TODO: This is not perfect.</span>
+    <span class="c1"># TODO: Some 3CC artifacts were non-planar but not captured here.</span>
+
+    <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;non_planar&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;stroke_count&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;node_count&quot;</span><span class="p">]</span>
+    <span class="n">a_idx</span><span class="p">,</span> <span class="n">r_idx</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="n">artifacts</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">boundary</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;overlaps&quot;</span>
+    <span class="p">)</span>
+    <span class="n">artifacts</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">a_idx</span><span class="p">),</span> <span class="n">artifacts</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="s2">&quot;non_planar&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">artifacts</span>
+
+
+<div class="viewcode-block" id="neatify_singletons">
+<a class="viewcode-back" href="../../generated/neatnet.neatify_singletons.html#neatnet.neatify_singletons">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">neatify_singletons</span><span class="p">(</span>
+    <span class="n">artifacts</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">max_segment_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">compute_coins</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">angle_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">120</span><span class="p">,</span>
+    <span class="n">min_dangle_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+    <span class="n">clip_limit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">simplification_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">consolidation_tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simplification of singleton face artifacts – the first simplification step in</span>
+<span class="sd">    the procedure detailed in ``simplify.neatify_loop()``.</span>
+
+<span class="sd">    This process extracts nodes from network edges before computing and labeling</span>
+<span class="sd">    face artifacts with a ``{C, E, S}`` typology through ``momepy.COINS`` via the</span>
+<span class="sd">    constituent street geometries.</span>
+
+<span class="sd">    Next, each artifact is iterated over and constituent line geometries are either</span>
+<span class="sd">    dropped or added in the following order of typologies:</span>
+
+<span class="sd">        1. 1 node and 1 continuity group</span>
+<span class="sd">        2. more than 1 node and 1 or more identical continuity groups</span>
+<span class="sd">        3. 2 or more nodes and 2 or more continuity groups</span>
+
+<span class="sd">    Non-planar geometries are ignored.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    artifacts : geopandas.GeoDataFrame</span>
+<span class="sd">        Face artifact polygons.</span>
+<span class="sd">    streets : geopandas.GeoDataFrame</span>
+<span class="sd">        Preprocessed street network data.</span>
+<span class="sd">    max_segment_length : float | int = 1</span>
+<span class="sd">        Additional nodes will be added so that all line segments</span>
+<span class="sd">        are no longer than this value. Must be greater than 0.</span>
+<span class="sd">        Used in multiple internal geometric operations.</span>
+<span class="sd">    compute_coins : bool = True</span>
+<span class="sd">        Flag for computing and labeling artifacts with a ``{C, E, S}`` typology through</span>
+<span class="sd">        :class:`momepy.COINS` via the constituent street geometries.</span>
+<span class="sd">    angle_threshold : float = 120</span>
+<span class="sd">        See the ``angle_threshold`` keyword argument in :class:`momepy.COINS`.</span>
+<span class="sd">    min_dangle_length : float | int = 10</span>
+<span class="sd">        The threshold for determining if linestrings are dangling slivers to be</span>
+<span class="sd">        removed or not.</span>
+<span class="sd">    eps : float = 1e-4</span>
+<span class="sd">        Tolerance epsilon used in multiple internal geometric operations.</span>
+<span class="sd">    clip_limit : float | int = 2</span>
+<span class="sd">        Following generation of the Voronoi linework, we clip to fit inside the</span>
+<span class="sd">        polygon. To ensure we get a space to make proper topological connections</span>
+<span class="sd">        from the linework to the actual points on the edge of the polygon, we clip</span>
+<span class="sd">        using a polygon with a negative buffer of ``clip_limit`` or the radius of</span>
+<span class="sd">        maximum inscribed circle, whichever is smaller.</span>
+<span class="sd">    simplification_factor : float | int = 2</span>
+<span class="sd">        The factor by which singles, pairs, and clusters are simplified. The</span>
+<span class="sd">        ``max_segment_length`` is multiplied by this factor to get the</span>
+<span class="sd">        simplification epsilon.</span>
+<span class="sd">    consolidation_tolerance : float | int = 10</span>
+<span class="sd">        Tolerance passed to node consolidation when generating Voronoi skeletons.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoDataFrame</span>
+<span class="sd">        The street network line data following the singleton procedure.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Extract network nodes and relate to artifacts</span>
+    <span class="n">nodes</span><span class="p">,</span> <span class="n">artifacts</span> <span class="o">=</span> <span class="n">_link_nodes_artifacts</span><span class="p">(</span><span class="s2">&quot;singletons&quot;</span><span class="p">,</span> <span class="n">streets</span><span class="p">,</span> <span class="n">artifacts</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span>
+
+    <span class="c1"># Compute number of stroke groups per artifact</span>
+    <span class="k">if</span> <span class="n">compute_coins</span><span class="p">:</span>
+        <span class="n">streets</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">continuity</span><span class="p">(</span><span class="n">streets</span><span class="p">,</span> <span class="n">angle_threshold</span><span class="o">=</span><span class="n">angle_threshold</span><span class="p">)</span>
+    <span class="n">artifacts</span> <span class="o">=</span> <span class="n">_classify_strokes</span><span class="p">(</span><span class="n">artifacts</span><span class="p">,</span> <span class="n">streets</span><span class="p">)</span>
+
+    <span class="c1"># Filter artifacts caused by non-planar intersections</span>
+    <span class="n">artifacts</span> <span class="o">=</span> <span class="n">_identify_non_planar</span><span class="p">(</span><span class="n">artifacts</span><span class="p">,</span> <span class="n">streets</span><span class="p">)</span>
+
+    <span class="c1"># Count intersititial nodes (primes)</span>
+    <span class="n">_prime_count</span> <span class="o">=</span> <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;node_count&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">artifacts</span><span class="p">[[</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;E&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;interstitial_nodes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_prime_count</span>
+
+    <span class="c1"># Define the type label</span>
+    <span class="n">ces_type</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">artifacts</span><span class="p">[[</span><span class="s2">&quot;node_count&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;E&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">():</span>
+        <span class="n">ces_type</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">node_count</span><span class="si">}{</span><span class="s1">&#39;C&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="o">.</span><span class="n">C</span><span class="si">}{</span><span class="s1">&#39;E&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="o">.</span><span class="n">E</span><span class="si">}{</span><span class="s1">&#39;S&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="o">.</span><span class="n">S</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;ces_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ces_type</span>
+
+    <span class="c1"># Collect changes</span>
+    <span class="n">to_drop</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">to_add</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">split_points</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">shapely</span><span class="o">.</span><span class="n">Point</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Isolate planar artifacts</span>
+    <span class="n">planar</span> <span class="o">=</span> <span class="n">artifacts</span><span class="p">[</span><span class="o">~</span><span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;non_planar&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">planar</span><span class="p">[</span><span class="s2">&quot;buffered&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">planar</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;non_planar&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IGNORING </span><span class="si">{</span><span class="n">artifacts</span><span class="o">.</span><span class="n">non_planar</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2"> non planar artifacts&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Iterate over each singleton planar artifact and simplify based on typology</span>
+    <span class="k">for</span> <span class="n">artifact</span> <span class="ow">in</span> <span class="n">planar</span><span class="o">.</span><span class="n">itertuples</span><span class="p">():</span>
+        <span class="n">n_nodes</span> <span class="o">=</span> <span class="n">artifact</span><span class="o">.</span><span class="n">node_count</span>
+        <span class="n">n_strokes</span> <span class="o">=</span> <span class="n">artifact</span><span class="o">.</span><span class="n">stroke_count</span>
+        <span class="n">cestype</span> <span class="o">=</span> <span class="n">artifact</span><span class="o">.</span><span class="n">ces_type</span>
+
+        <span class="c1"># Get edges relevant for an artifact</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span>
+            <span class="n">streets</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">artifact</span><span class="o">.</span><span class="n">buffered</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;covers&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Dispatch by typology</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># 1 node and 1 continuity group</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">n_nodes</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">n_strokes</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;FUNCTION n1_g1_identical&quot;</span><span class="p">)</span>
+                <span class="n">n1_g1_identical</span><span class="p">(</span>
+                    <span class="n">edges</span><span class="p">,</span>
+                    <span class="n">to_drop</span><span class="o">=</span><span class="n">to_drop</span><span class="p">,</span>
+                    <span class="n">to_add</span><span class="o">=</span><span class="n">to_add</span><span class="p">,</span>
+                    <span class="n">geom</span><span class="o">=</span><span class="n">artifact</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span>
+                    <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+                    <span class="n">clip_limit</span><span class="o">=</span><span class="n">clip_limit</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="c1"># More than 1 node and 1 or more identical continuity groups</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">n_nodes</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">cestype</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;FUNCTION nx_gx_identical&quot;</span><span class="p">)</span>
+                <span class="n">nx_gx_identical</span><span class="p">(</span>
+                    <span class="n">edges</span><span class="p">,</span>
+                    <span class="n">geom</span><span class="o">=</span><span class="n">artifact</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span>
+                    <span class="n">to_add</span><span class="o">=</span><span class="n">to_add</span><span class="p">,</span>
+                    <span class="n">to_drop</span><span class="o">=</span><span class="n">to_drop</span><span class="p">,</span>
+                    <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span>
+                    <span class="n">angle</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span>
+                    <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+                    <span class="n">clip_limit</span><span class="o">=</span><span class="n">clip_limit</span><span class="p">,</span>
+                    <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="c1"># 2 or more nodes and 2 or more continuity groups</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">n_nodes</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cestype</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;FUNCTION nx_gx&quot;</span><span class="p">)</span>
+                <span class="n">nx_gx</span><span class="p">(</span>
+                    <span class="n">edges</span><span class="p">,</span>
+                    <span class="n">artifact</span><span class="o">=</span><span class="n">artifact</span><span class="p">,</span>
+                    <span class="n">to_drop</span><span class="o">=</span><span class="n">to_drop</span><span class="p">,</span>
+                    <span class="n">to_add</span><span class="o">=</span><span class="n">to_add</span><span class="p">,</span>
+                    <span class="n">split_points</span><span class="o">=</span><span class="n">split_points</span><span class="p">,</span>
+                    <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span>
+                    <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+                    <span class="n">clip_limit</span><span class="o">=</span><span class="n">clip_limit</span><span class="p">,</span>
+                    <span class="n">min_dangle_length</span><span class="o">=</span><span class="n">min_dangle_length</span><span class="p">,</span>
+                    <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;NON PLANAR&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">DEBUGGING</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">e</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;An error occured at location </span><span class="si">{</span><span class="n">artifact</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">centroid</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;The artifact has not been simplified. The original message:</span><span class="se">\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="n">cleaned_streets</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">to_drop</span><span class="p">)</span>
+    <span class="c1"># split lines on new nodes</span>
+    <span class="n">cleaned_streets</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">split_points</span><span class="p">,</span> <span class="n">streets</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">to_drop</span><span class="p">),</span> <span class="n">streets</span><span class="o">.</span><span class="n">crs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">to_add</span><span class="p">:</span>
+        <span class="c1"># Create new streets with fixed geometry.</span>
+        <span class="c1"># Note: ``to_add`` and ``to_drop`` lists shall be global and</span>
+        <span class="c1"># this step should happen only once, not for every artifact</span>
+        <span class="n">_add_merged</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">(</span><span class="n">to_add</span><span class="p">)</span><span class="o">.</span><span class="n">line_merge</span><span class="p">()</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">geometry</span><span class="o">=</span><span class="n">_add_merged</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">streets</span><span class="o">.</span><span class="n">crs</span><span class="p">)</span><span class="o">.</span><span class="n">explode</span><span class="p">()</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="n">new</span><span class="p">[</span><span class="o">~</span><span class="n">new</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span><span class="o">.</span><span class="n">duplicated</span><span class="p">()]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">new</span><span class="p">[</span><span class="s2">&quot;_status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;new&quot;</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">new</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">max_segment_length</span> <span class="o">*</span> <span class="n">simplification_factor</span><span class="p">)</span>
+        <span class="n">new_streets</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">cleaned_streets</span><span class="p">,</span> <span class="n">new</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">agg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;_status&quot;</span><span class="p">:</span> <span class="n">_status</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cleaned_streets</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">cleaned_streets</span><span class="o">.</span><span class="n">active_geometry_name</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="s2">&quot;_status&quot;</span><span class="p">:</span>
+                <span class="c1"># returning first non null as we may be joining new with existing</span>
+                <span class="c1"># and want attributes from existing</span>
+                <span class="n">agg</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">_first_non_null</span>
+        <span class="n">non_empties</span> <span class="o">=</span> <span class="n">new_streets</span><span class="p">[</span><span class="o">~</span><span class="p">(</span><span class="n">new_streets</span><span class="o">.</span><span class="n">is_empty</span> <span class="o">|</span> <span class="n">new_streets</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">isna</span><span class="p">())]</span>
+        <span class="n">new_streets</span> <span class="o">=</span> <span class="n">remove_interstitial_nodes</span><span class="p">(</span><span class="n">non_empties</span><span class="p">,</span> <span class="n">aggfunc</span><span class="o">=</span><span class="n">agg</span><span class="p">)</span>
+
+        <span class="n">final</span> <span class="o">=</span> <span class="n">new_streets</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">final</span> <span class="o">=</span> <span class="n">cleaned_streets</span>
+
+    <span class="k">if</span> <span class="s2">&quot;coins_group&quot;</span> <span class="ow">in</span> <span class="n">final</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">final</span> <span class="o">=</span> <span class="n">final</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">streets</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;coins_&quot;</span><span class="p">)]</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">final</span></div>
+
+
+
+<div class="viewcode-block" id="neatify_pairs">
+<a class="viewcode-back" href="../../generated/neatnet.neatify_pairs.html#neatnet.neatify_pairs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">neatify_pairs</span><span class="p">(</span>
+    <span class="n">artifacts</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">max_segment_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">min_dangle_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="n">clip_limit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">simplification_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">consolidation_tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simplification of pairs of face artifacts – the second simplification step in</span>
+<span class="sd">    the procedure detailed in ``simplify.neatify_loop()``.</span>
+
+<span class="sd">    This process extracts nodes from network edges before identifying non-planarity</span>
+<span class="sd">    and cluster information.</span>
+
+<span class="sd">    If paired artifacts are present we further classify them as grouped by</span>
+<span class="sd">    first vs. last instance of duplicated component label, and whether</span>
+<span class="sd">    or not to be simplified with the clustered process.</span>
+
+<span class="sd">    Finally, simplification is performed based on the following order of typologies:</span>
+<span class="sd">        1. Singletons – merged pairs &amp; first instance (w/o COINS)</span>
+<span class="sd">        2. Singletons – Second instance – w/ COINS</span>
+<span class="sd">        3. Clusters</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    artifacts : geopandas.GeoDataFrame</span>
+<span class="sd">        Face artifact polygons.</span>
+<span class="sd">    streets : geopandas.GeoDataFrame</span>
+<span class="sd">        Preprocessed street network data.</span>
+<span class="sd">    max_segment_length : float | int = 1</span>
+<span class="sd">        Additional vertices will be added so that all line segments</span>
+<span class="sd">        are no longer than this value. Must be greater than 0.</span>
+<span class="sd">        Used in multiple internal geometric operations.</span>
+<span class="sd">    min_dangle_length : float | int = 20</span>
+<span class="sd">        The threshold for determining if linestrings are dangling slivers to be</span>
+<span class="sd">        removed or not.</span>
+<span class="sd">    clip_limit : float | int = 2</span>
+<span class="sd">        Following generation of the Voronoi linework, we clip to fit inside the</span>
+<span class="sd">        polygon. To ensure we get a space to make proper topological connections</span>
+<span class="sd">        from the linework to the actual points on the edge of the polygon, we clip</span>
+<span class="sd">        using a polygon with a negative buffer of ``clip_limit`` or the radius of</span>
+<span class="sd">        maximum inscribed circle, whichever is smaller.</span>
+<span class="sd">    simplification_factor : float | int = 2</span>
+<span class="sd">        The factor by which singles, pairs, and clusters are simplified. The</span>
+<span class="sd">        ``max_segment_length`` is multiplied by this factor to get the</span>
+<span class="sd">        simplification epsilon.</span>
+<span class="sd">    consolidation_tolerance : float | int = 10</span>
+<span class="sd">        Tolerance passed to node consolidation when generating Voronoi skeletons.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoDataFrame</span>
+<span class="sd">        The street network line data following the pairs procedure.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Extract network nodes and relate to artifacts</span>
+    <span class="n">nodes</span><span class="p">,</span> <span class="n">artifacts</span> <span class="o">=</span> <span class="n">_link_nodes_artifacts</span><span class="p">(</span><span class="s2">&quot;pairs&quot;</span><span class="p">,</span> <span class="n">streets</span><span class="p">,</span> <span class="n">artifacts</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># Compute number of stroke groups per artifact</span>
+    <span class="n">streets</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">continuity</span><span class="p">(</span><span class="n">streets</span><span class="p">)</span>
+    <span class="n">artifacts</span> <span class="o">=</span> <span class="n">_classify_strokes</span><span class="p">(</span><span class="n">artifacts</span><span class="p">,</span> <span class="n">streets</span><span class="p">)</span>
+
+    <span class="c1"># Filter artifacts caused by non-planar intersections</span>
+    <span class="n">artifacts</span> <span class="o">=</span> <span class="n">_identify_non_planar</span><span class="p">(</span><span class="n">artifacts</span><span class="p">,</span> <span class="n">streets</span><span class="p">)</span>
+
+    <span class="c1"># Identify non-planar clusters</span>
+    <span class="n">_id_np</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">artifacts</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;comp&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">x</span><span class="o">.</span><span class="n">comp</span><span class="p">][</span><span class="s2">&quot;non_planar&quot;</span><span class="p">])</span>  <span class="c1"># noqa: E731</span>
+    <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;non_planar_cluster&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">artifacts</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">_id_np</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Subset non-planar clusters and planar artifacts</span>
+    <span class="n">np_clusters</span> <span class="o">=</span> <span class="n">artifacts</span><span class="p">[</span><span class="n">artifacts</span><span class="o">.</span><span class="n">non_planar_cluster</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">artifacts_planar</span> <span class="o">=</span> <span class="n">artifacts</span><span class="p">[</span><span class="n">artifacts</span><span class="o">.</span><span class="n">non_planar_cluster</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Isolate planar artifacts</span>
+    <span class="n">_planar_grouped</span> <span class="o">=</span> <span class="n">artifacts_planar</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;comp&quot;</span><span class="p">)[</span><span class="n">artifacts_planar</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="n">_solutions</span> <span class="o">=</span> <span class="n">_planar_grouped</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">get_solution</span><span class="p">,</span> <span class="n">streets</span><span class="o">=</span><span class="n">streets</span><span class="p">)</span>
+    <span class="n">artifacts_w_info</span> <span class="o">=</span> <span class="n">artifacts</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">_solutions</span><span class="p">,</span> <span class="n">left_on</span><span class="o">=</span><span class="s2">&quot;comp&quot;</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Isolate non-planar clusters of value 2 – e.g., artifact under highway</span>
+    <span class="n">_np_clust_2</span> <span class="o">=</span> <span class="n">np_clusters</span><span class="p">[</span><span class="s2">&quot;non_planar_cluster&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="n">artifacts_under_np</span> <span class="o">=</span> <span class="n">np_clusters</span><span class="p">[</span><span class="n">_np_clust_2</span><span class="p">]</span><span class="o">.</span><span class="n">dissolve</span><span class="p">(</span><span class="s2">&quot;comp&quot;</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Determine typology dispatch if artifacts are present</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">artifacts_w_info</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">agg</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;coins_group&quot;</span><span class="p">:</span> <span class="s2">&quot;first&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;coins_end&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">any</span><span class="p">(),</span>
+            <span class="s2">&quot;_status&quot;</span><span class="p">:</span> <span class="n">_status</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">streets</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">streets</span><span class="o">.</span><span class="n">active_geometry_name</span><span class="p">,</span> <span class="s2">&quot;coins_count&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">agg</span><span class="p">:</span>
+                <span class="n">agg</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;first&quot;</span>
+
+        <span class="n">sol_drop</span> <span class="o">=</span> <span class="s2">&quot;solution == &#39;drop_interline&#39;&quot;</span>
+        <span class="n">sol_iter</span> <span class="o">=</span> <span class="s2">&quot;solution == &#39;iterate&#39;&quot;</span>
+
+        <span class="c1"># Determine artifacts and street edges to drop</span>
+        <span class="n">_to_drop</span> <span class="o">=</span> <span class="n">artifacts_w_info</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">&quot;comp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">sol_drop</span><span class="p">)</span><span class="o">.</span><span class="n">drop_id</span>
+        <span class="n">_drop_streets</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">_to_drop</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+        <span class="c1"># Re-run node cleaning on subset of fresh street edges</span>
+        <span class="n">streets_cleaned</span> <span class="o">=</span> <span class="n">remove_interstitial_nodes</span><span class="p">(</span>
+            <span class="n">_drop_streets</span><span class="p">,</span>
+            <span class="n">aggfunc</span><span class="o">=</span><span class="n">agg</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Isolate drops to create merged pairs</span>
+        <span class="n">merged_pairs</span> <span class="o">=</span> <span class="n">artifacts_w_info</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">sol_drop</span><span class="p">)</span><span class="o">.</span><span class="n">dissolve</span><span class="p">(</span><span class="s2">&quot;comp&quot;</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Sort artifacts by their node count low-to-high</span>
+        <span class="n">sorted_node_count</span> <span class="o">=</span> <span class="n">artifacts_w_info</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;node_count&quot;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Isolate artifacts to process as singletons – first instance</span>
+        <span class="n">_1st</span> <span class="o">=</span> <span class="n">sorted_node_count</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">sol_iter</span><span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">&quot;comp&quot;</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">&quot;first&quot;</span><span class="p">)</span>
+        <span class="n">_planar_clusters</span> <span class="o">=</span> <span class="n">np_clusters</span><span class="p">[</span><span class="o">~</span><span class="n">np_clusters</span><span class="p">[</span><span class="s2">&quot;non_planar&quot;</span><span class="p">]]</span>
+        <span class="n">_1st</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">_1st</span><span class="p">,</span> <span class="n">_planar_clusters</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Isolate artifacts to process as singletons – last instance</span>
+        <span class="n">_2nd</span> <span class="o">=</span> <span class="n">sorted_node_count</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">sol_iter</span><span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">&quot;comp&quot;</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s2">&quot;last&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Isolate artifacts to process as clusters</span>
+        <span class="n">for_skeleton</span> <span class="o">=</span> <span class="n">artifacts_w_info</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;solution == &#39;skeleton&#39;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Otherwise instantiate artifact containers as empty</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">merged_pairs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">_1st</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">_2nd</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">for_skeleton</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">streets_cleaned</span> <span class="o">=</span> <span class="n">streets</span>
+
+    <span class="c1"># Generate counts of COINs groups for edges</span>
+    <span class="n">coins_count</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">streets_cleaned</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;coins_group&quot;</span><span class="p">,</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="s2">&quot;coins_count&quot;</span><span class="p">})</span>
+    <span class="p">)</span>
+    <span class="n">streets_cleaned</span> <span class="o">=</span> <span class="n">streets_cleaned</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">coins_count</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;coins_group&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Add under non-planars to cluster dispatcher</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">artifacts_under_np</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">for_skeleton</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">for_skeleton</span><span class="p">,</span> <span class="n">artifacts_under_np</span><span class="p">])</span>
+
+    <span class="c1"># Dispatch singleton simplifier</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">merged_pairs</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_1st</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="c1"># Merged pairs &amp; first instance – w/o COINS</span>
+        <span class="n">streets_cleaned</span> <span class="o">=</span> <span class="n">neatify_singletons</span><span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">merged_pairs</span><span class="p">,</span> <span class="n">_1st</span><span class="p">]),</span>
+            <span class="n">streets_cleaned</span><span class="p">,</span>
+            <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+            <span class="n">clip_limit</span><span class="o">=</span><span class="n">clip_limit</span><span class="p">,</span>
+            <span class="n">compute_coins</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">min_dangle_length</span><span class="o">=</span><span class="n">min_dangle_length</span><span class="p">,</span>
+            <span class="n">simplification_factor</span><span class="o">=</span><span class="n">simplification_factor</span><span class="p">,</span>
+            <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Second instance – w/ COINS</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_2nd</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">streets_cleaned</span> <span class="o">=</span> <span class="n">neatify_singletons</span><span class="p">(</span>
+                <span class="n">_2nd</span><span class="p">,</span>
+                <span class="n">streets_cleaned</span><span class="p">,</span>
+                <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+                <span class="n">clip_limit</span><span class="o">=</span><span class="n">clip_limit</span><span class="p">,</span>
+                <span class="n">compute_coins</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">min_dangle_length</span><span class="o">=</span><span class="n">min_dangle_length</span><span class="p">,</span>
+                <span class="n">simplification_factor</span><span class="o">=</span><span class="n">simplification_factor</span><span class="p">,</span>
+                <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Dispatch cluster simplifier</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">for_skeleton</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">streets_cleaned</span> <span class="o">=</span> <span class="n">neatify_clusters</span><span class="p">(</span>
+            <span class="n">for_skeleton</span><span class="p">,</span>
+            <span class="n">streets_cleaned</span><span class="p">,</span>
+            <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+            <span class="n">simplification_factor</span><span class="o">=</span><span class="n">simplification_factor</span><span class="p">,</span>
+            <span class="n">min_dangle_length</span><span class="o">=</span><span class="n">min_dangle_length</span><span class="p">,</span>
+            <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">streets_cleaned</span></div>
+
+
+
+<div class="viewcode-block" id="neatify_clusters">
+<a class="viewcode-back" href="../../generated/neatnet.neatify_clusters.html#neatnet.neatify_clusters">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">neatify_clusters</span><span class="p">(</span>
+    <span class="n">artifacts</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">max_segment_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+    <span class="n">simplification_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">min_dangle_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="n">consolidation_tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simplification of clusters of face artifacts – the third simplification step in</span>
+<span class="sd">    the procedure detailed in ``simplify.neatify_loop()``.</span>
+
+<span class="sd">    This process extracts nodes from network edges before iterating over each</span>
+<span class="sd">    cluster artifact and performing simplification.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    artifacts : geopandas.GeoDataFrame</span>
+<span class="sd">        Face artifact polygons.</span>
+<span class="sd">    streets : geopandas.GeoDataFrame</span>
+<span class="sd">        Preprocessed street network data.</span>
+<span class="sd">    max_segment_length : float | int = 1</span>
+<span class="sd">        Additional vertices will be added so that all line segments</span>
+<span class="sd">        are no longer than this value. Must be greater than 0.</span>
+<span class="sd">        Used in multiple internal geometric operations.</span>
+<span class="sd">    eps : float = 1e-4</span>
+<span class="sd">        Tolerance epsilon used in multiple internal geometric operations.</span>
+<span class="sd">    simplification_factor : float | int = 2</span>
+<span class="sd">        The factor by which singles, pairs, and clusters are simplified. The</span>
+<span class="sd">        ``max_segment_length`` is multiplied by this factor to get the</span>
+<span class="sd">        simplification epsilon.</span>
+<span class="sd">    min_dangle_length : float | int = 20</span>
+<span class="sd">        The threshold for determining if linestrings are dangling slivers to be</span>
+<span class="sd">        removed or not.</span>
+<span class="sd">    consolidation_tolerance : float | int = 10</span>
+<span class="sd">        Tolerance passed to node consolidation when generating Voronoi skeletons.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoDataFrame</span>
+<span class="sd">        The street network line data following the clusters procedure.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Get nodes from the network</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">(</span><span class="n">_nodes_from_edges</span><span class="p">(</span><span class="n">streets</span><span class="o">.</span><span class="n">geometry</span><span class="p">))</span>
+
+    <span class="c1"># Collect changes</span>
+    <span class="n">to_drop</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">to_add</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">artifact</span> <span class="ow">in</span> <span class="n">artifacts</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;comp&quot;</span><span class="p">):</span>
+        <span class="c1"># Get artifact cluster polygon</span>
+        <span class="n">cluster_geom</span> <span class="o">=</span> <span class="n">artifact</span><span class="o">.</span><span class="n">union_all</span><span class="p">()</span>
+        <span class="c1"># Get edges relevant for an artifact</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span>
+            <span class="n">streets</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">cluster_geom</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span><span class="p">)</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Clusters of 2 or more nodes and 2 or more continuity groups</span>
+        <span class="n">nx_gx_cluster</span><span class="p">(</span>
+            <span class="n">edges</span><span class="o">=</span><span class="n">edges</span><span class="p">,</span>
+            <span class="n">cluster_geom</span><span class="o">=</span><span class="n">cluster_geom</span><span class="p">,</span>
+            <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span>
+            <span class="n">to_drop</span><span class="o">=</span><span class="n">to_drop</span><span class="p">,</span>
+            <span class="n">to_add</span><span class="o">=</span><span class="n">to_add</span><span class="p">,</span>
+            <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span>
+            <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+            <span class="n">min_dangle_length</span><span class="o">=</span><span class="n">min_dangle_length</span><span class="p">,</span>
+            <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">cleaned_streets</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">to_drop</span><span class="p">)</span>
+
+    <span class="c1"># Create new street with fixed geometry.</span>
+    <span class="c1"># Note: ``to_add`` and ``to_drop`` lists shall be global and</span>
+    <span class="c1"># this step should happen only once, not for every artifact</span>
+    <span class="n">new</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">geometry</span><span class="o">=</span><span class="n">to_add</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">streets</span><span class="o">.</span><span class="n">crs</span><span class="p">)</span>
+    <span class="n">new</span><span class="p">[</span><span class="s2">&quot;_status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;new&quot;</span>
+    <span class="n">new</span><span class="p">[</span><span class="s2">&quot;geometry&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new</span><span class="o">.</span><span class="n">line_merge</span><span class="p">()</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span>
+        <span class="n">max_segment_length</span> <span class="o">*</span> <span class="n">simplification_factor</span>
+    <span class="p">)</span>
+    <span class="n">new_streets</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">cleaned_streets</span><span class="p">,</span> <span class="n">new</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">explode</span><span class="p">()</span>
+    <span class="n">agg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;_status&quot;</span><span class="p">:</span> <span class="n">_status</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">new_streets</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">new_streets</span><span class="o">.</span><span class="n">active_geometry_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="s2">&quot;_status&quot;</span><span class="p">:</span>
+            <span class="n">agg</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;first&quot;</span>
+    <span class="n">new_streets</span> <span class="o">=</span> <span class="n">remove_interstitial_nodes</span><span class="p">(</span>
+        <span class="n">new_streets</span><span class="p">[</span><span class="o">~</span><span class="n">new_streets</span><span class="o">.</span><span class="n">is_empty</span><span class="p">],</span> <span class="n">aggfunc</span><span class="o">=</span><span class="n">agg</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">&quot;geometry&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_streets</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_type</span><span class="p">(</span><span class="n">edges</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">shared_edge</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Classify artifact edges according to the ``{C, E, S}``</span>
+<span class="sd">    schema when considering solutions for pairs of artifacts.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    edges : geopandas.GeoDataFrame</span>
+<span class="sd">        Artifact edges in consideration.</span>
+<span class="sd">    shared_edge : int</span>
+<span class="sd">        The index location of the shared edge of the pair.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Classification for an edge in ``{C, E, S}``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="p">(</span>  <span class="c1"># Roundabout special case</span>
+        <span class="n">edges</span><span class="p">[</span><span class="s2">&quot;coins_group&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="ow">and</span> <span class="n">edges</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">edges</span><span class="p">[</span><span class="s2">&quot;coins_count&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;S&quot;</span>
+
+    <span class="n">all_ends</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="n">edges</span><span class="p">[</span><span class="s2">&quot;coins_end&quot;</span><span class="p">]]</span>
+    <span class="n">mains</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="o">~</span><span class="n">edges</span><span class="p">[</span><span class="s2">&quot;coins_group&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">all_ends</span><span class="p">[</span><span class="s2">&quot;coins_group&quot;</span><span class="p">])]</span>
+    <span class="n">shared</span> <span class="o">=</span> <span class="n">edges</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">shared_edge</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">shared_edge</span> <span class="ow">in</span> <span class="n">mains</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;C&quot;</span>
+
+    <span class="k">if</span> <span class="n">shared</span><span class="p">[</span><span class="s2">&quot;coins_count&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">(</span><span class="n">edges</span><span class="p">[</span><span class="s2">&quot;coins_group&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">shared</span><span class="p">[</span><span class="s2">&quot;coins_group&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;S&quot;</span>
+
+    <span class="k">return</span> <span class="s2">&quot;E&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_solution</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Determine the solution for paired planar artifacts.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    group : geopandas.GeoDataFrame</span>
+<span class="sd">        Dissolved group of connected planar artifacts.</span>
+<span class="sd">    streets : geopandas.GeoDataFrame</span>
+<span class="sd">        Street network data.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.Series</span>
+<span class="sd">        The determined solution and edge to drop.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_relate</span><span class="p">(</span><span class="n">loc</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Isolate intersecting &amp; covering street geometries.&quot;&quot;&quot;</span>
+        <span class="n">_geom</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span>
+        <span class="n">_streets</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">streets</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">_geom</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span><span class="p">)]</span>
+        <span class="n">_covers</span> <span class="o">=</span> <span class="n">_streets</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">_streets</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">_geom</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;covers&quot;</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">_streets</span><span class="p">,</span> <span class="n">_covers</span>
+
+    <span class="n">cluster_geom</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">union_all</span><span class="p">()</span>
+
+    <span class="n">streets_a</span><span class="p">,</span> <span class="n">covers_a</span> <span class="o">=</span> <span class="n">_relate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">streets_b</span><span class="p">,</span> <span class="n">covers_b</span> <span class="o">=</span> <span class="n">_relate</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Find the street segment that is contained within the cluster geometry</span>
+    <span class="n">shared</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">streets</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">cluster_geom</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;contains&quot;</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">shared</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="n">covers_a</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="n">covers_b</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span><span class="s2">&quot;solution&quot;</span><span class="p">:</span> <span class="s2">&quot;non_planar&quot;</span><span class="p">,</span> <span class="s2">&quot;drop_id&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">})</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shared</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span><span class="s2">&quot;solution&quot;</span><span class="p">:</span> <span class="s2">&quot;skeleton&quot;</span><span class="p">,</span> <span class="s2">&quot;drop_id&quot;</span><span class="p">:</span> <span class="n">shared</span><span class="p">})</span>
+
+    <span class="n">shared</span> <span class="o">=</span> <span class="n">shared</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">streets_b</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">covers_a</span><span class="o">.</span><span class="n">index</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">streets_a</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">covers_b</span><span class="o">.</span><span class="n">index</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span><span class="s2">&quot;solution&quot;</span><span class="p">:</span> <span class="s2">&quot;drop_interline&quot;</span><span class="p">,</span> <span class="s2">&quot;drop_id&quot;</span><span class="p">:</span> <span class="n">shared</span><span class="p">})</span>
+
+    <span class="n">seen_by_a</span> <span class="o">=</span> <span class="n">get_type</span><span class="p">(</span><span class="n">covers_a</span><span class="p">,</span> <span class="n">shared</span><span class="p">)</span>
+    <span class="n">seen_by_b</span> <span class="o">=</span> <span class="n">get_type</span><span class="p">(</span><span class="n">covers_b</span><span class="p">,</span> <span class="n">shared</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">seen_by_a</span> <span class="o">==</span> <span class="s2">&quot;C&quot;</span> <span class="ow">and</span> <span class="n">seen_by_b</span> <span class="o">==</span> <span class="s2">&quot;C&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span><span class="s2">&quot;solution&quot;</span><span class="p">:</span> <span class="s2">&quot;iterate&quot;</span><span class="p">,</span> <span class="s2">&quot;drop_id&quot;</span><span class="p">:</span> <span class="n">shared</span><span class="p">})</span>
+
+    <span class="k">if</span> <span class="n">seen_by_a</span> <span class="o">==</span> <span class="n">seen_by_b</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span><span class="s2">&quot;solution&quot;</span><span class="p">:</span> <span class="s2">&quot;drop_interline&quot;</span><span class="p">,</span> <span class="s2">&quot;drop_id&quot;</span><span class="p">:</span> <span class="n">shared</span><span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span><span class="s2">&quot;solution&quot;</span><span class="p">:</span> <span class="s2">&quot;skeleton&quot;</span><span class="p">,</span> <span class="s2">&quot;drop_id&quot;</span><span class="p">:</span> <span class="n">shared</span><span class="p">})</span>
+
+
+<div class="viewcode-block" id="neatify">
+<a class="viewcode-back" href="../../generated/neatnet.neatify.html#neatnet.neatify">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">neatify</span><span class="p">(</span>
+    <span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">exclusion_mask</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">predicate</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;intersects&quot;</span><span class="p">,</span>
+    <span class="n">max_segment_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">min_dangle_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="n">clip_limit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">simplification_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">consolidation_tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">artifact_threshold</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">artifact_threshold_fallback</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span><span class="p">,</span>
+    <span class="n">area_threshold_blocks</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mf">1e5</span><span class="p">,</span>
+    <span class="n">isoareal_threshold_blocks</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">area_threshold_circles</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mf">5e4</span><span class="p">,</span>
+    <span class="n">isoareal_threshold_circles_enclosed</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mf">0.75</span><span class="p">,</span>
+    <span class="n">isoperimetric_threshold_circles_touching</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
+    <span class="n">angle_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">120</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+    <span class="n">n_loops</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Top-level workflow for simplifying street networks.</span>
+
+<span class="sd">    Follows the Adaptive Continuity-Preserving Simplification algorithm proposed by</span>
+<span class="sd">    :cite:`fleischmann2026Adaptive`.</span>
+
+<span class="sd">    The input raw street network</span>
+<span class="sd">    data, which must be in a projected coordinate reference system and is expected to be</span>
+<span class="sd">    in meters, is first preprocessed (topological corrections &amp; node consolidation)</span>
+<span class="sd">    before two iterations of artifact detection and simplification.</span>
+
+<span class="sd">    Each iteration of the simplification procedure which includes (1.) the removal</span>
+<span class="sd">    of false nodes; (2.) face artifact classification; and (3.) the line-based</span>
+<span class="sd">    simplification of face artifacts in the order of single artifacts, pairs of</span>
+<span class="sd">    artifacts, clusters of artifacts.</span>
+
+<span class="sd">    For further information on face artifact detection and extraction</span>
+<span class="sd">    see :cite:`fleischmann_shape-based_2024`.</span>
+
+<span class="sd">    This algorithm is designed for use with only &quot;street&quot; network geometries as input.</span>
+<span class="sd">    While passing in other types of pathing (e.g., sidewalks, canals) will likely yield</span>
+<span class="sd">    valid geometric results, that behavior is untested.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    streets : geopandas.GeoDataFrame</span>
+<span class="sd">        Raw street network data. This input *must* be in a projected coordinate</span>
+<span class="sd">        reference system and *should* be in meters. All defaults arguments assume</span>
+<span class="sd">        meters. The internal algorithm is designed for use with street network</span>
+<span class="sd">        geometries, not  other types of pathing (e.g., sidewalks, canals), which</span>
+<span class="sd">        should be filtered out.</span>
+<span class="sd">    exclusion_mask : None | geopandas.GeoSeries = None</span>
+<span class="sd">        Geometries used to determine face artifacts to exclude from returned output.</span>
+<span class="sd">    predicate : str = &#39;intersects&#39;</span>
+<span class="sd">        The spatial predicate used to exclude face artifacts from returned output.</span>
+<span class="sd">    max_segment_length : float | int = 1</span>
+<span class="sd">        Additional vertices will be added so that all line segments</span>
+<span class="sd">        are no longer than this value. Must be greater than 0.</span>
+<span class="sd">        Used in multiple internal geometric operations.</span>
+<span class="sd">    min_dangle_length : float | int</span>
+<span class="sd">        The threshold for determining if linestrings are dangling slivers to be</span>
+<span class="sd">        removed or not.</span>
+<span class="sd">    clip_limit : float | int = 2</span>
+<span class="sd">        Following generation of the Voronoi linework, we clip to fit inside the</span>
+<span class="sd">        polygon. To ensure we get a space to make proper topological connections</span>
+<span class="sd">        from the linework to the actual points on the edge of the polygon, we clip</span>
+<span class="sd">        using a polygon with a negative buffer of ``clip_limit`` or the radius of</span>
+<span class="sd">        maximum inscribed circle, whichever is smaller.</span>
+<span class="sd">    simplification_factor : float | int = 2</span>
+<span class="sd">        The factor by which singles, pairs, and clusters are simplified. The</span>
+<span class="sd">        ``max_segment_length`` is multiplied by this factor to get the</span>
+<span class="sd">        simplification epsilon.</span>
+<span class="sd">    consolidation_tolerance : float | int = 10</span>
+<span class="sd">        Tolerance passed to node consolidation when generating Voronoi skeletons.</span>
+<span class="sd">    artifact_threshold : None | float | int = None</span>
+<span class="sd">        When ``artifact_threshold`` is passed, the computed value from</span>
+<span class="sd">        ``momepy.FaceArtifacts.threshold`` is not used in favor of the</span>
+<span class="sd">        given value. This is useful for small networks where artifact</span>
+<span class="sd">        detection may fail or become unreliable.</span>
+<span class="sd">    artifact_threshold_fallback : float | int = 7</span>
+<span class="sd">        If artifact threshold detection fails, this value is used as a fallback.</span>
+<span class="sd">    area_threshold_blocks : float | int = 1e5</span>
+<span class="sd">        This is the first threshold for detecting block-like artifacts whose</span>
+<span class="sd">        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above</span>
+<span class="sd">        the value passed in ``artifact_threshold``.</span>
+<span class="sd">        If a polygon has an area below ``area_threshold_blocks``, *and*</span>
+<span class="sd">        is of elongated shape (see also ``isoareal_threshold_blocks``),</span>
+<span class="sd">        *and* touches at least one polygon that has already been classified as artifact,</span>
+<span class="sd">        then it will be classified as an artifact.</span>
+<span class="sd">    isoareal_threshold_blocks : float | int = 0.5</span>
+<span class="sd">        This is the second threshold for detecting block-like artifacts whose</span>
+<span class="sd">        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above the</span>
+<span class="sd">        value passed in ``artifact_threshold``. If a polygon has an isoareal quotient</span>
+<span class="sd">        below ``isoareal_threshold_blocks`` (see ``esda.shape.isoareal_quotient``),</span>
+<span class="sd">        i.e., if it has an elongated shape; *and* it has a sufficiently small area</span>
+<span class="sd">        (see also ``area_threshold_blocks``), *and* if it touches at least one</span>
+<span class="sd">        polygon that has already been detected as an artifact,</span>
+<span class="sd">        then it will be classified as an artifact.</span>
+<span class="sd">    area_threshold_circles : float | int = 5e4</span>
+<span class="sd">        This is the first threshold for detecting circle-like artifacts whose</span>
+<span class="sd">        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above the</span>
+<span class="sd">        value passed in ``artifact_threshold``. If a polygon has an area below</span>
+<span class="sd">        ``area_threshold_circles``, *and* one of the following 2 cases is given:</span>
+<span class="sd">        (a) the polygon is touched, but not enclosed by polygons already classified</span>
+<span class="sd">        as artifacts, *and* with an isoperimetric quotient</span>
+<span class="sd">        (see ``esda.shape.isoperimetric_quotient``)</span>
+<span class="sd">        above ``isoperimetric_threshold_circles_touching``, i.e., if its shape</span>
+<span class="sd">        is close to circular; or (b) the polygon is fully enclosed by polygons</span>
+<span class="sd">        already classified as artifacts, *and* with an isoareal quotient</span>
+<span class="sd">        above</span>
+<span class="sd">        ``isoareal_threshold_circles_enclosed``, i.e., if its shape is</span>
+<span class="sd">        close to circular; then it will be classified as an artifact.</span>
+<span class="sd">    isoareal_threshold_circles_enclosed : float | int = 0.75</span>
+<span class="sd">        This is the second threshold for detecting circle-like artifacts whose</span>
+<span class="sd">        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`) is above the</span>
+<span class="sd">        value  passed in ``artifact_threshold``. If a polygon has a sufficiently small</span>
+<span class="sd">        area (see also ``area_threshold_circles``), *and* the polygon is</span>
+<span class="sd">        fully enclosed by polygons already classified as artifacts,</span>
+<span class="sd">        *and* its isoareal quotient (see ``esda.shape.isoareal_quotient``)</span>
+<span class="sd">        is above the value passed to ``isoareal_threshold_circles_enclosed``,</span>
+<span class="sd">        i.e., if its shape is close to circular;</span>
+<span class="sd">        then it will be classified as an artifact.</span>
+<span class="sd">    isoperimetric_threshold_circles_touching : float | int = 0.9</span>
+<span class="sd">        This is the third threshold for detecting circle-like artifacts whose</span>
+<span class="sd">        Face Artifact Index (see :cite:`fleischmann_shape-based_2024`)</span>
+<span class="sd">        is above the value passed in ``artifact_threshold``.</span>
+<span class="sd">        If a polygon has a sufficiently small area</span>
+<span class="sd">        (see also ``area_threshold_circles``), *and* the polygon is touched</span>
+<span class="sd">        by at least one polygon already classified as artifact,</span>
+<span class="sd">        *and* its isoperimetric quotient (see ``esda.shape.isoperimetric_quotient``)</span>
+<span class="sd">        is above the value passed to ``isoperimetric_threshold_circles_touching``,</span>
+<span class="sd">        i.e., if its shape is close to circular;</span>
+<span class="sd">        then it will be classified as an artifact.</span>
+<span class="sd">    angle_threshold : float = 120</span>
+<span class="sd">        See the ``angle_threshold`` keyword argument in :class:`momepy.COINS`.</span>
+<span class="sd">    eps : float = 1e-4</span>
+<span class="sd">        Tolerance epsilon used in multiple internal geometric operations.</span>
+<span class="sd">    n_loops : int = 2</span>
+<span class="sd">        Number of loops through the simplification pipeline. It is recommended to stick</span>
+<span class="sd">        to the default value and increase it only very conservatively.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoDataFrame</span>
+<span class="sd">        The final, simplified street network line data.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    As is noted above, the input network data must be in a projected coordinate</span>
+<span class="sd">    reference system and is expected to be in meters. However, it may be possible to</span>
+<span class="sd">    work with network data projected in feet if all default arguments are adjusted.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_check_input_crs</span><span class="p">(</span><span class="n">streets</span><span class="p">,</span> <span class="n">exclusion_mask</span><span class="p">)</span>
+
+    <span class="c1"># Record state of initial input to compare with results from</span>
+    <span class="c1"># -- topo fix &amp; node consolidation if there are no artifacts</span>
+    <span class="n">raw_streets</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># NOTE: this keeps attributes but resets index</span>
+    <span class="n">streets</span> <span class="o">=</span> <span class="n">fix_topology</span><span class="p">(</span><span class="n">streets</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+
+    <span class="c1"># Merge nearby nodes (up to double of distance used in skeleton).</span>
+    <span class="n">streets</span> <span class="o">=</span> <span class="n">consolidate_nodes</span><span class="p">(</span><span class="n">streets</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="n">max_segment_length</span> <span class="o">*</span> <span class="mf">2.1</span><span class="p">)</span>
+
+    <span class="c1"># Identify artifacts</span>
+    <span class="n">artifacts</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="n">get_artifacts</span><span class="p">(</span>
+        <span class="n">streets</span><span class="p">,</span>
+        <span class="n">exclusion_mask</span><span class="o">=</span><span class="n">exclusion_mask</span><span class="p">,</span>
+        <span class="n">predicate</span><span class="o">=</span><span class="n">predicate</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="o">=</span><span class="n">artifact_threshold</span><span class="p">,</span>
+        <span class="n">threshold_fallback</span><span class="o">=</span><span class="n">artifact_threshold_fallback</span><span class="p">,</span>
+        <span class="n">area_threshold_blocks</span><span class="o">=</span><span class="n">area_threshold_blocks</span><span class="p">,</span>
+        <span class="n">isoareal_threshold_blocks</span><span class="o">=</span><span class="n">isoareal_threshold_blocks</span><span class="p">,</span>
+        <span class="n">area_threshold_circles</span><span class="o">=</span><span class="n">area_threshold_circles</span><span class="p">,</span>
+        <span class="n">isoareal_threshold_circles_enclosed</span><span class="o">=</span><span class="n">isoareal_threshold_circles_enclosed</span><span class="p">,</span>
+        <span class="n">isoperimetric_threshold_circles_touching</span><span class="o">=</span><span class="n">isoperimetric_threshold_circles_touching</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># If no artifacts return either the raw streets or topologically-fixed streets</span>
+    <span class="k">if</span> <span class="n">artifacts</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">assert_geoseries_equal</span><span class="p">(</span><span class="n">streets</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">raw_streets</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s2">&quot;No topological corrections performed on input `streets` &quot;</span>
+                    <span class="s2">&quot;and no artifacts were detected. Returning as is.&quot;</span>
+                <span class="p">),</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">raw_streets</span>
+        <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s2">&quot;Topological corrections performed on input `streets` &quot;</span>
+                    <span class="s2">&quot;but no artifacts were detected. Returning the results of &quot;</span>
+                    <span class="s2">&quot;`fix_topology()` and `consolidate_nodes()`.&quot;</span>
+                <span class="p">),</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">streets</span>
+
+    <span class="c1"># Loop 1</span>
+    <span class="n">new_streets</span> <span class="o">=</span> <span class="n">neatify_loop</span><span class="p">(</span>
+        <span class="n">streets</span><span class="p">,</span>
+        <span class="n">artifacts</span><span class="p">,</span>
+        <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+        <span class="n">min_dangle_length</span><span class="o">=</span><span class="n">min_dangle_length</span><span class="p">,</span>
+        <span class="n">clip_limit</span><span class="o">=</span><span class="n">clip_limit</span><span class="p">,</span>
+        <span class="n">simplification_factor</span><span class="o">=</span><span class="n">simplification_factor</span><span class="p">,</span>
+        <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+        <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span>
+        <span class="n">angle_threshold</span><span class="o">=</span><span class="n">angle_threshold</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># This is potentially fixing some minor erroneous edges coming from Voronoi</span>
+    <span class="n">new_streets</span> <span class="o">=</span> <span class="n">induce_nodes</span><span class="p">(</span><span class="n">new_streets</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+    <span class="n">new_streets</span> <span class="o">=</span> <span class="n">new_streets</span><span class="p">[</span><span class="o">~</span><span class="n">new_streets</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span><span class="o">.</span><span class="n">duplicated</span><span class="p">()]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_loops</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># Identify artifacts based on the first loop network</span>
+        <span class="n">artifacts</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_artifacts</span><span class="p">(</span>
+            <span class="n">new_streets</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+            <span class="n">threshold_fallback</span><span class="o">=</span><span class="n">artifact_threshold_fallback</span><span class="p">,</span>
+            <span class="n">area_threshold_blocks</span><span class="o">=</span><span class="n">area_threshold_blocks</span><span class="p">,</span>
+            <span class="n">isoareal_threshold_blocks</span><span class="o">=</span><span class="n">isoareal_threshold_blocks</span><span class="p">,</span>
+            <span class="n">area_threshold_circles</span><span class="o">=</span><span class="n">area_threshold_circles</span><span class="p">,</span>
+            <span class="n">isoareal_threshold_circles_enclosed</span><span class="o">=</span><span class="n">isoareal_threshold_circles_enclosed</span><span class="p">,</span>
+            <span class="n">isoperimetric_threshold_circles_touching</span><span class="o">=</span><span class="n">isoperimetric_threshold_circles_touching</span><span class="p">,</span>
+            <span class="n">exclusion_mask</span><span class="o">=</span><span class="n">exclusion_mask</span><span class="p">,</span>
+            <span class="n">predicate</span><span class="o">=</span><span class="n">predicate</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">artifacts</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">new_streets</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">new_streets</span> <span class="o">=</span> <span class="n">neatify_loop</span><span class="p">(</span>
+            <span class="n">new_streets</span><span class="p">,</span>
+            <span class="n">artifacts</span><span class="p">,</span>
+            <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+            <span class="n">min_dangle_length</span><span class="o">=</span><span class="n">min_dangle_length</span><span class="p">,</span>
+            <span class="n">clip_limit</span><span class="o">=</span><span class="n">clip_limit</span><span class="p">,</span>
+            <span class="n">simplification_factor</span><span class="o">=</span><span class="n">simplification_factor</span><span class="p">,</span>
+            <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+            <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span>
+            <span class="n">angle_threshold</span><span class="o">=</span><span class="n">angle_threshold</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># This is potentially fixing some minor erroneous edges coming from Voronoi</span>
+        <span class="n">new_streets</span> <span class="o">=</span> <span class="n">induce_nodes</span><span class="p">(</span><span class="n">new_streets</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+        <span class="n">new_streets</span> <span class="o">=</span> <span class="n">new_streets</span><span class="p">[</span><span class="o">~</span><span class="n">new_streets</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span><span class="o">.</span><span class="n">duplicated</span><span class="p">()]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">new_streets</span></div>
+
+
+
+<div class="viewcode-block" id="neatify_loop">
+<a class="viewcode-back" href="../../generated/neatnet.neatify_loop.html#neatnet.neatify_loop">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">neatify_loop</span><span class="p">(</span>
+    <span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="n">artifacts</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">max_segment_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">min_dangle_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="n">clip_limit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">simplification_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">consolidation_tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">angle_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">120</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform an iteration of the simplification procedure which includes:</span>
+<span class="sd">        1. Removal of false nodes</span>
+<span class="sd">        2. Artifact classification</span>
+<span class="sd">        3. Simplifying artifacts:</span>
+<span class="sd">            - Single artifacts</span>
+<span class="sd">            - Pairs of artifacts</span>
+<span class="sd">            - Clusters of artifacts</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    streets : geopandas.GeoDataFrame</span>
+<span class="sd">        Raw street network data.</span>
+<span class="sd">    artifacts : geopandas.GeoDataFrame</span>
+<span class="sd">        Face artifact polygons.</span>
+<span class="sd">    max_segment_length : float | int = 1</span>
+<span class="sd">        Additional vertices will be added so that all line segments</span>
+<span class="sd">        are no longer than this value. Must be greater than 0.</span>
+<span class="sd">        Used in multiple internal geometric operations.</span>
+<span class="sd">    min_dangle_length : float | int = 20</span>
+<span class="sd">        The threshold for determining if linestrings are dangling slivers to be</span>
+<span class="sd">        removed or not.</span>
+<span class="sd">    clip_limit : float | int = 2</span>
+<span class="sd">        Following generation of the Voronoi linework, we clip to fit inside the</span>
+<span class="sd">        polygon. To ensure we get a space to make proper topological connections</span>
+<span class="sd">        from the linework to the actual points on the edge of the polygon, we clip</span>
+<span class="sd">        using a polygon with a negative buffer of ``clip_limit`` or the radius of</span>
+<span class="sd">        maximum inscribed circle, whichever is smaller.</span>
+<span class="sd">    simplification_factor : float | int = 2</span>
+<span class="sd">        The factor by which singles, pairs, and clusters are simplified. The</span>
+<span class="sd">        ``max_segment_length`` is multiplied by this factor to get the</span>
+<span class="sd">        simplification epsilon.</span>
+<span class="sd">    consolidation_tolerance : float | int = 10</span>
+<span class="sd">        Tolerance passed to node consolidation when generating Voronoi skeletons.</span>
+<span class="sd">    angle_threshold : float = 120</span>
+<span class="sd">        See the ``angle_threshold`` keyword argument in :class:`momepy.COINS`.</span>
+<span class="sd">    eps : float = 1e-4</span>
+<span class="sd">        Tolerance epsilon used in multiple internal geometric operations.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoDataFrame</span>
+<span class="sd">        The street network line data following 1 iteration of simplification.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Remove edges fully within the artifact (dangles).</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">r_idx</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">artifacts</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;contains&quot;</span><span class="p">)</span>
+    <span class="c1"># Dropping may lead to new false nodes – drop those</span>
+    <span class="n">streets</span> <span class="o">=</span> <span class="n">remove_interstitial_nodes</span><span class="p">(</span><span class="n">streets</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">streets</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">r_idx</span><span class="p">]))</span>
+
+    <span class="c1"># Filter singleton artifacts</span>
+    <span class="n">rook</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">Graph</span><span class="o">.</span><span class="n">build_contiguity</span><span class="p">(</span><span class="n">artifacts</span><span class="p">,</span> <span class="n">rook</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Keep only those artifacts which occur as isolates,</span>
+    <span class="c1"># e.g. artifacts that are not part of a larger intersection</span>
+    <span class="n">singles</span> <span class="o">=</span> <span class="n">artifacts</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">artifacts</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">rook</span><span class="o">.</span><span class="n">isolates</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Filter doubles</span>
+    <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;comp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rook</span><span class="o">.</span><span class="n">component_labels</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;comp&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+    <span class="n">doubles</span> <span class="o">=</span> <span class="n">artifacts</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;comp&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="n">counts</span> <span class="o">==</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Filter clusters</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="n">artifacts</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">artifacts</span><span class="p">[</span><span class="s2">&quot;comp&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="n">counts</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">singles</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="c1"># NOTE: this drops attributes</span>
+        <span class="n">streets</span> <span class="o">=</span> <span class="n">neatify_singletons</span><span class="p">(</span>
+            <span class="n">singles</span><span class="p">,</span>
+            <span class="n">streets</span><span class="p">,</span>
+            <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+            <span class="n">simplification_factor</span><span class="o">=</span><span class="n">simplification_factor</span><span class="p">,</span>
+            <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+            <span class="n">angle_threshold</span><span class="o">=</span><span class="n">angle_threshold</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">doubles</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">streets</span> <span class="o">=</span> <span class="n">neatify_pairs</span><span class="p">(</span>
+            <span class="n">doubles</span><span class="p">,</span>
+            <span class="n">streets</span><span class="p">,</span>
+            <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+            <span class="n">min_dangle_length</span><span class="o">=</span><span class="n">min_dangle_length</span><span class="p">,</span>
+            <span class="n">clip_limit</span><span class="o">=</span><span class="n">clip_limit</span><span class="p">,</span>
+            <span class="n">simplification_factor</span><span class="o">=</span><span class="n">simplification_factor</span><span class="p">,</span>
+            <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">clusters</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">streets</span> <span class="o">=</span> <span class="n">neatify_clusters</span><span class="p">(</span>
+            <span class="n">clusters</span><span class="p">,</span>
+            <span class="n">streets</span><span class="p">,</span>
+            <span class="n">max_segment_length</span><span class="o">=</span><span class="n">max_segment_length</span><span class="p">,</span>
+            <span class="n">simplification_factor</span><span class="o">=</span><span class="n">simplification_factor</span><span class="p">,</span>
+            <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span>
+            <span class="n">min_dangle_length</span><span class="o">=</span><span class="n">min_dangle_length</span><span class="p">,</span>
+            <span class="n">consolidation_tolerance</span><span class="o">=</span><span class="n">consolidation_tolerance</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;coins_group&quot;</span> <span class="ow">in</span> <span class="n">streets</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">streets</span> <span class="o">=</span> <span class="n">streets</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">streets</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;coins_&quot;</span><span class="p">)]</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">streets</span></div>
+
+</pre></div>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Martin Fleischmann, Anastassia Vybornova, James D. Gaboardi
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024-, neatnet Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

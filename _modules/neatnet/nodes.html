@@ -1,0 +1,1112 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>neatnet.nodes &#8212; neatnet 0.1.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a80dc075" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=98feffa1"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/neatnet/nodes';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">neatnet 0.1.5 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Adaptive simplification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../simple_preprocessing.html">Simple preprocessing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify.html">neatnet.neatify</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.fix_topology.html">neatnet.fix_topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.consolidate_nodes.html">neatnet.consolidate_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.remove_interstitial_nodes.html">neatnet.remove_interstitial_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.induce_nodes.html">neatnet.induce_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.FaceArtifacts.html">neatnet.FaceArtifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.get_artifacts.html">neatnet.get_artifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.close_gaps.html">neatnet.close_gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.extend_lines.html">neatnet.extend_lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.get_artifacts.html">neatnet.get_artifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_loop.html">neatnet.neatify_loop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_singletons.html">neatnet.neatify_singletons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_pairs.html">neatnet.neatify_pairs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../generated/neatnet.neatify_clusters.html">neatnet.neatify_clusters</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../references.html">References</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">For contributors</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference external" href="https://github.com/uscuni/neatnet">GitHub</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1></h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for neatnet.nodes</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">collections.abc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">geopandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gpd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">momepy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyproj</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shapely</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">packaging.version</span><span class="w"> </span><span class="kn">import</span> <span class="n">Version</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">sparse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.cluster</span><span class="w"> </span><span class="kn">import</span> <span class="n">hierarchy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.cluster</span><span class="w"> </span><span class="kn">import</span> <span class="n">DBSCAN</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_fill_attrs</span><span class="p">(</span><span class="n">gdf</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">source_row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Thoughtful attribute assignment to lines split into segments by new nodes –</span>
+<span class="sd">    taking list-like values into consideration. See gh#213. Regarding iterables,</span>
+<span class="sd">    currently only supports list values – others can be added based on input type</span>
+<span class="sd">    in the future on an ad hoc basis as problems arise. Called from within ``split()``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gdf : geopandas.GeoDataFrame</span>
+<span class="sd">        The new frame of split linestrings.</span>
+<span class="sd">    source_row: pandas.Series</span>
+<span class="sd">        The original source row.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoDataFrame</span>
+<span class="sd">        The input ``gdf`` with updated columns based on values in ``source_row``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_populate_column</span><span class="p">(</span><span class="n">attr</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the attribute if scalar, create vector of input if not.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">*</span> <span class="n">gdf</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">attr</span>
+
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">source_row</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;geometry&quot;</span><span class="p">,</span> <span class="s2">&quot;_status&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+        <span class="n">gdf</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">_populate_column</span><span class="p">(</span><span class="n">source_row</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">gdf</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span>
+    <span class="n">split_points</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">,</span>
+    <span class="n">cleaned_streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="n">crs</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pyproj</span><span class="o">.</span><span class="n">CRS</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Split lines on new nodes.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    split_points : list | numpy.ndarray</span>
+<span class="sd">        Points to split the ``cleaned_roads``.</span>
+<span class="sd">    cleaned_streets : geopandas.GeoDataFrame</span>
+<span class="sd">        Line geometries to be split with ``split_points``.</span>
+<span class="sd">    crs : str | pyproj.CRS</span>
+<span class="sd">        Anything accepted by ``pyproj.CRS``.</span>
+<span class="sd">    eps : float = 1e-4</span>
+<span class="sd">        Tolerance epsilon for point snapping.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoSeries | geopandas.GeoDataFrame</span>
+<span class="sd">        Resultant split line geometries.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">split_points</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">(</span><span class="n">split_points</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">split</span> <span class="ow">in</span> <span class="n">split_points</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">():</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">ix</span> <span class="o">=</span> <span class="n">cleaned_streets</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">nearest</span><span class="p">(</span><span class="n">split</span><span class="p">,</span> <span class="n">max_distance</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">cleaned_streets</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span>
+        <span class="n">edge</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">geometry</span>
+        <span class="k">if</span> <span class="n">edge</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">lines_split</span> <span class="o">=</span> <span class="n">_snap_n_split</span><span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">split</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">lines_split</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">gdf_split</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">geometry</span><span class="o">=</span><span class="n">lines_split</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
+                <span class="n">gdf_split</span> <span class="o">=</span> <span class="n">_fill_attrs</span><span class="p">(</span><span class="n">gdf_split</span><span class="p">,</span> <span class="n">row</span><span class="p">)</span>
+                <span class="n">gdf_split</span><span class="p">[</span><span class="s2">&quot;_status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;changed&quot;</span>
+                <span class="n">cleaned_streets</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">cleaned_streets</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">gdf_split</span><span class="p">],</span>
+                    <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">edge</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">to_be_dropped</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">to_be_added</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">edge</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">lines_split</span> <span class="o">=</span> <span class="n">_snap_n_split</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">lines_split</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">to_be_dropped</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="n">to_be_added</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lines_split</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">to_be_added</span><span class="p">:</span>
+                <span class="n">gdf_split</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                    <span class="p">{</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">to_be_added</span><span class="p">,</span> <span class="s2">&quot;_orig&quot;</span><span class="p">:</span> <span class="n">to_be_dropped</span><span class="p">}</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;geometry&quot;</span><span class="p">)</span>
+                <span class="n">gdf_split</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">gdf_split</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s2">&quot;_orig&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+                        <span class="n">row</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s2">&quot;geometry&quot;</span><span class="p">)</span>
+                        <span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">gdf_split</span><span class="p">[</span><span class="s2">&quot;_orig&quot;</span><span class="p">]]</span>
+                        <span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+                    <span class="p">],</span>
+                    <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">gdf_split</span><span class="p">[</span><span class="s2">&quot;_status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;changed&quot;</span>
+                <span class="n">cleaned_streets</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">cleaned_streets</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">to_be_dropped</span><span class="p">),</span> <span class="n">gdf_split</span><span class="p">],</span>
+                    <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">cleaned_streets</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span>
+                    <span class="n">cleaned_streets</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s2">&quot;geometry&quot;</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span>
+                <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cleaned_streets</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_snap_n_split</span><span class="p">(</span><span class="n">e</span><span class="p">:</span> <span class="n">shapely</span><span class="o">.</span><span class="n">LineString</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="n">shapely</span><span class="o">.</span><span class="n">Point</span><span class="p">,</span> <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Snap point to edge and return lines to split.&quot;&quot;&quot;</span>
+    <span class="n">snapped</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">snap</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="n">tol</span><span class="p">)</span>
+    <span class="n">_lines_split</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_parts</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">snapped</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">_lines_split</span><span class="p">[</span><span class="o">~</span><span class="n">shapely</span><span class="o">.</span><span class="n">is_empty</span><span class="p">(</span><span class="n">_lines_split</span><span class="p">)]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_status</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Determine the status of edge line(s).&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="s2">&quot;new&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;new&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="s2">&quot;changed&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_first_non_null</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return first observation that is not missing, unless all are.&quot;&quot;&quot;</span>
+    <span class="n">non_null</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="o">~</span><span class="n">x</span><span class="o">.</span><span class="n">isna</span><span class="p">()]</span>
+    <span class="k">if</span> <span class="n">non_null</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">non_null</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">isolate_bowtie_nodes</span><span class="p">(</span><span class="n">edgelines</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Bowties are a rare edgecase whereby a component has:</span>
+<span class="sd">    * 2 unique nodes</span>
+<span class="sd">    * 2 edges that are loops</span>
+<span class="sd">    * 4 edges that have only 3 unique coord-pairs *after* sorting.</span>
+
+<span class="sd">        |\ /‾‾\ /|</span>
+<span class="sd">        | *    * |</span>
+<span class="sd">        |/ \__/ \|</span>
+
+<span class="sd">    Although extremely rare, these cases throw a wrench in the</span>
+<span class="sd">    efficient logic of ``get_components()``. See gh#214.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ignore</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">mm_nx</span> <span class="o">=</span> <span class="n">momepy</span><span class="o">.</span><span class="n">gdf_to_nx</span><span class="p">(</span><span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">geometry</span><span class="o">=</span><span class="n">edgelines</span><span class="p">))</span>
+    <span class="n">mm_nx_cc</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">connected_components</span><span class="p">(</span><span class="n">mm_nx</span><span class="p">)</span>
+
+    <span class="n">potential_bowtie_cc_nodes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">mm_nx_cc</span><span class="p">):</span>
+        <span class="c1"># potential bowties only have 2 unique nodes</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">potential_bowtie_cc_nodes</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">cc</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">potential_bowtie_cc_nodes</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">potential_bowtie_cc</span> <span class="ow">in</span> <span class="n">potential_bowtie_cc_nodes</span><span class="p">:</span>
+            <span class="n">comp_edges</span> <span class="o">=</span> <span class="n">mm_nx</span><span class="o">.</span><span class="n">subgraph</span><span class="p">(</span><span class="n">potential_bowtie_cc</span><span class="p">)</span><span class="o">.</span><span class="n">edges</span>
+
+            <span class="c1"># potential bowties have 2 edges that are loops</span>
+            <span class="n">loops</span> <span class="o">=</span> <span class="p">[</span><span class="n">comp_edges</span><span class="p">[</span><span class="n">ce</span><span class="p">][</span><span class="s2">&quot;geometry&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">is_closed</span> <span class="k">for</span> <span class="n">ce</span> <span class="ow">in</span> <span class="n">comp_edges</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">loops</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="c1"># -- failsafe</span>
+                <span class="c1"># ensure the 4 edges have only 3 unique coord-pairs after sorting</span>
+                <span class="n">sorted_edge_coords</span> <span class="o">=</span> <span class="p">[</span><span class="nb">sorted</span><span class="p">(</span><span class="n">ce</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">ce</span> <span class="ow">in</span> <span class="n">comp_edges</span><span class="p">]</span>
+                <span class="n">unique_sorted_edge_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">sorted_edge_coords</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">unique_sorted_edge_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">ignore</span> <span class="o">+=</span> <span class="n">potential_bowtie_cc</span>
+
+    <span class="k">return</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">([</span><span class="n">shapely</span><span class="o">.</span><span class="n">Point</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ignore</span><span class="p">])</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span>
+        <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_components</span><span class="p">(</span>
+    <span class="n">edgelines</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">ignore</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Determine groups of chained edges (&quot;components&quot; in this function) that are</span>
+<span class="sd">    linked by degree-2 nodes. These edges are given component labels that are then</span>
+<span class="sd">    used to aggregate the chained edges into single, LineString geometries.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    edgelines : list | np.ndarray | gpd.GeoSeries</span>
+<span class="sd">        Collection of line objects.</span>
+<span class="sd">    ignore : None | gpd.GeoSeries = None</span>
+<span class="sd">        Nodes to ignore when labeling components.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.ndarray</span>
+<span class="sd">        Component labels to aggregate chains of edges bounded by</span>
+<span class="sd">        degree-2 nodes into single, LineString geometries.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    See [https://github.com/uscuni/neatnet/issues/56] and</span>
+<span class="sd">    [https://github.com/uscuni/neatnet/pull/235] for detailed explanation of output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># 1. tease out any &quot;bowtie&quot; cases - don&#39;t consider those nodes to merge</span>
+    <span class="n">bowtie_nodes</span> <span class="o">=</span> <span class="n">isolate_bowtie_nodes</span><span class="p">(</span><span class="n">edgelines</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">bowtie_nodes</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ignore</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ignore</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">ignore</span><span class="p">,</span> <span class="n">bowtie_nodes</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ignore</span> <span class="o">=</span> <span class="n">bowtie_nodes</span>
+
+    <span class="c1"># 2. convert to numpy array for operations</span>
+    <span class="n">edgelines</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">edgelines</span><span class="p">)</span>
+
+    <span class="c1"># 3. isolate starting and ending nodes of edges</span>
+    <span class="n">start_points</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_point</span><span class="p">(</span><span class="n">edgelines</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">end_points</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_point</span><span class="p">(</span><span class="n">edgelines</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># 4. consider only unique nodes</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">points</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+            <span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">start_points</span><span class="p">,</span> <span class="n">end_points</span><span class="p">])),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># 5. filter out any pre-defined nodes to ignore when considering merging</span>
+    <span class="k">if</span> <span class="n">ignore</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">ignore</span><span class="p">)</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span>
+
+    <span class="c1"># 6. query nodes that intersect non-loop edges</span>
+    <span class="n">inp</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">STRtree</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">boundary</span><span class="p">(</span><span class="n">edgelines</span><span class="p">))</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="n">points</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># 7. filter nodes that intersect exactly 2 edges</span>
+    <span class="n">unique</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">unique</span><span class="p">[</span><span class="n">counts</span> <span class="o">==</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="c1"># node index to consider for merging</span>
+    <span class="n">merge_inp</span> <span class="o">=</span> <span class="n">inp</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="c1"># edge index to consider for merging</span>
+    <span class="n">merge_res</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+    <span class="c1"># 8. generate loop index from input edgelines</span>
+    <span class="n">closed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edgelines</span><span class="p">))[</span><span class="n">shapely</span><span class="o">.</span><span class="n">is_closed</span><span class="p">(</span><span class="n">edgelines</span><span class="p">)]</span>
+
+    <span class="c1"># 9. update mask with loop edges</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">merge_inp</span><span class="p">,</span> <span class="n">closed</span><span class="p">)</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">merge_res</span><span class="p">,</span> <span class="n">closed</span><span class="p">)</span>
+
+    <span class="c1"># 10. invert mask for final filter of nodes/edges to merge</span>
+    <span class="n">merge_res</span> <span class="o">=</span> <span class="n">merge_res</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">merge_inp</span> <span class="o">=</span> <span class="n">merge_inp</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span>
+
+    <span class="c1"># 11. generate network component topology for edges to merge</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">((</span><span class="n">merge_inp</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">merge_res</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)))</span>
+    <span class="n">components</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">i</span><span class="p">:</span> <span class="p">{</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">k</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">}</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">connected_components</span><span class="p">(</span><span class="n">g</span><span class="p">))</span>
+    <span class="p">}</span>
+    <span class="n">component_labels</span> <span class="o">=</span> <span class="p">{</span><span class="n">value</span><span class="p">:</span> <span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">components</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">components</span><span class="p">[</span><span class="n">key</span><span class="p">]}</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">component_labels</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edgelines</span><span class="p">)))</span>
+    <span class="n">max_label</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">edgelines</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+    <span class="n">filling</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">max_label</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_label</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">edgelines</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">filling</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">labels</span><span class="o">.</span><span class="n">values</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">weld_edges</span><span class="p">(</span>
+    <span class="n">edgelines</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">ignore</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Combine lines sharing an endpoint (if only 2 lines share that point).</span>
+<span class="sd">    Lightweight version of ``remove_interstitial_nodes()``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    edgelines : list | np.ndarray | gpd.GeoSeries</span>
+<span class="sd">        Collection of line objects.</span>
+<span class="sd">    ignore : None | gpd.GeoSeries = None</span>
+<span class="sd">        Nodes to ignore when welding components.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list | np.ndarray | gpd.GeoSeries</span>
+<span class="sd">        Resultant welded ``edgelines`` if more than 1 passed in, otherwise</span>
+<span class="sd">        the original ``edgelines`` object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">edgelines</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">edgelines</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">get_components</span><span class="p">(</span><span class="n">edgelines</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="n">ignore</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">(</span><span class="n">edgelines</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">shapely</span><span class="o">.</span><span class="n">line_merge</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">GeometryCollection</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">values</span><span class="p">)))</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="induce_nodes">
+<a class="viewcode-back" href="../../generated/neatnet.induce_nodes.html#neatnet.induce_nodes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">induce_nodes</span><span class="p">(</span><span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adding potentially missing nodes on intersections of individual LineString</span>
+<span class="sd">    endpoints with the remaining network. The idea behind is that if a line ends</span>
+<span class="sd">    on an intersection with another, there should be a node on both of them.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    streets : geopandas.GeoDataFrame</span>
+<span class="sd">        Input LineString geometries.</span>
+<span class="sd">    eps : float = 1e-4</span>
+<span class="sd">        Tolerance epsilon for point snapping passed into ``nodes.split()``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoDataFrame</span>
+<span class="sd">        Updated ``streets`` with (potentially) added nodes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">sindex_kws</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;predicate&quot;</span><span class="p">:</span> <span class="s2">&quot;dwithin&quot;</span><span class="p">,</span> <span class="s2">&quot;distance&quot;</span><span class="p">:</span> <span class="mf">1e-4</span><span class="p">}</span>
+
+    <span class="c1"># identify degree mismatch cases</span>
+    <span class="n">nodes_degree_mismatch</span> <span class="o">=</span> <span class="n">_identify_degree_mismatch</span><span class="p">(</span><span class="n">streets</span><span class="p">,</span> <span class="n">sindex_kws</span><span class="p">)</span>
+
+    <span class="c1"># ensure loop topology cases:</span>
+    <span class="c1">#   - loop nodes intersecting non-loops</span>
+    <span class="c1">#   - loop nodes intersecting other loops</span>
+    <span class="n">nodes_off_loops</span><span class="p">,</span> <span class="n">nodes_on_loops</span> <span class="o">=</span> <span class="n">_makes_loop_contact</span><span class="p">(</span><span class="n">streets</span><span class="p">,</span> <span class="n">sindex_kws</span><span class="p">)</span>
+
+    <span class="c1"># all nodes to induce</span>
+    <span class="n">nodes_to_induce</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">nodes_degree_mismatch</span><span class="p">,</span> <span class="n">nodes_off_loops</span><span class="p">,</span> <span class="n">nodes_on_loops</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">split</span><span class="p">(</span><span class="n">nodes_to_induce</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">streets</span><span class="p">,</span> <span class="n">streets</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_identify_degree_mismatch</span><span class="p">(</span>
+    <span class="n">edges</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">sindex_kws</span><span class="p">:</span> <span class="nb">dict</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper to identify difference of observed vs. expected node degree.&quot;&quot;&quot;</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">_nodes_degrees_from_edges</span><span class="p">(</span><span class="n">edges</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">set_crs</span><span class="p">(</span><span class="n">edges</span><span class="o">.</span><span class="n">crs</span><span class="p">)</span>
+    <span class="n">nix</span><span class="p">,</span> <span class="n">eix</span> <span class="o">=</span> <span class="n">edges</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">nodes</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="o">**</span><span class="n">sindex_kws</span><span class="p">)</span>
+    <span class="n">coo_vals</span> <span class="o">=</span> <span class="p">([</span><span class="kc">True</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">nix</span><span class="p">),</span> <span class="p">(</span><span class="n">nix</span><span class="p">,</span> <span class="n">eix</span><span class="p">))</span>
+    <span class="n">coo_shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">edges</span><span class="p">))</span>
+    <span class="n">intersects</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">coo_array</span><span class="p">(</span><span class="n">coo_vals</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">coo_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+    <span class="n">nodes</span><span class="p">[</span><span class="s2">&quot;expected_degree&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">intersects</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">nodes</span><span class="p">[</span><span class="n">nodes</span><span class="p">[</span><span class="s2">&quot;degree&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">nodes</span><span class="p">[</span><span class="s2">&quot;expected_degree&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">geometry</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_nodes_from_edges</span><span class="p">(</span>
+    <span class="n">edgelines</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">,</span>
+    <span class="n">return_degrees</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper to get network nodes from edges&#39; geometries.&quot;&quot;&quot;</span>
+    <span class="n">edgelines</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">edgelines</span><span class="p">)</span>
+    <span class="n">start_points</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_point</span><span class="p">(</span><span class="n">edgelines</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">end_points</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_point</span><span class="p">(</span><span class="n">edgelines</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">node_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+        <span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">start_points</span><span class="p">,</span> <span class="n">end_points</span><span class="p">])),</span>
+        <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">return_counts</span><span class="o">=</span><span class="n">return_degrees</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">return_degrees</span><span class="p">:</span>
+        <span class="n">node_coords</span><span class="p">,</span> <span class="n">degrees</span> <span class="o">=</span> <span class="n">node_coords</span>
+    <span class="n">node_points</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">points</span><span class="p">(</span><span class="n">node_coords</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">return_degrees</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">node_points</span><span class="p">,</span> <span class="n">degrees</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">node_points</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_nodes_degrees_from_edges</span><span class="p">(</span>
+    <span class="n">edgelines</span><span class="p">:</span> <span class="nb">list</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper to get network nodes and their degrees from edges&#39; geometries.&quot;&quot;&quot;</span>
+    <span class="n">node_points</span><span class="p">,</span> <span class="n">degrees</span> <span class="o">=</span> <span class="n">_nodes_from_edges</span><span class="p">(</span><span class="n">edgelines</span><span class="p">,</span> <span class="n">return_degrees</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">nodes_gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">({</span><span class="s2">&quot;degree&quot;</span><span class="p">:</span> <span class="n">degrees</span><span class="p">,</span> <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">node_points</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">nodes_gdf</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_makes_loop_contact</span><span class="p">(</span>
+    <span class="n">edges</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">sindex_kws</span><span class="p">:</span> <span class="nb">dict</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">,</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper to identify:</span>
+<span class="sd">    1. loop nodes intersecting non-loops</span>
+<span class="sd">    2. loop nodes intersecting other loops</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">loops</span><span class="p">,</span> <span class="n">not_loops</span> <span class="o">=</span> <span class="n">_loops_and_non_loops</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
+    <span class="n">loop_points</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">points</span><span class="p">(</span><span class="n">loops</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">loop_gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">geometry</span><span class="o">=</span><span class="n">loop_points</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">edges</span><span class="o">.</span><span class="n">crs</span><span class="p">)</span>
+    <span class="n">loop_point_geoms</span> <span class="o">=</span> <span class="n">loop_gdf</span><span class="o">.</span><span class="n">geometry</span>
+
+    <span class="c1"># loop points intersecting non-loops</span>
+    <span class="n">nodes_from_non_loops_ix</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">not_loops</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">loop_point_geoms</span><span class="p">,</span> <span class="o">**</span><span class="n">sindex_kws</span><span class="p">)</span>
+
+    <span class="c1"># loop points intersecting other loops</span>
+    <span class="n">nodes_from_loops_ix</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">loops</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">loop_point_geoms</span><span class="p">,</span> <span class="o">**</span><span class="n">sindex_kws</span><span class="p">)</span>
+    <span class="n">loop_x_loop</span><span class="p">,</span> <span class="n">n_loop_x_loop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">nodes_from_loops_ix</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">nodes_from_loops_ix</span> <span class="o">=</span> <span class="n">loop_x_loop</span><span class="p">[</span><span class="n">n_loop_x_loop</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># tease out both varieties</span>
+    <span class="n">nodes_non_loops</span> <span class="o">=</span> <span class="n">loop_gdf</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">nodes_from_non_loops_ix</span><span class="p">]</span>
+    <span class="n">nodes_loops</span> <span class="o">=</span> <span class="n">loop_gdf</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">nodes_from_loops_ix</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">nodes_non_loops</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">nodes_loops</span><span class="o">.</span><span class="n">geometry</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_loops_and_non_loops</span><span class="p">(</span>
+    <span class="n">edges</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Bifurcate edge gdf into loops and non-loops.&quot;&quot;&quot;</span>
+    <span class="n">loop_mask</span> <span class="o">=</span> <span class="n">edges</span><span class="o">.</span><span class="n">is_ring</span>
+    <span class="n">not_loops</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="o">~</span><span class="n">loop_mask</span><span class="p">]</span>
+    <span class="n">loops</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="n">loop_mask</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">loops</span><span class="p">,</span> <span class="n">not_loops</span>
+
+
+<div class="viewcode-block" id="remove_interstitial_nodes">
+<a class="viewcode-back" href="../../generated/neatnet.remove_interstitial_nodes.html#neatnet.remove_interstitial_nodes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">remove_interstitial_nodes</span><span class="p">(</span>
+    <span class="n">gdf</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">aggfunc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">dict</span> <span class="o">=</span> <span class="s2">&quot;first&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Clean topology of existing LineString geometry by removal of nodes of degree 2.</span>
+
+<span class="sd">    Returns the original gdf if there’s no node of degree 2.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gdf : geopandas.GeoSeries | geopandas.GeoDataFrame</span>
+<span class="sd">        Input edgelines process. If any edges are ``MultiLineString`` they</span>
+<span class="sd">        will be exploded into constituent ``LineString`` components.</span>
+<span class="sd">    aggfunc : str | dict = &#39;first&#39;</span>
+<span class="sd">        Aggregate function for processing non-spatial component.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Keyword arguments for ``aggfunc``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoSeries | geopandas.GeoDataFrame</span>
+<span class="sd">       The original input ``gdf`` if only 1 edgeline, otherwise the processed</span>
+<span class="sd">       edgeline without interstitial nodes.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Any 3D geometries are (potentially) downcast in loops.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge_geometries</span><span class="p">(</span><span class="n">block</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">shapely</span><span class="o">.</span><span class="n">LineString</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper in processing the spatial component.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">shapely</span><span class="o">.</span><span class="n">line_merge</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">GeometryCollection</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">gdf</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">gdf</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gdf</span><span class="p">,</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">):</span>
+        <span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">&quot;geometry&quot;</span><span class="p">)</span>
+
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">get_components</span><span class="p">(</span><span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+
+    <span class="c1"># Process non-spatial component</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">labels</span><span class="o">=</span><span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">aggregated_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">aggfunc</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">aggregated_data</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">aggregated_data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">to_flat_index</span><span class="p">()</span>
+
+    <span class="c1"># Process spatial component</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">group_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="n">labels</span><span class="p">)[</span><span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+        <span class="n">merge_geometries</span>
+    <span class="p">)</span>
+    <span class="n">aggregated_geometry</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">gdf</span><span class="o">.</span><span class="n">crs</span><span class="p">)</span>
+
+    <span class="c1"># Recombine</span>
+    <span class="n">aggregated</span> <span class="o">=</span> <span class="n">aggregated_geometry</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">aggregated_data</span><span class="p">)</span>
+
+    <span class="c1"># Derive nodes</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">_nodes_from_edges</span><span class="p">(</span><span class="n">aggregated</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+    <span class="c1"># Bifurcate edges into loops and non-loops</span>
+    <span class="n">loops</span><span class="p">,</span> <span class="n">not_loops</span> <span class="o">=</span> <span class="n">_loops_and_non_loops</span><span class="p">(</span><span class="n">aggregated</span><span class="p">)</span>
+
+    <span class="c1"># Ensure:</span>
+    <span class="c1">#   - all loops have exactly 1 endpoint; and</span>
+    <span class="c1">#   - that endpoint shares a node with an intersecting line</span>
+    <span class="n">fixed_loops</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">fixed_index</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">node_ix</span><span class="p">,</span> <span class="n">loop_ix</span> <span class="o">=</span> <span class="n">loops</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">loop_ix</span><span class="p">):</span>
+        <span class="n">loop_geom</span> <span class="o">=</span> <span class="n">loops</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span>
+        <span class="n">target_nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">node_ix</span><span class="p">[</span><span class="n">loop_ix</span> <span class="o">==</span> <span class="n">ix</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_nodes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">new_sequence</span> <span class="o">=</span> <span class="n">_rotate_loop_coords</span><span class="p">(</span><span class="n">loop_geom</span><span class="p">,</span> <span class="n">not_loops</span><span class="p">)</span>
+            <span class="n">fixed_loops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_sequence</span><span class="p">)</span>
+            <span class="n">fixed_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span>
+
+    <span class="n">aggregated</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">loops</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">fixed_index</span><span class="p">],</span> <span class="n">aggregated</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fixed_loops</span>
+    <span class="k">return</span> <span class="n">aggregated</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rotate_loop_coords</span><span class="p">(</span>
+    <span class="n">loop_geom</span><span class="p">:</span> <span class="n">shapely</span><span class="o">.</span><span class="n">LineString</span><span class="p">,</span> <span class="n">not_loops</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rotate loop node coordinates if needed to ensure topology.</span>
+
+<span class="sd">    The function is prone to errors with super weird configurations.</span>
+<span class="sd">    If it fails, return the original to avoid breaking the entire workflow.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">loop_coords</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">loop_geom</span><span class="p">)</span>
+        <span class="n">loop_points</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">geometry</span><span class="o">=</span><span class="n">shapely</span><span class="o">.</span><span class="n">points</span><span class="p">(</span><span class="n">loop_coords</span><span class="p">))</span>
+        <span class="n">loop_points_ix</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">not_loops</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">loop_points</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;dwithin&quot;</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mf">1e-4</span>
+        <span class="p">)</span>
+
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">loop_points</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">loop_points_ix</span><span class="p">]</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">mode</span><span class="p">()</span>
+
+        <span class="c1"># if there is a non-planar intersection, we may have multiple points. Check with</span>
+        <span class="c1"># entrypoints only in that case</span>
+        <span class="k">if</span> <span class="n">mode</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">loop_points_ix</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">not_loops</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                <span class="n">loop_points</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;dwithin&quot;</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mf">1e-4</span>
+            <span class="p">)</span>
+            <span class="n">new_mode</span> <span class="o">=</span> <span class="n">loop_points</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">loop_points_ix</span><span class="p">]</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">mode</span><span class="p">()</span>
+            <span class="c1"># if that did not help, just pick one to avoid failure and hope for the best</span>
+            <span class="k">if</span> <span class="n">new_mode</span><span class="o">.</span><span class="n">empty</span> <span class="o">|</span> <span class="n">new_mode</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span><span class="o">.</span><span class="n">iloc</span><span class="p">[[</span><span class="mi">0</span><span class="p">]]</span>
+
+        <span class="n">new_start</span> <span class="o">=</span> <span class="n">mode</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">_coords_match</span> <span class="o">=</span> <span class="p">(</span><span class="n">loop_coords</span> <span class="o">==</span> <span class="n">new_start</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">new_start_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">_coords_match</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+
+        <span class="n">rolled_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">loop_coords</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="n">new_start_idx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">new_sequence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rolled_coords</span><span class="p">,</span> <span class="n">rolled_coords</span><span class="p">[[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">shapely</span><span class="o">.</span><span class="n">LineString</span><span class="p">(</span><span class="n">new_sequence</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Loop at </span><span class="si">{</span><span class="n">loop_geom</span><span class="o">.</span><span class="n">centroid</span><span class="si">}</span><span class="s2"> could not be re-ordered. &quot;</span>
+            <span class="s2">&quot;Topology might be suboptimal.&quot;</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">loop_geom</span>
+
+
+<div class="viewcode-block" id="fix_topology">
+<a class="viewcode-back" href="../../generated/neatnet.fix_topology.html#neatnet.fix_topology">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fix_topology</span><span class="p">(</span>
+    <span class="n">streets</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fix street network topology. This ensures correct topology of the network by:</span>
+
+<span class="sd">        1.  Adding potentially missing nodes...</span>
+<span class="sd">                on intersections of individual LineString endpoints</span>
+<span class="sd">                with the remaining network. The idea behind is that</span>
+<span class="sd">                if a line ends on an intersection with another, there</span>
+<span class="sd">                should be a node on both of them.</span>
+<span class="sd">        2. Removing nodes of degree 2...</span>
+<span class="sd">                that have no meaning in the network used within our framework.</span>
+<span class="sd">        3. Removing duplicated geometries (irrespective of orientation).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    streets : geopandas.GeoDataFrame</span>
+<span class="sd">        Input LineString geometries.</span>
+<span class="sd">    eps : float = 1e-4</span>
+<span class="sd">        Tolerance epsilon for point snapping passed into ``nodes.split()``.</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        Key word arguments passed into ``remove_interstitial_nodes()``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gpd.GeoDataFrame</span>
+<span class="sd">        The input streets that now have fixed topology and are ready</span>
+<span class="sd">        to proceed through the simplification algorithm.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">streets</span> <span class="o">=</span> <span class="n">streets</span><span class="p">[</span><span class="o">~</span><span class="n">streets</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span><span class="o">.</span><span class="n">duplicated</span><span class="p">()]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">streets_w_nodes</span> <span class="o">=</span> <span class="n">induce_nodes</span><span class="p">(</span><span class="n">streets</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">remove_interstitial_nodes</span><span class="p">(</span><span class="n">streets_w_nodes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="consolidate_nodes">
+<a class="viewcode-back" href="../../generated/neatnet.consolidate_nodes.html#neatnet.consolidate_nodes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">consolidate_nodes</span><span class="p">(</span>
+    <span class="n">gdf</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span> <span class="o">|</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">preserve_ends</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoSeries</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return geometry with consolidated nodes.</span>
+
+<span class="sd">    Replace clusters of nodes with a single node (weighted centroid</span>
+<span class="sd">    of a cluster) and snap linestring geometry to it. Cluster is</span>
+<span class="sd">    defined using hierarchical clustering with average linkage</span>
+<span class="sd">    on coordinates cut at a cophenetic distance equal to ``tolerance``.</span>
+
+<span class="sd">    The use of hierachical clustering avoids the chaining effect of a sequence</span>
+<span class="sd">    of intersections within ``tolerance`` from each other that would happen with</span>
+<span class="sd">    DBSCAN and similar solutions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gdf : numpy.ndarray | geopandas.GeoSeries | geopandas.GeoDataFrame</span>
+<span class="sd">        LineString geometries (usually representing street network).</span>
+<span class="sd">    tolerance : float = 2.0</span>
+<span class="sd">        The maximum distance between two nodes for one to be considered</span>
+<span class="sd">        as in the neighborhood of the other. Nodes within tolerance are</span>
+<span class="sd">        considered a part of a single cluster and will be consolidated.</span>
+<span class="sd">    preserve_ends : bool = False</span>
+<span class="sd">        If ``True``, nodes of a degree 1 will be excluded from the consolidation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    geopandas.GeoSeries</span>
+<span class="sd">        Updated input ``gdf`` of LineStrings with consolidated nodes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_labels</span><span class="p">(</span><span class="n">nodes</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate node cluster labels that avoids a chaining effect.&quot;&quot;&quot;</span>
+        <span class="n">linkage</span> <span class="o">=</span> <span class="n">hierarchy</span><span class="o">.</span><span class="n">linkage</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">nodes</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;average&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Version</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">Version</span><span class="p">(</span><span class="s2">&quot;2.0.0&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">hierarchy</span><span class="o">.</span><span class="n">fcluster</span><span class="p">(</span><span class="n">linkage</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">criterion</span><span class="o">=</span><span class="s2">&quot;distance&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+                <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="n">nodes</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># TODO: remove when dropping support for numpy&lt;2</span>
+        <span class="n">hierarchy_labels</span> <span class="o">=</span> <span class="n">hierarchy</span><span class="o">.</span><span class="n">fcluster</span><span class="p">(</span>
+            <span class="n">linkage</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">criterion</span><span class="o">=</span><span class="s2">&quot;distance&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+
+        <span class="n">node_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">nodes</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">hierarchy_labels</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># specifying array type to avoid TypeError when concatenating with the other</span>
+
+        <span class="k">return</span> <span class="n">hierarchy_labels</span> <span class="o">+</span> <span class="n">node_labels</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gdf</span><span class="p">,</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">):</span>
+        <span class="n">gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">geometry</span><span class="o">=</span><span class="n">gdf</span><span class="p">)</span>
+
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">_nodes_degrees_from_edges</span><span class="p">(</span><span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">preserve_ends</span><span class="p">:</span>
+        <span class="c1"># keep at least one meter of original geometry around each end</span>
+        <span class="n">ends</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">nodes</span><span class="p">[</span><span class="s2">&quot;degree&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">nodes</span><span class="p">[</span><span class="s2">&quot;degree&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># if all we have are ends, return the original</span>
+        <span class="c1"># - this is generally when called from within ``geometry._consolidate()``</span>
+        <span class="k">if</span> <span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">gdf</span><span class="p">[</span><span class="s2">&quot;_status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;original&quot;</span>
+            <span class="k">return</span> <span class="n">gdf</span>
+
+    <span class="c1"># Get node cluster to be consolidated. First, get components of possible clusters</span>
+    <span class="c1"># then do the linkage itself. Otherwise, it&#39;s dead slow and needs a ton of memory.</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">DBSCAN</span><span class="p">(</span><span class="n">eps</span><span class="o">=</span><span class="n">tolerance</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">nodes</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">())</span>
+    <span class="n">comp_labels</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">labels_</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">comp_labels</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">components</span> <span class="o">=</span> <span class="n">comp_labels</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">nodes_to_merge</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+    <span class="c1"># get grouped node cluster labels to determines which nodes must change</span>
+    <span class="n">grouped</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">nodes_to_merge</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">components</span><span class="p">)</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">_get_labels</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">nodes</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grouped</span>
+    <span class="n">unique</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">nodes</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">(),</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">actual_clusters</span> <span class="o">=</span> <span class="n">unique</span><span class="p">[</span><span class="n">counts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">change</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">nodes</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">actual_clusters</span><span class="p">)]</span>
+
+    <span class="c1"># no change needed, return the original</span>
+    <span class="k">if</span> <span class="n">change</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">gdf</span><span class="p">[</span><span class="s2">&quot;_status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;original&quot;</span>
+        <span class="k">return</span> <span class="n">gdf</span>
+
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">geom</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="s2">&quot;original&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">geom</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="c1"># loop over clusters, cut out geometry within tolerance / 2 and replace it</span>
+    <span class="c1"># with spider-like geometry to the weighted centroid of a cluster</span>
+    <span class="n">spiders</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">midpoints</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">clusters</span> <span class="o">=</span> <span class="n">change</span><span class="o">.</span><span class="n">dissolve</span><span class="p">(</span><span class="n">change</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">])</span>
+
+    <span class="c1"># TODO: not optimal but avoids some MultiLineStrings but not all</span>
+    <span class="n">cookies</span> <span class="o">=</span> <span class="n">clusters</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="n">tolerance</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">convex_hull</span>
+
+    <span class="k">if</span> <span class="n">preserve_ends</span><span class="p">:</span>
+        <span class="n">cookies</span> <span class="o">=</span> <span class="n">cookies</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">overlay</span><span class="p">(</span><span class="n">ends</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(),</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;difference&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">cookie</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">clusters</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">cookies</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">sindex</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">cookie</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;intersects&quot;</span><span class="p">)</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">geom</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">cookie</span><span class="o">.</span><span class="n">boundary</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># TODO: this may result in MultiLineString - we need to avoid that</span>
+            <span class="c1"># TODO: It is temporarily fixed by that explode in return</span>
+            <span class="n">geom</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">cookie</span><span class="p">)</span>
+
+            <span class="n">status</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;changed&quot;</span>
+            <span class="n">midpoint</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">cluster</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">midpoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">midpoint</span><span class="p">)</span>
+            <span class="n">mids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">midpoint</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">pts</span><span class="p">))</span>
+
+            <span class="n">spider</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">linestrings</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">mids</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">mids</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">spiders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spider</span><span class="p">)</span>
+
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">set_geometry</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
+    <span class="n">gdf</span><span class="p">[</span><span class="s2">&quot;_status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">status</span>
+
+    <span class="k">if</span> <span class="n">spiders</span><span class="p">:</span>
+        <span class="c1"># combine geometries</span>
+        <span class="n">geoms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">spiders</span><span class="p">)</span>
+        <span class="n">gdf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">gdf</span><span class="p">,</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">geometry</span><span class="o">=</span><span class="n">geoms</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">geom</span><span class="o">.</span><span class="n">crs</span><span class="p">)])</span>
+
+    <span class="n">agg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;_status&quot;</span><span class="p">:</span> <span class="n">_status</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">gdf</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">gdf</span><span class="o">.</span><span class="n">active_geometry_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="s2">&quot;_status&quot;</span><span class="p">:</span>
+            <span class="n">agg</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;first&quot;</span>
+    <span class="k">return</span> <span class="n">remove_interstitial_nodes</span><span class="p">(</span>
+        <span class="n">gdf</span><span class="p">[</span><span class="o">~</span><span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">is_empty</span><span class="p">]</span><span class="o">.</span><span class="n">explode</span><span class="p">(),</span>
+        <span class="c1"># NOTE: this aggfunc needs to be able to process all the columns</span>
+        <span class="n">aggfunc</span><span class="o">=</span><span class="n">agg</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Martin Fleischmann, Anastassia Vybornova, James D. Gaboardi
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024-, neatnet Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

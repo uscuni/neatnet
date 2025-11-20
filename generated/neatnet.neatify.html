@@ -1,0 +1,584 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>neatnet.neatify &#8212; neatnet 0.1.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a80dc075" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=98feffa1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'generated/neatnet.neatify';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="neatnet.fix_topology" href="neatnet.fix_topology.html" />
+    <link rel="prev" title="API reference" href="../api.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">neatnet 0.1.5 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../intro.html">Adaptive simplification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../simple_preprocessing.html">Simple preprocessing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../api.html">API reference</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">neatnet.neatify</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.fix_topology.html">neatnet.fix_topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.consolidate_nodes.html">neatnet.consolidate_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.remove_interstitial_nodes.html">neatnet.remove_interstitial_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.induce_nodes.html">neatnet.induce_nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.FaceArtifacts.html">neatnet.FaceArtifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.get_artifacts.html">neatnet.get_artifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.close_gaps.html">neatnet.close_gaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.extend_lines.html">neatnet.extend_lines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.get_artifacts.html">neatnet.get_artifacts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.neatify_loop.html">neatnet.neatify_loop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.neatify_singletons.html">neatnet.neatify_singletons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.neatify_pairs.html">neatnet.neatify_pairs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neatnet.neatify_clusters.html">neatnet.neatify_clusters</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">For contributors</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference external" href="https://github.com/uscuni/neatnet">GitHub</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/generated/neatnet.neatify.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>neatnet.neatify</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#neatnet.neatify"><code class="docutils literal notranslate"><span class="pre">neatify()</span></code></a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="neatnet-neatify">
+<h1>neatnet.neatify<a class="headerlink" href="#neatnet-neatify" title="Link to this heading">#</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="neatnet.neatify">
+<span class="sig-prename descclassname"><span class="pre">neatnet.</span></span><span class="sig-name descname"><span class="pre">neatify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">streets</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclusion_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predicate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'intersects'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_segment_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_dangle_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clip_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simplification_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consolidation_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">artifact_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">artifact_threshold_fallback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">area_threshold_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isoareal_threshold_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">area_threshold_circles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isoareal_threshold_circles_enclosed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.75</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isoperimetric_threshold_circles_touching</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">120</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_loops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/neatnet/simplify.html#neatify"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#neatnet.neatify" title="Link to this definition">#</a></dt>
+<dd><p>Top-level workflow for simplifying street networks.</p>
+<p>Follows the Adaptive Continuity-Preserving Simplification algorithm proposed by
+<span id="id1">[<a class="reference internal" href="../references.html#id3" title="Martin Fleischmann, Anastassia Vybornova, James D. Gaboardi, Anna Brázdová, and Daniela Dančejová. Adaptive continuity-preserving simplification of street networks. Computers, Environment and Urban Systems, 123:102354, January 2026. doi:10.1016/j.compenvurbsys.2025.102354.">Fleischmann <em>et al.</em>, 2026</a>]</span>.</p>
+<p>The input raw street network
+data, which must be in a projected coordinate reference system and is expected to be
+in meters, is first preprocessed (topological corrections &amp; node consolidation)
+before two iterations of artifact detection and simplification.</p>
+<p>Each iteration of the simplification procedure which includes (1.) the removal
+of false nodes; (2.) face artifact classification; and (3.) the line-based
+simplification of face artifacts in the order of single artifacts, pairs of
+artifacts, clusters of artifacts.</p>
+<p>For further information on face artifact detection and extraction
+see <span id="id2">[<a class="reference internal" href="../references.html#id2" title="Martin Fleischmann and Anastassia Vybornova. A shape-based heuristic for the detection of urban block artifacts in street networks. Journal of Spatial Information Science, 28:75–102, June 2024. doi:10.5311/JOSIS.2024.28.319.">Fleischmann and Vybornova, 2024</a>]</span>.</p>
+<p>This algorithm is designed for use with only “street” network geometries as input.
+While passing in other types of pathing (e.g., sidewalks, canals) will likely yield
+valid geometric results, that behavior is untested.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>streets</strong><span class="classifier"><a class="reference external" href="https://geopandas.org/en/latest/docs/reference/api/geopandas.GeoDataFrame.html#geopandas.GeoDataFrame" title="(in GeoPandas v1.1.2.dev34.dev+ga87a59afe)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">geopandas.GeoDataFrame</span></code></a></span></dt><dd><p>Raw street network data. This input <em>must</em> be in a projected coordinate
+reference system and <em>should</em> be in meters. All defaults arguments assume
+meters. The internal algorithm is designed for use with street network
+geometries, not  other types of pathing (e.g., sidewalks, canals), which
+should be filtered out.</p>
+</dd>
+<dt><strong>exclusion_mask</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a> | <a class="reference external" href="https://geopandas.org/en/latest/docs/reference/api/geopandas.GeoSeries.html#geopandas.GeoSeries" title="(in GeoPandas v1.1.2.dev34.dev+ga87a59afe)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">geopandas.GeoSeries</span></code></a> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a></span></dt><dd><p>Geometries used to determine face artifacts to exclude from returned output.</p>
+</dd>
+<dt><strong>predicate</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a> = ‘intersects’</span></dt><dd><p>The spatial predicate used to exclude face artifacts from returned output.</p>
+</dd>
+<dt><strong>max_segment_length</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 1</span></dt><dd><p>Additional vertices will be added so that all line segments
+are no longer than this value. Must be greater than 0.
+Used in multiple internal geometric operations.</p>
+</dd>
+<dt><strong>min_dangle_length</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The threshold for determining if linestrings are dangling slivers to be
+removed or not.</p>
+</dd>
+<dt><strong>clip_limit</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 2</span></dt><dd><p>Following generation of the Voronoi linework, we clip to fit inside the
+polygon. To ensure we get a space to make proper topological connections
+from the linework to the actual points on the edge of the polygon, we clip
+using a polygon with a negative buffer of <code class="docutils literal notranslate"><span class="pre">clip_limit</span></code> or the radius of
+maximum inscribed circle, whichever is smaller.</p>
+</dd>
+<dt><strong>simplification_factor</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 2</span></dt><dd><p>The factor by which singles, pairs, and clusters are simplified. The
+<code class="docutils literal notranslate"><span class="pre">max_segment_length</span></code> is multiplied by this factor to get the
+simplification epsilon.</p>
+</dd>
+<dt><strong>consolidation_tolerance</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 10</span></dt><dd><p>Tolerance passed to node consolidation when generating Voronoi skeletons.</p>
+</dd>
+<dt><strong>artifact_threshold</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a></span></dt><dd><p>When <code class="docutils literal notranslate"><span class="pre">artifact_threshold</span></code> is passed, the computed value from
+<code class="docutils literal notranslate"><span class="pre">momepy.FaceArtifacts.threshold</span></code> is not used in favor of the
+given value. This is useful for small networks where artifact
+detection may fail or become unreliable.</p>
+</dd>
+<dt><strong>artifact_threshold_fallback</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 7</span></dt><dd><p>If artifact threshold detection fails, this value is used as a fallback.</p>
+</dd>
+<dt><strong>area_threshold_blocks</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 1e5</span></dt><dd><p>This is the first threshold for detecting block-like artifacts whose
+Face Artifact Index (see <span id="id3">[<a class="reference internal" href="../references.html#id2" title="Martin Fleischmann and Anastassia Vybornova. A shape-based heuristic for the detection of urban block artifacts in street networks. Journal of Spatial Information Science, 28:75–102, June 2024. doi:10.5311/JOSIS.2024.28.319.">Fleischmann and Vybornova, 2024</a>]</span>) is above
+the value passed in <code class="docutils literal notranslate"><span class="pre">artifact_threshold</span></code>.
+If a polygon has an area below <code class="docutils literal notranslate"><span class="pre">area_threshold_blocks</span></code>, <em>and</em>
+is of elongated shape (see also <code class="docutils literal notranslate"><span class="pre">isoareal_threshold_blocks</span></code>),
+<em>and</em> touches at least one polygon that has already been classified as artifact,
+then it will be classified as an artifact.</p>
+</dd>
+<dt><strong>isoareal_threshold_blocks</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 0.5</span></dt><dd><p>This is the second threshold for detecting block-like artifacts whose
+Face Artifact Index (see <span id="id4">[<a class="reference internal" href="../references.html#id2" title="Martin Fleischmann and Anastassia Vybornova. A shape-based heuristic for the detection of urban block artifacts in street networks. Journal of Spatial Information Science, 28:75–102, June 2024. doi:10.5311/JOSIS.2024.28.319.">Fleischmann and Vybornova, 2024</a>]</span>) is above the
+value passed in <code class="docutils literal notranslate"><span class="pre">artifact_threshold</span></code>. If a polygon has an isoareal quotient
+below <code class="docutils literal notranslate"><span class="pre">isoareal_threshold_blocks</span></code> (see <code class="docutils literal notranslate"><span class="pre">esda.shape.isoareal_quotient</span></code>),
+i.e., if it has an elongated shape; <em>and</em> it has a sufficiently small area
+(see also <code class="docutils literal notranslate"><span class="pre">area_threshold_blocks</span></code>), <em>and</em> if it touches at least one
+polygon that has already been detected as an artifact,
+then it will be classified as an artifact.</p>
+</dd>
+<dt><strong>area_threshold_circles</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 5e4</span></dt><dd><p>This is the first threshold for detecting circle-like artifacts whose
+Face Artifact Index (see <span id="id5">[<a class="reference internal" href="../references.html#id2" title="Martin Fleischmann and Anastassia Vybornova. A shape-based heuristic for the detection of urban block artifacts in street networks. Journal of Spatial Information Science, 28:75–102, June 2024. doi:10.5311/JOSIS.2024.28.319.">Fleischmann and Vybornova, 2024</a>]</span>) is above the
+value passed in <code class="docutils literal notranslate"><span class="pre">artifact_threshold</span></code>. If a polygon has an area below
+<code class="docutils literal notranslate"><span class="pre">area_threshold_circles</span></code>, <em>and</em> one of the following 2 cases is given:
+(a) the polygon is touched, but not enclosed by polygons already classified
+as artifacts, <em>and</em> with an isoperimetric quotient
+(see <code class="docutils literal notranslate"><span class="pre">esda.shape.isoperimetric_quotient</span></code>)
+above <code class="docutils literal notranslate"><span class="pre">isoperimetric_threshold_circles_touching</span></code>, i.e., if its shape
+is close to circular; or (b) the polygon is fully enclosed by polygons
+already classified as artifacts, <em>and</em> with an isoareal quotient
+above
+<code class="docutils literal notranslate"><span class="pre">isoareal_threshold_circles_enclosed</span></code>, i.e., if its shape is
+close to circular; then it will be classified as an artifact.</p>
+</dd>
+<dt><strong>isoareal_threshold_circles_enclosed</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 0.75</span></dt><dd><p>This is the second threshold for detecting circle-like artifacts whose
+Face Artifact Index (see <span id="id6">[<a class="reference internal" href="../references.html#id2" title="Martin Fleischmann and Anastassia Vybornova. A shape-based heuristic for the detection of urban block artifacts in street networks. Journal of Spatial Information Science, 28:75–102, June 2024. doi:10.5311/JOSIS.2024.28.319.">Fleischmann and Vybornova, 2024</a>]</span>) is above the
+value  passed in <code class="docutils literal notranslate"><span class="pre">artifact_threshold</span></code>. If a polygon has a sufficiently small
+area (see also <code class="docutils literal notranslate"><span class="pre">area_threshold_circles</span></code>), <em>and</em> the polygon is
+fully enclosed by polygons already classified as artifacts,
+<em>and</em> its isoareal quotient (see <code class="docutils literal notranslate"><span class="pre">esda.shape.isoareal_quotient</span></code>)
+is above the value passed to <code class="docutils literal notranslate"><span class="pre">isoareal_threshold_circles_enclosed</span></code>,
+i.e., if its shape is close to circular;
+then it will be classified as an artifact.</p>
+</dd>
+<dt><strong>isoperimetric_threshold_circles_touching</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 0.9</span></dt><dd><p>This is the third threshold for detecting circle-like artifacts whose
+Face Artifact Index (see <span id="id7">[<a class="reference internal" href="../references.html#id2" title="Martin Fleischmann and Anastassia Vybornova. A shape-based heuristic for the detection of urban block artifacts in street networks. Journal of Spatial Information Science, 28:75–102, June 2024. doi:10.5311/JOSIS.2024.28.319.">Fleischmann and Vybornova, 2024</a>]</span>)
+is above the value passed in <code class="docutils literal notranslate"><span class="pre">artifact_threshold</span></code>.
+If a polygon has a sufficiently small area
+(see also <code class="docutils literal notranslate"><span class="pre">area_threshold_circles</span></code>), <em>and</em> the polygon is touched
+by at least one polygon already classified as artifact,
+<em>and</em> its isoperimetric quotient (see <code class="docutils literal notranslate"><span class="pre">esda.shape.isoperimetric_quotient</span></code>)
+is above the value passed to <code class="docutils literal notranslate"><span class="pre">isoperimetric_threshold_circles_touching</span></code>,
+i.e., if its shape is close to circular;
+then it will be classified as an artifact.</p>
+</dd>
+<dt><strong>angle_threshold</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> = 120</span></dt><dd><p>See the <code class="docutils literal notranslate"><span class="pre">angle_threshold</span></code> keyword argument in <a class="reference external" href="http://docs.momepy.org/en/stable/api/momepy.COINS.html#momepy.COINS" title="(in momepy v0.10.1.dev0+g81880e7.d20250418)"><code class="xref py py-class docutils literal notranslate"><span class="pre">momepy.COINS</span></code></a>.</p>
+</dd>
+<dt><strong>eps</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> = 1e-4</span></dt><dd><p>Tolerance epsilon used in multiple internal geometric operations.</p>
+</dd>
+<dt><strong>n_loops</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> = 2</span></dt><dd><p>Number of loops through the simplification pipeline. It is recommended to stick
+to the default value and increase it only very conservatively.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><a class="reference external" href="https://geopandas.org/en/latest/docs/reference/api/geopandas.GeoDataFrame.html#geopandas.GeoDataFrame" title="(in GeoPandas v1.1.2.dev34.dev+ga87a59afe)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">geopandas.GeoDataFrame</span></code></a></dt><dd><p>The final, simplified street network line data.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>As is noted above, the input network data must be in a projected coordinate
+reference system and is expected to be in meters. However, it may be possible to
+work with network data projected in feet if all default arguments are adjusted.</p>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../api.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">API reference</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="neatnet.fix_topology.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">neatnet.fix_topology</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#neatnet.neatify"><code class="docutils literal notranslate"><span class="pre">neatify()</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Martin Fleischmann, Anastassia Vybornova, James D. Gaboardi
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024-, neatnet Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
