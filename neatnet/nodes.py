@@ -645,7 +645,7 @@ def consolidate_nodes(
 
         node_labels = np.char.array(
             (f"_{str(nodes.name)}",) * len(hierarchy_labels)
-        )  # specifying array type to avoid TypeError when concatenating with the other array
+        )  # specifying array type to avoid TypeError when concatenating with the other
 
         return hierarchy_labels + node_labels
 
