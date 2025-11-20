@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pyproj
 import shapely
+from packaging.version import Version
 from scipy import sparse
 from scipy.cluster import hierarchy
 from sklearn.cluster import DBSCAN
@@ -631,11 +632,22 @@ def consolidate_nodes(
     def _get_labels(nodes: gpd.GeoDataFrame) -> np.ndarray:
         """Generate node cluster labels that avoids a chaining effect."""
         linkage = hierarchy.linkage(shapely.get_coordinates(nodes), method="average")
-        labels = (
-            hierarchy.fcluster(linkage, tolerance, criterion="distance").astype(str)
-            + f"_{nodes.name}"
-        )
-        return labels
+        if Version(np.__version__) >= Version("2.0.0"):
+            return (
+                hierarchy.fcluster(linkage, tolerance, criterion="distance").astype(str)
+                + f"_{nodes.name}"
+            )
+
+        # TODO: remove when dropping support for numpy<2
+        hierarchy_labels = hierarchy.fcluster(
+            linkage, tolerance, criterion="distance"
+        ).astype(str)
+
+        node_labels = np.char.array(
+            (f"_{str(nodes.name)}",) * len(hierarchy_labels)
+        )  # specifying array type to avoid TypeError when concatenating with the other array
+
+        return hierarchy_labels + node_labels
 
     if not isinstance(gdf, gpd.GeoDataFrame):
         gdf = gpd.GeoDataFrame(geometry=gdf)
