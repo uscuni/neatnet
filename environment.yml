@@ -3,7 +3,7 @@ name: neatnet
 channels:
   - conda-forge
 dependencies:
-  - python=3.13
+  - python
   - esda>=2.6.0
   - geopandas>=1.0.1
   - libpysal>=4.12.1

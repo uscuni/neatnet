@@ -8,7 +8,7 @@ on:
     branches:
       - "*"
   schedule:
-    - cron: "59 23 * * *"
+    - cron: "59 23 * * 2,5"
   workflow_dispatch:
     inputs:
       version:
@@ -29,14 +29,15 @@ jobs:
           py311_latest,
           py312_latest,
           py313_latest,
-          py313_dev,
+          py314_latest,
+          py314_dev,
         ]
         include:
-          - environment-file: py313_latest
-            os: macos-13  # Intel
-          - environment-file: py313_latest
+          - environment-file: py314_latest
+            os: macos-15-intel  # Intel
+          - environment-file: py314_latest
             os: macos-latest  # Apple Silicon
-          - environment-file: py313_latest
+          - environment-file: py314_latest
             os: windows-latest
       fail-fast: false
 
@@ -103,13 +104,13 @@ jobs:
         if: matrix.os == 'windows-latest' && (success() || failure())
 
       - name: archive observed simplified networks
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ci_artifacts-${{ matrix.os }}-${{ matrix.environment-file }}
           path: ci_artifacts.zip
         if: success() || failure()
 
       - name: codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

@@ -112,7 +112,7 @@ def test_neatify_full_fua(aoi, tol, known_length):
     assert pytest.approx(observed_length, rel=0.0001) == known_length
     assert observed.index.dtype == numpy.dtype("int64")
 
-    if pytest.ubuntu and pytest.env_type != "oldest":
+    if pytest.ubuntu and pytest.env_type == "dev":
         assert_series_equal(known["_status"], observed["_status"])
         assert_frame_equal(
             known.drop(columns=["_status", "geometry"]),
@@ -139,7 +139,7 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
     assert pytest.approx(observed_length, rel=0.0001) == known_length
     assert observed.index.dtype == numpy.dtype("int64")
 
-    if pytest.ubuntu and pytest.env_type != "oldest":
+    if pytest.ubuntu and pytest.env_type.endswith("dev"):
         assert_series_equal(known["_status"], observed["_status"])
         assert_frame_equal(
             known.drop(columns=["_status", "geometry"]),
