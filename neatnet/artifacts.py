@@ -401,7 +401,7 @@ def get_artifacts(
         if artifact_count_after == artifact_count_before:
             break
 
-    artifacts = polys[is_artifact][["geometry"]].reset_index(drop=True)
+    artifacts = polys[polys["is_artifact"]][["geometry"]].reset_index(drop=True)
     artifacts["id"] = artifacts.index
 
     if exclusion_mask is not None:
