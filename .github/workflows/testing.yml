@@ -24,19 +24,20 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        environment-file: [
-          py311_oldest,
-          py311_latest,
-          py312_latest,
-          py313_latest,
-          py314_latest,
-          py314_dev,
-        ]
+        environment-file:
+          [
+            py311_oldest,
+            py311_latest,
+            py312_latest,
+            py313_latest,
+            py314_latest,
+            py314_dev,
+          ]
         include:
           - environment-file: py314_latest
-            os: macos-15-intel  # Intel
+            os: macos-15-intel # Intel
           - environment-file: py314_latest
-            os: macos-latest  # Apple Silicon
+            os: macos-latest # Apple Silicon
           - environment-file: py314_latest
             os: windows-latest
       fail-fast: false
@@ -49,7 +50,7 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for all branches and tags.
+          fetch-depth: 0 # Fetch all history for all branches and tags.
 
       - name: setup micromamba
         uses: mamba-org/setup-micromamba@v2
@@ -92,7 +93,7 @@ jobs:
           --cov-report xml . \
           --env_type ${{ matrix.environment-file }} \
           -m wuhan
-        if: ${{ github.event_name != 'pull_request' }}
+        # if: ${{ github.event_name != 'pull_request' }}
 
       - name: zip artifacts - Ubuntu & macOS
         run: zip ci_artifacts.zip ci_artifacts -r
