@@ -34,9 +34,9 @@ jobs:
         ]
         include:
           - environment-file: py314_latest
-            os: macos-15-intel # Intel
+            os: macos-15-intel  # Intel
           - environment-file: py314_latest
-            os: macos-latest # Apple Silicon
+            os: macos-latest  # Apple Silicon
           - environment-file: py314_latest
             os: windows-latest
       fail-fast: false
