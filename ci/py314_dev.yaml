@@ -1,9 +1,9 @@
 ---
-name: py313_neatnet-dev
+name: py314_neatnet-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.13
+  - python=3.14
   - git
   - pip
   # testing
