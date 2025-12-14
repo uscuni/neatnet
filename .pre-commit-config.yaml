@@ -1,14 +1,14 @@
 ---
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.11.8"
+    rev: "v0.13.3"
     hooks:
-      - id: ruff
+      - id: ruff-check
         files: "neatnet\/|docs\/source\/"
       - id: ruff-format
         files: "neatnet\/|docs\/source\/"
   - repo: https://github.com/adrienverge/yamllint
-    rev: "v1.37.0"
+    rev: "v1.37.1"
     hooks:
       - id: yamllint
         files: "."
@@ -18,7 +18,7 @@ repos:
           ".",
         ]
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: "v5.0.0"
+    rev: "v6.0.0"
     hooks:
       - id: check-toml
         files: "."

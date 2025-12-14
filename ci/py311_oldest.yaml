@@ -9,8 +9,7 @@ dependencies:
   - libpysal=4.12.1
   - momepy=0.9.0
   - networkx=3.3
-  - numpy=2.0.0
-  - osmnx=2.0
+  - numpy=1.26.4
   - pandas=2.2.3
   - scipy=1.14.1
   - shapely=2.0.6

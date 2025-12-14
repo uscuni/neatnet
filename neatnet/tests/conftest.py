@@ -82,97 +82,133 @@ def geom_test(
     """Testing helper -- geometry verification."""
 
     if not is_geopandas(collection1):
-        collection1 = geopandas.GeoDataFrame(geometry=collection1)
-        collection1.geometry = collection1.geometry.normalize()  # type: ignore[attr-defined]
+        collection1 = geopandas.GeoSeries(collection1)
 
     if not is_geopandas(collection2):
-        collection2 = geopandas.GeoDataFrame(geometry=collection2)
-        collection2.geometry = collection2.geometry.normalize()  # type: ignore[attr-defined]
+        collection2 = geopandas.GeoSeries(collection2)
 
-    geoms1 = collection1.geometry  # type: ignore[valid-type,attr-defined]
-    geoms2 = collection2.geometry  # type: ignore[valid-type,attr-defined]
+    geoms1 = collection1.geometry.normalize()  # type: ignore[attr-defined]
+    geoms2 = collection2.geometry.normalize()  # type: ignore[attr-defined]
+
+    if aoi and aoi.startswith("apalachicola"):
+        # Varied index order across OSs.
+        # See [https://github.com/uscuni/neatnet/pull/104#issuecomment-2495572388]
+        geoms1 = geoms1.sort_values().reset_index(drop=True)
+        geoms2 = geoms2.sort_values().reset_index(drop=True)
 
     try:
         assert shapely.equals_exact(geoms1, geoms2, tolerance=tolerance).all()
     except AssertionError:
-        unexpected_bad = {}
-
-        for row in collection1.itertuples():  # type: ignore[valid-type,attr-defined]
-            ix = row.Index
-
-            # skip if known bad case
-            do_check = ix not in KNOWN_BAD_GEOMS[aoi]  # type: ignore[index]
-
-            # determine geometry equivalence
-            g1 = collection1.loc[ix].geometry  # type: ignore[valid-type,attr-defined]
-            g2 = collection2.loc[ix].geometry  # type: ignore[valid-type,attr-defined]
-            equal_geom = shapely.equals_exact(g1, g2, tolerance=tolerance)
-
-            # determine topological equivalence
-            g1_topo = len(collection1.sindex.query(g1, predicate="touches"))  # type: ignore[valid-type,attr-defined]
-            g2_topo = len(collection2.sindex.query(g2, predicate="touches"))  # type: ignore[valid-type,attr-defined]
-            equal_topo = g1_topo == g2_topo
-
-            if do_check and not equal_geom and not equal_topo:
-                # constituent coordinates per geometry
-                g1_n_coords = shapely.get_coordinates(g1).shape[0]
-                g2_n_coords = shapely.get_coordinates(g2).shape[0]
-
-                # length per geometry
-                g1_len = g1.length
-                g2_len = g2.length
-
-                # original index per geometry
-                g1_curr_ix = collection2.loc[ix, "non_norm_ix"]  # type: ignore[valid-type,attr-defined]
-                g2_prop_ix = collection2.loc[ix, "non_norm_ix"]  # type: ignore[valid-type,attr-defined]
-
-                unexpected_bad[ix] = {
-                    "n_coords": {"g1": g1_n_coords, "g2": g2_n_coords},
-                    "length": {"g1": g1_len, "g2": g2_len},
-                    "n_neigbors": {"g1": g1_topo, "g2": g2_topo},
-                    "non_norm_ix": {"g1": g1_curr_ix, "g2": g2_prop_ix},
-                }
-
-        if unexpected_bad:
-            # record normalized index from known and subset
-            known_ix = list(unexpected_bad.keys())
-            curr_compare = collection1.loc[known_ix].copy()  # type: ignore[valid-type,attr-defined]
-            prop_compare = collection2.loc[known_ix].copy()  # type: ignore[valid-type,attr-defined]
-
-            # record original, non-normalized index from known & observed
-            curr_ixs_norm = [v["g1"]["non_norm_ix"] for k, v in unexpected_bad.items()]
-            curr_compare["non_norm_ix"] = curr_ixs_norm
-
-            prop_ixs_norm = [v["g2"]["non_norm_ix"] for k, v in unexpected_bad.items()]
-            prop_compare["non_norm_ix"] = prop_ixs_norm
-
-            # record $n$ neighbors for each known & observed
-            curr_neighs = [v["g1"]["n_neigbors"] for k, v in unexpected_bad.items()]
-            curr_compare["n_neigbors"] = curr_neighs
-
-            prop_neighs = [v["g2"]["n_neigbors"] for k, v in unexpected_bad.items()]
-            prop_compare["n_neigbors"] = prop_neighs
-
-            # curate
-            curr_compare.to_parquet(
-                save_dir / "known_to_compare_simplified_{scenario}.parquet"
-            )
-            prop_compare.to_parquet(
-                save_dir / "observed_to_compare_simplified_{scenario}.parquet"
-            )
-
-            raise AssertionError(
-                f"Problem in '{aoi}' – check locs:\n{unexpected_bad}"
-            ) from None
+        _per_edge_check(geoms1, geoms2, tolerance, aoi, save_dir)
 
     return True
 
 
-def norm_sort(gdf: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
-    """Sort GeoDataFrame by normalized geometry."""
-    gdf.geometry = gdf.normalize()
-    gdf = gdf.sort_values(by="geometry").reset_index(names="non_norm_ix")
-    return gdf
+def _per_edge_check(geoms1, geoms2, tolerance, aoi, save_dir):
+    """Granular 1-1 comparison of known vs. observed edges. Curates offenders.
+
+    Checkes & records:
+        * number of coordinates
+        * length
+        * number of neighbors (touching - excluding self)
+
+    See ``geom_test()`` for parameter descriptions.
+    """
+
+    def _n_touches(edges: geopandas.GeoSeries, edge: shapely.LineString) -> int:
+        """number of neighbors (touching - excluding self)"""
+        return len(edges.sindex.query(edge, predicate="touches"))
+
+    def _prep_compare(compare_cases: dict):
+        """Convert offender info into geodataframe and save."""
+        known: dict = {
+            "index": [],
+            "n_coords": [],
+            "length": [],
+            "n_neigbors": [],
+            "geometry": [],
+        }
+        observed: dict = {
+            "index": [],
+            "n_coords": [],
+            "length": [],
+            "n_neigbors": [],
+            "geometry": [],
+        }
+
+        for ix, info in compare_cases.items():
+            # details of the known edge
+            known["index"].append(ix)
+            known["n_coords"].append(info["n_coords"]["g1"])
+            known["length"].append(info["length"]["g1"])
+            known["n_neigbors"].append(info["n_neigbors"]["g1"])
+            known["geometry"].append(info["geometry"]["g1"])
+
+            # details of the observed edge
+            observed["index"].append(ix)
+            observed["n_coords"].append(info["n_coords"]["g2"])
+            observed["length"].append(info["length"]["g2"])
+            observed["n_neigbors"].append(info["n_neigbors"]["g2"])
+            observed["geometry"].append(info["geometry"]["g2"])
+
+        # curate
+        known_gdf = geopandas.GeoDataFrame.from_dict(known, crs=geoms1.crs)
+        known_gdf.to_parquet(save_dir / "known_to_compare_simplified.parquet")
+
+        observed_gdf = geopandas.GeoDataFrame.from_dict(observed, crs=geoms2.crs)
+        observed_gdf.to_parquet(save_dir / "observed_to_compare_simplified.parquet")
+
+    unexpected_bad = {}
+    do_checks = []
+    equal_geoms = []
+    equal_topos = []
+
+    for ix in geoms1.index:
+        # skip if known bad case
+        do_check = ix not in KNOWN_BAD_GEOMS[aoi]
+        do_checks.append(do_check)
+
+        # determine geometry equivalence
+        g1 = geoms1.loc[ix]
+        g2 = geoms2.loc[ix]
+        equal_geom = shapely.equals_exact(g1, g2, tolerance=tolerance)
+        equal_geoms.append(equal_geom)
+
+        # determine topological equivalence
+        g1_topo = _n_touches(geoms1, g1)
+        g2_topo = _n_touches(geoms2, g2)
+        equal_topo = g1_topo == g2_topo
+        equal_topos.append(equal_topo)
+
+        if do_check and (not equal_geom or not equal_topo):
+            # constituent coordinates per geometry
+            g1_n_coords = shapely.get_coordinates(g1).shape[0]
+            g2_n_coords = shapely.get_coordinates(g2).shape[0]
+
+            # length per geometry
+            g1_len = g1.length
+            g2_len = g2.length
+
+            unexpected_bad[ix] = {
+                "n_coords": {"g1": g1_n_coords, "g2": g2_n_coords},
+                "length": {"g1": g1_len, "g2": g2_len},
+                "n_neigbors": {"g1": g1_topo, "g2": g2_topo},
+                "geometry": {"g1": g1, "g2": g2},
+            }
+
+    if unexpected_bad:
+        if save_dir:
+            _prep_compare(unexpected_bad)
+
+        n_geoms = len(do_checks)
+        raise AssertionError(
+            f"Problem in '{aoi}'\n\n"
+            f"Total geoms:   {n_geoms}\n"
+            f"Checked geoms: {sum(do_checks)}\n"
+            f"!= geoms:      {n_geoms - sum(equal_geoms)}\n"
+            f"!= topos:      {n_geoms - sum(equal_topos)}\n\n"
+            f"Check locs:\n{unexpected_bad}"
+        ) from None
 
 
 def difference_plot(
@@ -213,7 +249,7 @@ def difference_plot(
         )
         differences.buffer(diff_buff).plot(ax=base, zorder=1, fc="r", alpha=0.6)
     base.set_title(f"known vs. observed differences - {aoi}")
-    matplotlib.pyplot.savefig(writedir / f"{aoi}.png", dpi=300, bbox_inches="tight")
+    matplotlib.pyplot.savefig(writedir / f"{aoi}.png", dpi=500, bbox_inches="tight")
 
 
 def pytest_addoption(parser):
@@ -240,5 +276,4 @@ def pytest_configure(config):  # noqa: ARG001
 
     pytest.polygonize = polygonize
     pytest.geom_test = geom_test
-    pytest.norm_sort = norm_sort
     pytest.difference_plot = difference_plot

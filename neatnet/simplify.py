@@ -19,6 +19,7 @@ from .artifacts import (
 )
 from .continuity import continuity, get_stroke_info
 from .nodes import (
+    _first_non_null,
     _nodes_degrees_from_edges,
     _nodes_from_edges,
     _status,
@@ -147,6 +148,7 @@ def neatify_singletons(
     *,
     max_segment_length: float | int = 1,
     compute_coins: bool = True,
+    angle_threshold: float = 120,
     min_dangle_length: float | int = 10,
     eps: float = 1e-4,
     clip_limit: float | int = 2,
@@ -181,7 +183,9 @@ def neatify_singletons(
         Used in multiple internal geometric operations.
     compute_coins : bool = True
         Flag for computing and labeling artifacts with a ``{C, E, S}`` typology through
-        ``momepy.COINS`` via the constituent street geometries.
+        :class:`momepy.COINS` via the constituent street geometries.
+    angle_threshold : float = 120
+        See the ``angle_threshold`` keyword argument in :class:`momepy.COINS`.
     min_dangle_length : float | int = 10
         The threshold for determining if linestrings are dangling slivers to be
         removed or not.
@@ -211,7 +215,7 @@ def neatify_singletons(
 
     # Compute number of stroke groups per artifact
     if compute_coins:
-        streets, _ = continuity(streets)
+        streets, _ = continuity(streets, angle_threshold=angle_threshold)
     artifacts = _classify_strokes(artifacts, streets)
 
     # Filter artifacts caused by non-planar intersections
@@ -320,7 +324,9 @@ def neatify_singletons(
         agg: dict[str, str | typing.Callable] = {"_status": _status}
         for c in cleaned_streets.columns.drop(cleaned_streets.active_geometry_name):
             if c != "_status":
-                agg[c] = "first"
+                # returning first non null as we may be joining new with existing
+                # and want attributes from existing
+                agg[c] = _first_non_null
         non_empties = new_streets[~(new_streets.is_empty | new_streets.geometry.isna())]
         new_streets = remove_interstitial_nodes(non_empties, aggfunc=agg)
 
@@ -685,6 +691,9 @@ def get_solution(group: gpd.GeoDataFrame, streets: gpd.GeoDataFrame) -> pd.Serie
     if shared.empty or covers_a.empty or covers_b.empty:
         return pd.Series({"solution": "non_planar", "drop_id": None})
 
+    if len(shared) > 1:
+        return pd.Series({"solution": "skeleton", "drop_id": shared})
+
     shared = shared.item()
 
     if (np.invert(streets_b.index.isin(covers_a.index)).sum() == 1) or (
@@ -721,10 +730,16 @@ def neatify(
     area_threshold_circles: float | int = 5e4,
     isoareal_threshold_circles_enclosed: float | int = 0.75,
     isoperimetric_threshold_circles_touching: float | int = 0.9,
+    angle_threshold: float = 120,
     eps: float = 1e-4,
     n_loops: int = 2,
 ) -> gpd.GeoDataFrame:
-    """Top-level workflow for simplifying street networks. The input raw street network
+    """Top-level workflow for simplifying street networks.
+
+    Follows the Adaptive Continuity-Preserving Simplification algorithm proposed by
+    :cite:`fleischmann2026Adaptive`.
+
+    The input raw street network
     data, which must be in a projected coordinate reference system and is expected to be
     in meters, is first preprocessed (topological corrections & node consolidation)
     before two iterations of artifact detection and simplification.
@@ -831,6 +846,8 @@ def neatify(
         is above the value passed to ``isoperimetric_threshold_circles_touching``,
         i.e., if its shape is close to circular;
         then it will be classified as an artifact.
+    angle_threshold : float = 120
+        See the ``angle_threshold`` keyword argument in :class:`momepy.COINS`.
     eps : float = 1e-4
         Tolerance epsilon used in multiple internal geometric operations.
     n_loops : int = 2
@@ -910,6 +927,7 @@ def neatify(
         simplification_factor=simplification_factor,
         consolidation_tolerance=consolidation_tolerance,
         eps=eps,
+        angle_threshold=angle_threshold,
     )
 
     # This is potentially fixing some minor erroneous edges coming from Voronoi
@@ -943,6 +961,7 @@ def neatify(
             simplification_factor=simplification_factor,
             consolidation_tolerance=consolidation_tolerance,
             eps=eps,
+            angle_threshold=angle_threshold,
         )
 
         # This is potentially fixing some minor erroneous edges coming from Voronoi
@@ -961,6 +980,7 @@ def neatify_loop(
     clip_limit: float | int = 2,
     simplification_factor: float | int = 2,
     consolidation_tolerance: float | int = 10,
+    angle_threshold: float = 120,
     eps: float = 1e-4,
 ) -> gpd.GeoDataFrame:
     """Perform an iteration of the simplification procedure which includes:
@@ -996,6 +1016,8 @@ def neatify_loop(
         simplification epsilon.
     consolidation_tolerance : float | int = 10
         Tolerance passed to node consolidation when generating Voronoi skeletons.
+    angle_threshold : float = 120
+        See the ``angle_threshold`` keyword argument in :class:`momepy.COINS`.
     eps : float = 1e-4
         Tolerance epsilon used in multiple internal geometric operations.
 
@@ -1033,6 +1055,7 @@ def neatify_loop(
             max_segment_length=max_segment_length,
             simplification_factor=simplification_factor,
             consolidation_tolerance=consolidation_tolerance,
+            angle_threshold=angle_threshold,
         )
     if not doubles.empty:
         streets = neatify_pairs(

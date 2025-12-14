@@ -356,7 +356,6 @@ def get_artifacts(
     polys["isoareal_index"] = shape.isoareal_quotient(polys.geometry)
     polys["isoperimetric_quotient"] = shape.isoperimetric_quotient(polys.geometry)
 
-    is_artifact = polys["is_artifact"]
     area = polys["area_sqm"]
     isoareal = polys["isoareal_index"]
     isoperimetric = polys["isoperimetric_quotient"]
@@ -369,7 +368,7 @@ def get_artifacts(
     while True:
         # count number of artifacts to break while loop
         # when no new artifacts are added
-        artifact_count_before = sum(is_artifact)
+        artifact_count_before = sum(polys["is_artifact"])
 
         # polygons that are enclosed by artifacts (at this moment) and
         # that are touching artifacts (at this moment)
@@ -401,11 +400,11 @@ def get_artifacts(
         cond_metric = isoperimetric > isoperimetric_threshold_circles_touching
         polys.loc[cond_geom & cond_area & cond_metric, "is_artifact"] = True
 
-        artifact_count_after = sum(is_artifact)
+        artifact_count_after = sum(polys["is_artifact"])
         if artifact_count_after == artifact_count_before:
             break
 
-    artifacts = polys[is_artifact][["geometry"]].reset_index(drop=True)
+    artifacts = polys[polys["is_artifact"]][["geometry"]].reset_index(drop=True)
     artifacts["id"] = artifacts.index
 
     if exclusion_mask is not None:
@@ -782,8 +781,8 @@ def one_remaining(
             edges[es_mask].geometry,  # use edges that are being dropped
             poly=artifact.geometry,
             snap_to=relevant_targets.geometry.iloc[target_nearest],  # snap to nearest
+            buffer=clip_limit,
             max_segment_length=max_segment_length,
-            buffer=clip_limit,  # TODO: figure out if we need this
             clip_limit=clip_limit,
             consolidation_tolerance=consolidation_tolerance,
         )

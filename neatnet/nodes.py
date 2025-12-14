@@ -1,5 +1,6 @@
 import collections.abc
 import typing
+import warnings
 
 import geopandas as gpd
 import momepy
@@ -8,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pyproj
 import shapely
+from packaging.version import Version
 from scipy import sparse
 from scipy.cluster import hierarchy
 from sklearn.cluster import DBSCAN
@@ -128,9 +130,19 @@ def _snap_n_split(e: shapely.LineString, s: shapely.Point, tol: float) -> np.nda
 
 def _status(x: pd.Series) -> str:
     """Determine the status of edge line(s)."""
+    if (x == "new").all():
+        return "new"
     if len(x) == 1:
         return x.iloc[0]
     return "changed"
+
+
+def _first_non_null(x: pd.Series):
+    """Return first observation that is not missing, unless all are."""
+    non_null = x[~x.isna()]
+    if non_null.empty:
+        return x.iloc[0]
+    return non_null.iloc[0]
 
 
 def isolate_bowtie_nodes(edgelines: list | np.ndarray | gpd.GeoSeries) -> gpd.GeoSeries:
@@ -494,7 +506,7 @@ def remove_interstitial_nodes(
         target_nodes = nodes[node_ix[loop_ix == ix]]
         if len(target_nodes) == 2:
             new_sequence = _rotate_loop_coords(loop_geom, not_loops)
-            fixed_loops.append(shapely.LineString(new_sequence))
+            fixed_loops.append(new_sequence)
             fixed_index.append(ix)
 
     aggregated.loc[loops.index[fixed_index], aggregated.geometry.name] = fixed_loops
@@ -504,34 +516,46 @@ def remove_interstitial_nodes(
 def _rotate_loop_coords(
     loop_geom: shapely.LineString, not_loops: gpd.GeoDataFrame
 ) -> np.ndarray:
-    """Rotate loop node coordinates if needed to ensure topology."""
+    """Rotate loop node coordinates if needed to ensure topology.
 
-    loop_coords = shapely.get_coordinates(loop_geom)
-    loop_points = gpd.GeoDataFrame(geometry=shapely.points(loop_coords))
-    loop_points_ix, _ = not_loops.sindex.query(
-        loop_points.geometry, predicate="dwithin", distance=1e-4
-    )
-
-    mode = loop_points.loc[loop_points_ix].geometry.mode()
-
-    # if there is a non-planar intersection, we may have multiple points. Check with
-    # entrypoints only in that case
-    if mode.shape[0] > 1:
+    The function is prone to errors with super weird configurations.
+    If it fails, return the original to avoid breaking the entire workflow.
+    """
+    try:
+        loop_coords = shapely.get_coordinates(loop_geom)
+        loop_points = gpd.GeoDataFrame(geometry=shapely.points(loop_coords))
         loop_points_ix, _ = not_loops.sindex.query(
             loop_points.geometry, predicate="dwithin", distance=1e-4
         )
-        new_mode = loop_points.loc[loop_points_ix].geometry.mode()
-        # if that did not help, just pick one to avoid failure and hope for the best
-        if new_mode.empty | new_mode.shape[0] > 1:
-            mode = mode.iloc[[0]]
 
-    new_start = mode.get_coordinates().values
-    _coords_match = (loop_coords == new_start).all(axis=1)
-    new_start_idx = np.where(_coords_match)[0].squeeze()
+        mode = loop_points.loc[loop_points_ix].geometry.mode()
 
-    rolled_coords = np.roll(loop_coords[:-1], -new_start_idx, axis=0)
-    new_sequence = np.append(rolled_coords, rolled_coords[[0]], axis=0)
-    return new_sequence
+        # if there is a non-planar intersection, we may have multiple points. Check with
+        # entrypoints only in that case
+        if mode.shape[0] > 1:
+            loop_points_ix, _ = not_loops.sindex.query(
+                loop_points.geometry, predicate="dwithin", distance=1e-4
+            )
+            new_mode = loop_points.loc[loop_points_ix].geometry.mode()
+            # if that did not help, just pick one to avoid failure and hope for the best
+            if new_mode.empty | new_mode.shape[0] > 1:
+                mode = mode.iloc[[0]]
+
+        new_start = mode.get_coordinates().values
+        _coords_match = (loop_coords == new_start).all(axis=1)
+        new_start_idx = np.where(_coords_match)[0].squeeze()
+
+        rolled_coords = np.roll(loop_coords[:-1], -new_start_idx, axis=0)
+        new_sequence = np.append(rolled_coords, rolled_coords[[0]], axis=0)
+        return shapely.LineString(new_sequence)
+
+    except ValueError:
+        warnings.warn(
+            f"Loop at {loop_geom.centroid} could not be re-ordered. "
+            "Topology might be suboptimal.",
+            stacklevel=3,
+        )
+        return loop_geom
 
 
 def fix_topology(
@@ -608,11 +632,22 @@ def consolidate_nodes(
     def _get_labels(nodes: gpd.GeoDataFrame) -> np.ndarray:
         """Generate node cluster labels that avoids a chaining effect."""
         linkage = hierarchy.linkage(shapely.get_coordinates(nodes), method="average")
-        labels = (
-            hierarchy.fcluster(linkage, tolerance, criterion="distance").astype(str)
-            + f"_{nodes.name}"
-        )
-        return labels
+        if Version(np.__version__) >= Version("2.0.0"):
+            return (
+                hierarchy.fcluster(linkage, tolerance, criterion="distance").astype(str)
+                + f"_{nodes.name}"
+            )
+
+        # TODO: remove when dropping support for numpy<2
+        hierarchy_labels = hierarchy.fcluster(
+            linkage, tolerance, criterion="distance"
+        ).astype(str)
+
+        node_labels = np.char.array(
+            (f"_{str(nodes.name)}",) * len(hierarchy_labels)
+        )  # specifying array type to avoid TypeError when concatenating with the other
+
+        return hierarchy_labels + node_labels
 
     if not isinstance(gdf, gpd.GeoDataFrame):
         gdf = gpd.GeoDataFrame(geometry=gdf)
