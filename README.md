@@ -8,6 +8,8 @@
 
 ## Examples
 
+A fully-reproducible example can be found in the [*User Guide*](https://uscuni.org/neatnet/intro.html).
+
 ```py
 import neatnet
 
