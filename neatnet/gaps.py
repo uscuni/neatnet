@@ -13,7 +13,7 @@ __all__ = [
 
 def close_gaps(
     gdf: gpd.GeoSeries | gpd.GeoDataFrame, tolerance: float
-) -> gpd.GeoSeries:
+) -> gpd.GeoSeries | gpd.GeoDataFrame:
     """Close gaps in LineString geometry where it should be contiguous.
     Snaps both lines to a centroid of a gap in between.
 
@@ -26,7 +26,8 @@ def close_gaps(
 
     Returns
     -------
-    geopandas.GeoSeries
+    geopandas.GeoSeries | gpd.GeoDataFrame
+        Returns the same type it is given
 
     See also
     --------
@@ -62,7 +63,14 @@ def close_gaps(
 
     snapped = shapely.snap(geom, shapely.union_all(centroids), tolerance)
 
-    return gpd.GeoSeries(snapped, crs=gdf.crs)
+    new_geom = gpd.GeoSeries(snapped, crs=gdf.crs, index=gdf.index)
+
+    if isinstance(gdf, gpd.GeoSeries):
+        return new_geom
+
+    new_geom.name = gdf.active_geometry_name
+
+    return gdf.set_geometry(new_geom)
 
 
 def extend_lines(
@@ -72,7 +80,7 @@ def extend_lines(
     target: None | gpd.GeoSeries | gpd.GeoDataFrame = None,
     barrier: None | gpd.GeoSeries | gpd.GeoDataFrame = None,
     extension: int | float = 0,
-) -> gpd.GeoDataFrame:
+) -> gpd.GeoSeries | gpd.GeoDataFrame:
     """Extends lines from ``gdf`` to itself or target within a set tolerance.
 
     Extends unjoined ends of LineString segments to join with other segments or target.
@@ -99,8 +107,9 @@ def extend_lines(
 
     Returns
     -------
-    geopandas.GeoDataFrame
-        GeoDataFrame with extended geometries.
+    geopandas.GeoSeries | gpd.GeoDataFrame
+        GeoSeries or GeoDataFrame with extended geometries. Returns the same type it is
+        given.
 
     See also
     --------
@@ -108,18 +117,17 @@ def extend_lines(
     neatnet.remove_interstitial_nodes
     """
 
-    # explode to avoid MultiLineStrings
-    # reset index due to the bug in GeoPandas explode
-    df = gdf.reset_index(drop=True).explode(ignore_index=True)
+    if not (gdf.geom_type == "LineString").all():
+        raise ValueError("Only LineString geometry is supported.")
 
     if target is None:
-        target = df
+        target = gdf
         itself = True
     else:
         itself = False
 
     # get underlying shapely geometry
-    geom = df.geometry.array
+    geom = gdf.geometry.array
 
     # extract array of coordinates and number per geometry
     coords = shapely.get_coordinates(geom)
@@ -216,9 +224,13 @@ def extend_lines(
                             _extend_line(snapped, t, extension, snap=False)
                         )
                     )
+    gs = gdf.geometry.copy()
+    gs.iloc[ends] = new_geoms
 
-    df.iloc[ends, df.columns.get_loc(df.geometry.name)] = new_geoms
-    return df
+    if isinstance(gdf, gpd.GeoSeries):
+        return gs
+
+    return gdf.set_geometry(gs)
 
 
 def _extend_line(

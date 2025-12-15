@@ -21,6 +21,9 @@ def test_close_gaps():
     assert len(merged) == 1
     assert merged.length[0] == pytest.approx(8.4662, rel=1e-3)
 
+    assert isinstance(neatnet.close_gaps(gdf, 0.25), gpd.GeoDataFrame)
+    assert isinstance(neatnet.close_gaps(gdf.geometry, 0.25), gpd.GeoSeries)
+
 
 def test_extend_lines():
     l1 = LineString([(1, 0), (1.9, 0)])
@@ -63,3 +66,9 @@ def test_extend_lines():
     ext6 = neatnet.extend_lines(gdf, 2, barrier=gpd.GeoSeries([barrier_2]))
     assert ext6.length.sum() > gdf.length.sum()
     assert ext6.length.sum() == pytest.approx(6.0, rel=1e-3)
+
+    assert isinstance(neatnet.extend_lines(gdf, 2), gpd.GeoDataFrame)
+    assert isinstance(neatnet.extend_lines(gdf.geometry, 2), gpd.GeoSeries)
+
+    with pytest.raises(ValueError, match="Only LineString geometry is supported."):
+        neatnet.extend_lines(gdf.set_geometry(gdf.buffer(1)), 2)
