@@ -845,7 +845,6 @@ def multiple_remaining(
         edges[es_mask].geometry,  # use edges that are being dropped
         poly=artifact.geometry,
         snap_to=snap_to,  # snap to relevant node targets
-        buffer=clip_limit,
         max_segment_length=max_segment_length,
         secondary_snap_to=highest_hierarchy.geometry,
         clip_limit=clip_limit,
@@ -922,7 +921,6 @@ def one_remaining_c(
             edges[es_mask].geometry,  # use edges that are being dropped
             poly=artifact.geometry,
             snap_to=highest_hierarchy.dissolve("coins_group").geometry,  # snap to Cs
-            buffer=clip_limit,
             max_segment_length=max_segment_length,
             clip_limit=clip_limit,
             consolidation_tolerance=consolidation_tolerance,
