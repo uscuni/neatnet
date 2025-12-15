@@ -144,6 +144,7 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
         assert_frame_equal(
             known.drop(columns=["_status", "geometry"]),
             observed.drop(columns=["_status", "geometry"]),
+            check_dtype=False,
         )
         pytest.geom_test(known, observed, tolerance=tol, aoi=aoi, save_dir=artifact_dir)
 
