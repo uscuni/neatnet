@@ -69,3 +69,6 @@ def test_extend_lines():
 
     assert isinstance(neatnet.extend_lines(gdf, 2), gpd.GeoDataFrame)
     assert isinstance(neatnet.extend_lines(gdf.geometry, 2), gpd.GeoSeries)
+
+    with pytest.raises(ValueError, match="Only LineString geometry is supported."):
+        neatnet.extend_lines(gdf.set_geometry(gdf.buffer(1)), 2)
