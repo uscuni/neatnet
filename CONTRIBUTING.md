@@ -104,7 +104,7 @@ When submitting a pull request:
 - Ensure that documentation has built correctly. It will be automatically built for each PR.
 - New functionality ***must*** include tests. Please write reasonable tests for your code and make sure that they pass on your pull request.
 - Classes, methods, functions, etc. should have docstrings. The first line of a docstring should be a standalone summary. Parameters and return values should be documented explicitly.
-- Follow PEP 8 when possible. We use ``Ruff`` for linting and formatting to ensure robustness & consistency in code throughout the project. It included in the ``pre-commit`` hook and will be checked on every PR.
+- Follow PEP 8 when possible. We use `ruff` for linting and formatting to ensure robustness & consistency in code throughout the project. It included in the `pre-commit` hook and will be checked on every PR.
 - `neatnet` supports Python 3.11+ only. When possible, do not introduce additional dependencies. If that is necessary, make sure they can be treated as optional.
 
 #### Procedure
@@ -113,11 +113,11 @@ When submitting a pull request:
 2. If [testing fails](https://github.com/uscuni/neatnet/actions/runs/11368511561) due to an update in the code base:
 3. Observed data is [saved as artifacts](https://github.com/uscuni/neatnet/actions/runs/11368511561#artifacts) from the workflow and can be download locally.
 4. We determine the `ci_artifacts-ubuntu-latest-py313_latest` data as the "truth."
-5. After comparison of the current "known" data with new data from (3.), if new data is "truthier," update your PR with the new "known" data.
+5. After comparison of the current "known" data with new data from (3.), if new data is "truthier," update your PR with the new "known" data. See [`data/README.md`](./data/README.md) for information on comparing known vs. observed simplifed result discrepencies.
 
 #### Handling Edge Cases in Testing
 
-Edge cases will crop up in full-scale FUA testing that we can ignore (following a thorough investigation – e.g. [`neatnet#77`](https://github.com/uscuni/neatnet/issues/77)) during testing. Once it is determined the geometry in question is not caused by a bug on our end, it can be added to the `KNOWN_BAD_GEOMS` collection in `tests/conftest.py`. This collection is a dictionary keyed by `<NAME>_CODE` of the city/FUA where the values are lists of index locations of simplified edges that can be ignored if they fail equality testing. As an example, see our initial "bad" geometries [here](https://github.com/uscuni/neatnet/blob/1be6b44b1a06d52453ecbaee205ae649101c4ea4/neatnet/tests/conftest.py#L25-L39), which were due to a variant number of coordinates in those resultant simplified edges created by [different versions of `shapely`](https://github.com/uscuni/neatnet/pull/67#issuecomment-2457333724).
+Edge cases will crop up in full-scale FUA testing that we can ignore (following a thorough investigation – e.g. [`neatnet#77`](https://github.com/uscuni/neatnet/issues/77)) during testing. Once it is determined the geometry in question is not caused by a bug on our end, it can be added to the `KNOWN_BAD_GEOMS` collection in `tests/conftest.py`. This collection is a dictionary keyed by `<NAME>_<CODE>` of the city/FUA where the values are lists of index locations of simplified edges that can be ignored if they fail equality testing. As an example, see our initial "bad" geometries [here](https://github.com/uscuni/neatnet/blob/1be6b44b1a06d52453ecbaee205ae649101c4ea4/neatnet/tests/conftest.py#L25-L39), which were due to a variant number of coordinates in those resultant simplified edges created by [different versions of `shapely`](https://github.com/uscuni/neatnet/pull/67#issuecomment-2457333724).
 
 ##### Code Structure
 
