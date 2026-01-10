@@ -48,7 +48,7 @@ jobs:
 
     steps:
       - name: checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # Fetch all history for all branches and tags.
 
@@ -105,7 +105,7 @@ jobs:
         if: matrix.os == 'windows-latest' && (success() || failure())
 
       - name: archive observed simplified networks
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ci_artifacts-${{ matrix.os }}-${{ matrix.environment-file }}
           path: ci_artifacts.zip
