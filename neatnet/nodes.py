@@ -137,6 +137,26 @@ def _status(x: pd.Series) -> str:
     return "changed"
 
 
+def _vectorized_status(status_col: pd.Series, labels) -> pd.Series:
+    """Vectorized equivalent of ``_status`` for groupby aggregation.
+
+    Instead of calling ``_status`` per group (slow Python dispatch),
+    this computes the same result for all groups at once using fast
+    groupby primitives (size, first, sum).
+    """
+    g = status_col.groupby(labels)
+    sizes = g.size()
+    first_vals = g.first()
+    new_counts = (status_col == "new").groupby(labels).sum()
+
+    result = pd.Series("changed", index=sizes.index)
+    single = sizes == 1
+    result.loc[single] = first_vals.loc[single]
+    all_new_multi = (new_counts == sizes) & ~single
+    result.loc[all_new_multi] = "new"
+    return result
+
+
 def _first_non_null(x: pd.Series):
     """Return first observation that is not missing, unless all are."""
     non_null = x[~x.isna()]
@@ -478,7 +498,23 @@ def remove_interstitial_nodes(
 
     # Process non-spatial component
     data = gdf.drop(labels=gdf.geometry.name, axis=1)
-    aggregated_data = data.groupby(by=labels).agg(aggfunc, **kwargs)
+    if (
+        isinstance(aggfunc, dict)
+        and "_status" in aggfunc
+        and aggfunc["_status"] is _status
+    ):
+        # Vectorize _status separately to avoid the slow per-group callable path
+        status_result = _vectorized_status(data["_status"], labels)
+        rest_agg = {k: v for k, v in aggfunc.items() if k != "_status"}
+        if rest_agg:
+            aggregated_data = (
+                data.drop(columns=["_status"]).groupby(by=labels).agg(rest_agg, **kwargs)
+            )
+        else:
+            aggregated_data = pd.DataFrame(index=status_result.index)
+        aggregated_data["_status"] = status_result
+    else:
+        aggregated_data = data.groupby(by=labels).agg(aggfunc, **kwargs)
     aggregated_data.columns = aggregated_data.columns.to_flat_index()
 
     # Process spatial component
