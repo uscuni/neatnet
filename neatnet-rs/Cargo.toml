@@ -1,0 +1,38 @@
+[workspace]
+members = ["crates/neatnet-core", "crates/neatnet-py"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "BSD-3-Clause"
+repository = "https://github.com/uscuni/neatnet"
+
+[workspace.dependencies]
+# Geometry
+geos = "10.0"
+geo = "0.32"
+geo-types = "0.7"
+voronoice = "0.2"
+
+# Graph & clustering
+petgraph = "0.8"
+kodama = "0.3"
+rstar = "0.12"
+sprs = "0.11"
+
+# Arrow
+arrow = { version = "57", features = ["ffi"] }
+
+# Python bindings (pinned to pyo3 0.27 for pyo3-geoarrow 0.7 compat)
+pyo3 = { version = "0.27", features = ["extension-module"] }
+pyo3-arrow = "0.15"
+pyo3-geoarrow = "0.7"
+geoarrow = "0.7"
+
+# Utilities
+thiserror = "2"
+log = "0.4"
+ordered-float = "5"
+rayon = "1.10"
+hashbrown = "0.15"

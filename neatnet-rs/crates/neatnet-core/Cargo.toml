@@ -1,0 +1,26 @@
+[package]
+name = "neatnet-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Street network simplification – pure Rust core"
+
+[dependencies]
+geos = { workspace = true }
+geo = { workspace = true }
+geo-types = { workspace = true }
+voronoice = { workspace = true }
+petgraph = { workspace = true }
+kodama = { workspace = true }
+rstar = { workspace = true }
+sprs = { workspace = true }
+arrow = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+ordered-float = { workspace = true }
+rayon = { workspace = true }
+hashbrown = { workspace = true }
+
+[dev-dependencies]
+approx = "0.5"

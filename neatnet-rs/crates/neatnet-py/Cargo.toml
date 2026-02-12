@@ -1,0 +1,21 @@
+[package]
+name = "neatnet-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Street network simplification – Python bindings via PyO3"
+
+[lib]
+name = "_neatnet_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+neatnet-core = { path = "../neatnet-core" }
+pyo3 = { workspace = true }
+pyo3-arrow = { workspace = true }
+pyo3-geoarrow = { workspace = true }
+geoarrow = { workspace = true }
+arrow = { workspace = true }
+geos = { workspace = true }
+geo-types = { workspace = true }
