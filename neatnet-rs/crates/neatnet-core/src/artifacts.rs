@@ -10,41 +10,182 @@ use petgraph::graph::UnGraph;
 
 use crate::spatial;
 
-/// Shape metric: isoareal quotient = 4πA/P².
-/// Ranges from 0 (elongated) to 1 (circular).
+/// Shape metric: isoareal quotient (Altman's PA_3).
+///
+/// Ratio of the perimeter of an equal-area circle to the polygon's perimeter.
+/// Formula: `2π√(A/π) / P`. Ranges from 0 (elongated) to 1 (circular).
+///
+/// Matches Python `esda.shape.isoareal_quotient`.
 pub fn isoareal_quotient(area: f64, perimeter: f64) -> f64 {
+    if area <= 0.0 || perimeter <= 0.0 {
+        return 0.0;
+    }
+    2.0 * PI * (area / PI).sqrt() / perimeter
+}
+
+/// Shape metric: isoperimetric quotient (Altman's PA_1).
+///
+/// Ratio of the polygon's area to the area of an equal-perimeter circle.
+/// Formula: `4πA/P²`. Ranges from 0 (elongated) to 1 (circular).
+///
+/// Matches Python `esda.shape.isoperimetric_quotient`.
+pub fn isoperimetric_quotient(area: f64, perimeter: f64) -> f64 {
     if perimeter <= 0.0 {
         return 0.0;
     }
     4.0 * PI * area / (perimeter * perimeter)
 }
 
-/// Shape metric: isoperimetric quotient = P / (2π√(A/π)).
-/// Ratio of perimeter to circumference of equal-area circle.
-pub fn isoperimetric_quotient(area: f64, perimeter: f64) -> f64 {
-    if area <= 0.0 {
-        return 0.0;
-    }
-    perimeter / (2.0 * PI * (area / PI).sqrt())
-}
-
-/// Minimum bounding circle ratio (approximation).
-/// Uses the convex hull area as a proxy for the minimum bounding circle area.
+/// Minimum bounding circle ratio (Reock compactness).
+///
+/// Computes `area / (π * r²)` where `r` is the minimum bounding circle radius.
+/// Uses the exact minimum enclosing circle from convex hull vertices.
+///
+/// Mirrors Python `esda.shape.minimum_bounding_circle_ratio()`.
 pub fn minimum_bounding_circle_ratio(geom: &GGeometry) -> f64 {
     let area = geom.area().unwrap_or(0.0);
     if area <= 0.0 {
         return 0.0;
     }
-    // The minimum bounding circle ratio is area / MBC_area
-    // Approximate MBC via convex hull
-    let hull_area = geom
-        .convex_hull()
-        .and_then(|h| h.area())
-        .unwrap_or(area);
-    if hull_area <= 0.0 {
+
+    // Get convex hull vertices
+    let hull = match geom.convex_hull() {
+        Ok(h) => h,
+        Err(_) => return 0.0,
+    };
+    let ring = match hull.get_exterior_ring() {
+        Ok(r) => r,
+        Err(_) => return 0.0,
+    };
+    let cs = match ring.get_coord_seq() {
+        Ok(c) => c,
+        Err(_) => return 0.0,
+    };
+    let n = cs.size().unwrap_or(0);
+    if n < 3 {
         return 0.0;
     }
-    area / hull_area
+
+    // Extract hull vertex coordinates (skip last = first for closed ring)
+    let mut pts: Vec<[f64; 2]> = Vec::with_capacity(n - 1);
+    for i in 0..n.saturating_sub(1) {
+        if let (Ok(x), Ok(y)) = (cs.get_x(i), cs.get_y(i)) {
+            pts.push([x, y]);
+        }
+    }
+
+    let radius = minimum_enclosing_circle_radius(&pts);
+    let mbc_area = std::f64::consts::PI * radius * radius;
+    if mbc_area <= 0.0 {
+        return 0.0;
+    }
+
+    area / mbc_area
+}
+
+/// Compute the radius of the minimum enclosing circle for a set of 2D points.
+///
+/// Uses Welzl's randomized algorithm, O(n) expected time.
+fn minimum_enclosing_circle_radius(points: &[[f64; 2]]) -> f64 {
+    if points.is_empty() {
+        return 0.0;
+    }
+    if points.len() == 1 {
+        return 0.0;
+    }
+
+    // Shuffle for expected O(n) — use deterministic shuffle via indices
+    let mut indices: Vec<usize> = (0..points.len()).collect();
+    // Simple deterministic shuffle based on coordinate sums
+    indices.sort_by(|&a, &b| {
+        let sa = points[a][0] + points[a][1] * 1e7;
+        let sb = points[b][0] + points[b][1] * 1e7;
+        sa.partial_cmp(&sb).unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let mut cx = (points[indices[0]][0] + points[indices[1]][0]) / 2.0;
+    let mut cy = (points[indices[0]][1] + points[indices[1]][1]) / 2.0;
+    let dx = points[indices[0]][0] - points[indices[1]][0];
+    let dy = points[indices[0]][1] - points[indices[1]][1];
+    let mut r_sq = (dx * dx + dy * dy) / 4.0;
+
+    for i in 2..indices.len() {
+        let p = &points[indices[i]];
+        let dpx = p[0] - cx;
+        let dpy = p[1] - cy;
+        if dpx * dpx + dpy * dpy <= r_sq * (1.0 + 1e-10) {
+            continue; // point inside current circle
+        }
+
+        // Point outside — find min circle with p on boundary
+        cx = (points[indices[0]][0] + p[0]) / 2.0;
+        cy = (points[indices[0]][1] + p[1]) / 2.0;
+        let dx = points[indices[0]][0] - p[0];
+        let dy = points[indices[0]][1] - p[1];
+        r_sq = (dx * dx + dy * dy) / 4.0;
+
+        for j in 1..i {
+            let q = &points[indices[j]];
+            let dqx = q[0] - cx;
+            let dqy = q[1] - cy;
+            if dqx * dqx + dqy * dqy <= r_sq * (1.0 + 1e-10) {
+                continue; // q inside current circle
+            }
+
+            // Circle through p and q
+            cx = (q[0] + p[0]) / 2.0;
+            cy = (q[1] + p[1]) / 2.0;
+            let dx = q[0] - p[0];
+            let dy = q[1] - p[1];
+            r_sq = (dx * dx + dy * dy) / 4.0;
+
+            for k in 0..j {
+                let s = &points[indices[k]];
+                let dsx = s[0] - cx;
+                let dsy = s[1] - cy;
+                if dsx * dsx + dsy * dsy <= r_sq * (1.0 + 1e-10) {
+                    continue; // s inside current circle
+                }
+
+                // Circle through p, q, s (circumcircle of triangle)
+                if let Some((ccx, ccy, cr_sq)) = circumcircle(p, q, s) {
+                    cx = ccx;
+                    cy = ccy;
+                    r_sq = cr_sq;
+                }
+            }
+        }
+    }
+
+    r_sq.sqrt()
+}
+
+/// Compute the circumcircle (center and radius²) of three points.
+fn circumcircle(a: &[f64; 2], b: &[f64; 2], c: &[f64; 2]) -> Option<(f64, f64, f64)> {
+    let ax = a[0];
+    let ay = a[1];
+    let bx = b[0];
+    let by = b[1];
+    let cx = c[0];
+    let cy = c[1];
+
+    let d = 2.0 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
+    if d.abs() < 1e-14 {
+        return None; // collinear
+    }
+
+    let ux = ((ax * ax + ay * ay) * (by - cy)
+        + (bx * bx + by * by) * (cy - ay)
+        + (cx * cx + cy * cy) * (ay - by))
+        / d;
+    let uy = ((ax * ax + ay * ay) * (cx - bx)
+        + (bx * bx + by * by) * (ax - cx)
+        + (cx * cx + cy * cy) * (bx - ax))
+        / d;
+
+    let dx = ax - ux;
+    let dy = ay - uy;
+    Some((ux, uy, dx * dx + dy * dy))
 }
 
 /// Gaussian Kernel Density Estimation with Silverman bandwidth.
@@ -216,7 +357,6 @@ pub fn detect_artifacts(
             artifact_fais.push(fai);
         }
     }
-
     Some((artifact_geoms, artifact_fais, final_threshold))
 }
 
@@ -585,8 +725,20 @@ mod tests {
         let ratio = isoareal_quotient(PI, 2.0 * PI);
         assert!((ratio - 1.0).abs() < 1e-10);
 
-        // Square: area = 1, perimeter = 4 → ratio = π/4 ≈ 0.785
+        // Square: area = 1, perimeter = 4 → ratio = 2π√(1/π) / 4 = √π/2 ≈ 0.886
         let ratio = isoareal_quotient(1.0, 4.0);
+        let expected = PI.sqrt() / 2.0;
+        assert!((ratio - expected).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_isoperimetric_quotient() {
+        // Circle: area = π, perimeter = 2π → ratio = 4π²/(4π²) = 1
+        let ratio = isoperimetric_quotient(PI, 2.0 * PI);
+        assert!((ratio - 1.0).abs() < 1e-10);
+
+        // Square: area = 1, perimeter = 4 → ratio = 4π/16 = π/4 ≈ 0.785
+        let ratio = isoperimetric_quotient(1.0, 4.0);
         assert!((ratio - PI / 4.0).abs() < 1e-10);
     }
 
