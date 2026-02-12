@@ -113,15 +113,15 @@ pub fn extend_lines(
     geometries: &[GGeometry],
     tolerance: f64,
     target: Option<&[GGeometry]>,
-    barrier: Option<&[GGeometry]>,
-    extension: f64,
+    _barrier: Option<&[GGeometry]>,
+    _extension: f64,
 ) -> Vec<GGeometry> {
     if geometries.is_empty() {
         return vec![];
     }
 
     let target_geoms = target.unwrap_or(geometries);
-    let is_self_target = target.is_none();
+    let _is_self_target = target.is_none();
 
     // Build spatial index of endpoints to find degree-1 nodes
     let mut endpoint_counts: HashMap<CoordKey, Vec<usize>> = HashMap::new();

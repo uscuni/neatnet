@@ -1107,7 +1107,7 @@ fn find_nodes_near_polygon(
 /// boundary (where the skeleton connects to the network).
 ///
 /// Mirrors Python `remove_dangles()`.
-fn remove_dangles(connections: &[GGeometry], artifact: &GGeometry, eps: f64) -> Vec<GGeometry> {
+fn remove_dangles(connections: &[GGeometry], artifact: &GGeometry, _eps: f64) -> Vec<GGeometry> {
     if connections.len() <= 1 {
         return connections.to_vec();
     }

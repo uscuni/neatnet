@@ -253,7 +253,7 @@ pub fn coins(geometries: &[GGeometry], angle_threshold: f64) -> CoinsResult {
     // Collect all (edge_idx, group) pairs with last-wins semantics
     // matching Python's inv_edges dict comprehension
     let mut group_to_edges: HashMap<usize, Vec<usize>> = HashMap::new();
-    for (seg_idx, seg) in segments.iter().enumerate() {
+    for (seg_idx, _seg) in segments.iter().enumerate() {
         let gid = seg_to_group[seg_idx].unwrap_or(0);
         group_to_edges.entry(gid).or_default();
     }
@@ -389,7 +389,7 @@ pub fn get_stroke_info(
         // Roundabout special case: if all covered edges belong to the same group
         // and that group is entirely inside the artifact
         if covered_groups.len() == 1 {
-            let group = *covered_groups.iter().next().unwrap();
+            let _group = *covered_groups.iter().next().unwrap();
             let total_in_group = coins_result.stroke_count[covered_edges[0]];
             if covered_edges.len() == total_in_group {
                 // All edges of this group are inside → Single

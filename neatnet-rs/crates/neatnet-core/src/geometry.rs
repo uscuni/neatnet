@@ -97,7 +97,7 @@ pub fn voronoi_skeleton(
     buffer: Option<f64>,
     secondary_snap_to: Option<&[GGeometry]>,
     clip_limit: f64,
-    consolidation_tolerance: Option<f64>,
+    _consolidation_tolerance: Option<f64>,
 ) -> (Vec<GGeometry>, Vec<GGeometry>) {
     let buffer_dist = buffer.unwrap_or(max_segment_length * 20.0);
 

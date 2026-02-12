@@ -78,7 +78,7 @@ pub fn get_components(geometries: &[GGeometry]) -> Vec<usize> {
     }
 
     // 1. Extract all unique node coordinates
-    let (node_coords, _) = nodes_from_edges(geometries);
+    let (_node_coords, _) = nodes_from_edges(geometries);
 
     // 2. Build node → [edge indices] map from boundary intersections
     let mut node_to_edges: HashMap<NodeKey, Vec<usize>> = HashMap::new();
