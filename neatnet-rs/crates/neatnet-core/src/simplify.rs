@@ -425,8 +425,9 @@ fn neatify_clusters(
                 None,
             );
             if !skeleton_edges.is_empty() {
+                let cleaned = remove_dangles(&skeleton_edges, &merged, params.eps);
                 to_drop.extend(&covered);
-                to_add.extend(skeleton_edges);
+                to_add.extend(cleaned);
             }
         }
     }
@@ -469,7 +470,8 @@ fn process_n1_g1_identical(
     );
 
     to_drop.extend(covered_edges);
-    to_add.extend(edgelines);
+    let cleaned = remove_dangles(&edgelines, artifact, params.eps);
+    to_add.extend(cleaned);
 }
 
 /// Process nx_gx_identical: N>1 nodes, all same CES type.
@@ -561,7 +563,8 @@ fn process_nx_gx_identical(
             params.clip_limit,
             None,
         );
-        to_add.extend(edgelines);
+        let cleaned = remove_dangles(&edgelines, artifact, params.eps);
+        to_add.extend(cleaned);
     }
 }
 
@@ -659,7 +662,8 @@ fn process_nx_gx(
             params.clip_limit,
             None,
         );
-        to_add.extend(edgelines);
+        let cleaned = remove_dangles(&edgelines, artifact, params.eps);
+        to_add.extend(cleaned);
         return;
     }
 
@@ -722,7 +726,8 @@ fn process_nx_gx(
             params.clip_limit,
             None,
         );
-        to_add.extend(edgelines);
+        let cleaned = remove_dangles(&edgelines, artifact, params.eps);
+        to_add.extend(cleaned);
         return;
     }
 
@@ -752,7 +757,8 @@ fn process_nx_gx(
             params.clip_limit,
             None,
         );
-        to_add.extend(edgelines);
+        let cleaned = remove_dangles(&edgelines, artifact, params.eps);
+        to_add.extend(cleaned);
     } else {
         // Multiple remaining nodes: skeleton with C as secondary snap
         let es_geoms: Vec<GGeometry> = es_mask
@@ -770,7 +776,8 @@ fn process_nx_gx(
             params.clip_limit,
             None,
         );
-        to_add.extend(edgelines);
+        let cleaned = remove_dangles(&edgelines, artifact, params.eps);
+        to_add.extend(cleaned);
     }
 }
 
@@ -1091,6 +1098,104 @@ fn find_nodes_near_polygon(
         }
     }
     result
+}
+
+/// Remove dangling edges from skeleton output.
+///
+/// After line_merge + explode, remove edges whose endpoint doesn't connect
+/// to any other edge (within snap tolerance) and doesn't touch the artifact
+/// boundary (where the skeleton connects to the network).
+///
+/// Mirrors Python `remove_dangles()`.
+fn remove_dangles(connections: &[GGeometry], artifact: &GGeometry, eps: f64) -> Vec<GGeometry> {
+    if connections.len() <= 1 {
+        return connections.to_vec();
+    }
+
+    // Line merge first, then explode
+    let merged = merge_and_explode(connections);
+    if merged.len() <= 1 {
+        return merged;
+    }
+
+    // Get artifact boundary
+    let boundary = match artifact.boundary() {
+        Ok(b) => b,
+        Err(_) => return merged,
+    };
+
+    // For each connection, check if each endpoint either:
+    // 1. Touches another connection (within snap tolerance), or
+    // 2. Is on the artifact boundary (connects to the network)
+    //
+    // Use distance to the GEOMETRY of other connections (not just endpoints),
+    // since line_merge may have created longer chains where junction points
+    // are interior vertices, not endpoints.
+    // Use generous snap tolerance for projected CRS (meters).
+    // The voronoi skeleton output may have imprecise junction points.
+    let snap_tol = 5.0;
+
+    let mut keep = vec![true; merged.len()];
+
+    for i in 0..merged.len() {
+        let cs = match merged[i].get_coord_seq() {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let n = cs.size().unwrap_or(0);
+        if n < 2 {
+            continue;
+        }
+
+        // Check both endpoints
+        for pt_idx in [0, n - 1] {
+            let (x, y) = match (cs.get_x(pt_idx), cs.get_y(pt_idx)) {
+                (Ok(x), Ok(y)) => (x, y),
+                _ => continue,
+            };
+            let pt_wkt = format!("POINT ({} {})", x, y);
+            let pt_geom = match GGeometry::new_from_wkt(&pt_wkt) {
+                Ok(p) => p,
+                Err(_) => continue,
+            };
+
+            let mut connected = false;
+
+            // Check distance to artifact boundary
+            if let Ok(dist) = boundary.distance(&pt_geom) {
+                if dist < snap_tol {
+                    connected = true;
+                }
+            }
+
+            if !connected {
+                // Check distance to any other connection's geometry
+                for j in 0..merged.len() {
+                    if i == j {
+                        continue;
+                    }
+                    if let Ok(dist) = merged[j].distance(&pt_geom) {
+                        if dist < snap_tol {
+                            connected = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if !connected {
+                keep[i] = false;
+                break;
+            }
+        }
+    }
+
+    merged
+        .into_iter()
+        .enumerate()
+        .filter(|(i, _)| keep[*i])
+        .map(|(_, g)| g)
+        .collect()
 }
 
 /// Convert node coordinate arrays to GEOS Point geometries.
