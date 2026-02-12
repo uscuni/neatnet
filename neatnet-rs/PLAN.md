@@ -163,11 +163,16 @@ better fit for the ridge extraction pattern.
 - **Shape metrics**: Fixed isoareal_quotient and isoperimetric_quotient to match
   esda (Altman PA_3 and PA_1 formulas). Fixed MBC ratio to use Welzl's algorithm.
 - **remove_dangles**: Added post-skeleton dangle cleanup (5m snap tolerance for EPSG:3857)
+- **Artifact re-detection**: Fixed loop 2 to use re-detected artifacts instead of stale originals
+- **Cluster skeleton decomposition**: Boundary-segment clipping + entry-point decomposition
+  for large clusters, matching Python's nx_gx_cluster approach
+- **filter_connections / reconnect_c_groups**: Multi-C skeleton post-processing chain
 
 ### Current accuracy (Apalachicola):
-- Rust: 572 edges, length 62,018 | Python: 527 edges, length 64,566
+- Rust: ~547 edges, length ~63,546 | Python: 527 edges, length 64,566
 - Artifact detection: 89→92 (Python: 88→91) — near-perfect match
-- Remaining gap (~45 edges): different contiguity grouping + missing helpers
+- Edge count ratio: 1.04 (within 4% of Python)
+- Remaining gap (~20 edges): minor skeleton output differences in cluster processing
 
 ---
 

@@ -53,16 +53,16 @@ fn test_apalachicola_neatify() {
             println!("Status: original={}, changed={}, new={}", n_original, n_changed, n_new);
 
             // Python reference: 527 edges, total length 64566, 394 original, 74 changed, 59 new
-            // Rust currently: 577 edges, total length 62506, 355 original, 103 changed, 119 new
-            // ~10% more edges than Python (some artifact processing sub-branches simplified)
+            // Rust currently: ~547 edges, total length ~63546, 363 original, 100 changed, 84 new
+            // ~4% more edges than Python (remaining gap from cluster skeleton differences)
             assert!(
-                network.geometries.len() > 450 && network.geometries.len() < 700,
-                "Edge count {} should be near Python's 527 (within ~30%)",
+                network.geometries.len() > 450 && network.geometries.len() < 620,
+                "Edge count {} should be near Python's 527 (within ~15%)",
                 network.geometries.len()
             );
             assert!(
-                total_length > 55000.0 && total_length < 75000.0,
-                "Total length {:.2} should be near Python's 64566 (within ~15%)",
+                total_length > 57000.0 && total_length < 72000.0,
+                "Total length {:.2} should be near Python's 64566 (within ~12%)",
                 total_length
             );
         }

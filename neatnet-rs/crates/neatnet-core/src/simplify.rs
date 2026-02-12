@@ -75,8 +75,9 @@ pub fn neatify(
     }
 
     // Step 4: Iterative simplification loops
+    let mut current_artifacts = artifact_geoms;
     for loop_idx in 0..params.n_loops {
-        neatify_loop(network, &artifact_geoms, params)?;
+        neatify_loop(network, &current_artifacts, params)?;
 
         // Re-detect artifacts for subsequent loops
         if loop_idx < params.n_loops - 1 {
@@ -91,8 +92,11 @@ pub fn neatify(
                 params.isoareal_threshold_circles_enclosed,
                 params.isoperimetric_threshold_circles_touching,
             );
-            if re_artifacts.is_none() {
-                break;
+            match re_artifacts {
+                Some((new_geoms, _new_fais, _new_threshold)) => {
+                    current_artifacts = new_geoms;
+                }
+                None => break,
             }
         }
     }
@@ -399,36 +403,54 @@ fn neatify_clusters(
             };
         }
 
-        // Find edges fully within the merged polygon
+        // Find edges fully within the merged polygon (to drop)
         let covered = find_covered_edges(&network.geometries, &merged, params.eps);
         if covered.is_empty() {
             continue;
         }
 
-        // Find boundary edges (edges on the boundary of the merged polygon)
-        let boundary_edges = find_boundary_edges(&network.geometries, &merged, params.eps);
+        // For large clusters, use boundary-segment decomposition at entry points
+        // (matching Python's nx_gx_cluster approach).
+        // For small clusters, use full boundary edges (simpler, more robust).
+        let use_decomposition = covered.len() > 20;
 
-        if !boundary_edges.is_empty() {
-            let boundary_geoms: Vec<GGeometry> = boundary_edges
-                .iter()
-                .map(|&i| Clone::clone(&network.geometries[i]))
-                .collect();
-
-            let (skeleton_edges, _) = geometry::voronoi_skeleton(
-                &boundary_geoms,
-                Some(&merged),
-                None,
-                params.max_segment_length,
-                None,
-                None,
-                params.clip_limit,
-                None,
-            );
-            if !skeleton_edges.is_empty() {
-                let cleaned = remove_dangles(&skeleton_edges, &merged, params.eps);
-                to_drop.extend(&covered);
-                to_add.extend(cleaned);
+        let (skeleton_edges, cleaned) = if use_decomposition {
+            cluster_skeleton_decomposed(
+                &network.geometries,
+                &merged,
+                params,
+            )
+        } else {
+            // Original approach: full boundary edges
+            let boundary_edges =
+                find_boundary_edges(&network.geometries, &merged, params.eps);
+            if boundary_edges.is_empty() {
+                (vec![], vec![])
+            } else {
+                let boundary_geoms: Vec<GGeometry> = boundary_edges
+                    .iter()
+                    .map(|&i| Clone::clone(&network.geometries[i]))
+                    .collect();
+                let (skel, _) = geometry::voronoi_skeleton(
+                    &boundary_geoms,
+                    Some(&merged),
+                    None,
+                    params.max_segment_length,
+                    None,
+                    None,
+                    params.clip_limit,
+                    None,
+                );
+                let cl = remove_dangles(&skel, &merged, params.eps);
+                (skel, cl)
             }
+        };
+
+
+        // Only replace if skeleton doesn't increase edge count significantly
+        if !skeleton_edges.is_empty() && cleaned.len() <= covered.len() + 3 {
+            to_drop.extend(&covered);
+            to_add.extend(cleaned);
         }
     }
 
@@ -602,6 +624,7 @@ fn process_nx_gx(
         groups.len()
     };
 
+
     // Drop ES edges
     to_drop.extend(&es_mask);
 
@@ -704,29 +727,109 @@ fn process_nx_gx(
         return;
     }
 
-    // === BRANCH: Multiple C edges → use skeleton ===
+    // === BRANCH: Multiple C edges → skeleton with filter/reconnect chain ===
+    // Mirrors Python BRANCH 1 in nx_gx: skeleton → filter_connections →
+    // reconnect → remove_dangles.
     if highest.len() > 1 {
-        let es_geoms: Vec<GGeometry> = es_mask
+        // Compute primes: shared boundary points between C edges
+        let primes = compute_c_primes(&highest_geoms);
+
+        // Compute conts_groups: C edges dissolved by connected component
+        let conts_groups = dissolve_by_components(&highest_geoms);
+
+        // Compute node degrees from full network for relevant_targets
+        let mut degree_map: HashMap<(i64, i64), usize> = HashMap::new();
+        for geom in geometries.iter() {
+            if let Ok(cs) = geom.get_coord_seq() {
+                let n = cs.size().unwrap_or(0);
+                if n < 2 {
+                    continue;
+                }
+                if let (Ok(x), Ok(y)) = (cs.get_x(0), cs.get_y(0)) {
+                    *degree_map.entry(coord_key(&[x, y])).or_default() += 1;
+                }
+                let last = n - 1;
+                if let (Ok(x), Ok(y)) = (cs.get_x(last), cs.get_y(last)) {
+                    *degree_map.entry(coord_key(&[x, y])).or_default() += 1;
+                }
+            }
+        }
+
+        // Relevant targets: nodes on C edges with degree > 3
+        let mut target_nodes: Vec<[f64; 2]> = Vec::new();
+        for node in &relevant_nodes {
+            let key = coord_key(node);
+            let is_on_c = {
+                let pt_wkt = format!("POINT ({} {})", node[0], node[1]);
+                if let Ok(pt) = GGeometry::new_from_wkt(&pt_wkt) {
+                    highest_geoms
+                        .iter()
+                        .any(|g| g.distance(&pt).unwrap_or(f64::INFINITY) < params.eps)
+                } else {
+                    false
+                }
+            };
+            if is_on_c && degree_map.get(&key).copied().unwrap_or(0) > 3 {
+                target_nodes.push(*node);
+            }
+        }
+        let snap_targets = node_coords_to_points(&target_nodes);
+
+        // Use ALL covered edges for skeleton (matching Python)
+        let all_covered_geoms: Vec<GGeometry> = covered_edges
             .iter()
             .map(|&i| Clone::clone(&geometries[i]))
             .collect();
-        // Snap to nodes with degree >= 4 (intersection nodes)
-        let snap_targets = node_coords_to_points(&relevant_nodes);
-        let c_geoms: Vec<GGeometry> = highest
-            .iter()
-            .map(|&i| Clone::clone(&geometries[i]))
-            .collect();
-        let (edgelines, _) = geometry::voronoi_skeleton(
-            &es_geoms,
+
+        let snap_to = if snap_targets.is_empty() {
+            None
+        } else {
+            Some(snap_targets.as_slice())
+        };
+
+        let (mut new_connections, _) = geometry::voronoi_skeleton(
+            &all_covered_geoms,
             Some(artifact),
-            Some(&snap_targets),
+            snap_to,
             params.max_segment_length,
             None,
-            Some(&c_geoms),
+            None,
             params.clip_limit,
             None,
         );
-        let cleaned = remove_dangles(&edgelines, artifact, params.eps);
+
+        // If skeleton is disconnected, retry with tiny clip_limit
+        // (Python: "limit_distance was too drastic and clipped the skeleton in pieces")
+        if new_connections.len() > 1 {
+            let skel_comps = nodes::get_components(&new_connections);
+            let n_skel_comps = skel_comps.iter().collect::<HashSet<_>>().len();
+            if n_skel_comps > 1 {
+                let (retry, _) = geometry::voronoi_skeleton(
+                    &all_covered_geoms,
+                    Some(artifact),
+                    snap_to,
+                    params.max_segment_length,
+                    None,
+                    None,
+                    params.eps,
+                    None,
+                );
+                if !retry.is_empty() {
+                    new_connections = retry;
+                }
+            }
+        }
+
+
+        new_connections =
+            filter_connections(&primes, &snap_targets, &conts_groups, &new_connections);
+
+        // Reconnect disconnected C groups
+        new_connections =
+            reconnect_c_groups(&conts_groups, &new_connections, artifact, params.eps);
+
+        // Remove dangles
+        let cleaned = remove_dangles(&new_connections, artifact, params.eps);
         to_add.extend(cleaned);
         return;
     }
@@ -879,6 +982,365 @@ fn make_shortest_to_edges(point: &[f64; 2], edges: &[GGeometry]) -> Option<GGeom
 /// Convert a coordinate to a hash key for deduplication.
 fn coord_key(c: &[f64; 2]) -> (i64, i64) {
     ((c[0] * 1e8) as i64, (c[1] * 1e8) as i64)
+}
+
+// ─── Cluster skeleton helpers ────────────────────────────────────────────
+
+/// Compute skeleton for a large cluster using boundary-segment decomposition.
+///
+/// 1. Clip all edges to the cluster boundary
+/// 2. Find crossing edges and entry points (nodes_to_keep)
+/// 3. Break boundary at entry points → groups
+/// 4. Dissolve groups → skeleton input
+///
+/// Returns (skeleton_edges, cleaned_edges).
+fn cluster_skeleton_decomposed(
+    geometries: &[GGeometry],
+    merged: &GGeometry,
+    params: &NeatifyParams,
+) -> (Vec<GGeometry>, Vec<GGeometry>) {
+    let boundary = match merged.boundary() {
+        Ok(b) => b,
+        Err(_) => return (vec![], vec![]),
+    };
+    let boundary_buf = match boundary.buffer(params.eps, 8) {
+        Ok(b) => b,
+        Err(_) => return (vec![], vec![]),
+    };
+
+    // 1. Clip ALL edges to cluster boundary → boundary segments
+    let mut boundary_segments: Vec<GGeometry> = Vec::new();
+    for geom in geometries.iter() {
+        if let Ok(clipped) = geom.intersection(&boundary_buf) {
+            explode_geometry(&clipped, &mut boundary_segments);
+        }
+    }
+    boundary_segments.retain(|g| g.length().unwrap_or(0.0) > 100.0 * params.eps);
+
+    if boundary_segments.is_empty() {
+        return (vec![], vec![]);
+    }
+
+    // 2. Find crossing edges (edges that cross the cluster boundary)
+    let merged_buf = match merged.buffer(params.eps, 8) {
+        Ok(b) => b,
+        Err(_) => Clone::clone(merged),
+    };
+    let mut crossing_union: Option<GGeometry> = None;
+    for geom in geometries.iter() {
+        if geom.crosses(&merged_buf).unwrap_or(false) {
+            crossing_union = match crossing_union {
+                None => Some(Clone::clone(geom)),
+                Some(prev) => prev.union(geom).ok(),
+            };
+        }
+    }
+
+    // 3. Find nodes_to_keep: boundary endpoints touching crossing edges
+    let mut nodes_to_keep_pts: Vec<GGeometry> = Vec::new();
+    if let Some(ref cu) = crossing_union {
+        for seg in &boundary_segments {
+            if let Ok(cs) = seg.get_coord_seq() {
+                let n = cs.size().unwrap_or(0);
+                if n < 2 {
+                    continue;
+                }
+                for pt_idx in [0, n - 1] {
+                    if let (Ok(x), Ok(y)) = (cs.get_x(pt_idx), cs.get_y(pt_idx)) {
+                        let pt_wkt = format!("POINT ({} {})", x, y);
+                        if let Ok(pt) = GGeometry::new_from_wkt(&pt_wkt) {
+                            if pt.distance(cu).unwrap_or(f64::INFINITY) < params.eps * 10.0 {
+                                nodes_to_keep_pts.push(pt);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. Subtract nodes_to_keep from boundary segments to break into groups
+    let skel_input = if !nodes_to_keep_pts.is_empty() {
+        let nodes_buf = union_all_geoms(&nodes_to_keep_pts)
+            .and_then(|u| u.buffer(params.eps, 8).ok());
+        if let Some(ref nbuf) = nodes_buf {
+            let mut split_segs: Vec<GGeometry> = Vec::new();
+            for seg in &boundary_segments {
+                if let Ok(diff) = seg.difference(nbuf) {
+                    explode_geometry(&diff, &mut split_segs);
+                }
+            }
+            split_segs.retain(|g| g.length().unwrap_or(0.0) > 100.0 * params.eps);
+            if split_segs.is_empty() {
+                boundary_segments
+            } else {
+                dissolve_by_components(&split_segs)
+            }
+        } else {
+            boundary_segments
+        }
+    } else {
+        boundary_segments
+    };
+
+    if skel_input.is_empty() || skel_input.len() < 2 {
+        return (vec![], vec![]);
+    }
+
+    // 5. Skeleton with tiny clip_limit and no snap targets
+    let no_snap: Vec<GGeometry> = vec![];
+    let (skeleton_edges, _) = geometry::voronoi_skeleton(
+        &skel_input,
+        Some(merged),
+        Some(&no_snap),
+        params.max_segment_length,
+        None,
+        None,
+        params.eps,
+        None,
+    );
+    let cleaned = remove_dangles(&skeleton_edges, merged, params.eps);
+    (skeleton_edges, cleaned)
+}
+
+// ─── Multi-C branch helpers ──────────────────────────────────────────────
+
+/// Union all geometries into a single geometry.
+fn union_all_geoms(geoms: &[GGeometry]) -> Option<GGeometry> {
+    if geoms.is_empty() {
+        return None;
+    }
+    let mut result = Clone::clone(&geoms[0]);
+    for geom in &geoms[1..] {
+        result = result.union(geom).ok()?;
+    }
+    Some(result)
+}
+
+/// Compute "primes" — boundary points shared between multiple C edges.
+/// These are junction points within the C edge network.
+///
+/// Mirrors Python: `bd_points = highest_hierarchy.boundary.explode();
+/// primes = bd_points[bd_points.duplicated()]`
+fn compute_c_primes(c_geoms: &[GGeometry]) -> Vec<GGeometry> {
+    let mut endpoint_counts: HashMap<(i64, i64), usize> = HashMap::new();
+    let mut endpoint_wkts: HashMap<(i64, i64), String> = HashMap::new();
+
+    for geom in c_geoms {
+        if let Ok(cs) = geom.get_coord_seq() {
+            let n = cs.size().unwrap_or(0);
+            if n < 2 {
+                continue;
+            }
+
+            // Start point
+            if let (Ok(x), Ok(y)) = (cs.get_x(0), cs.get_y(0)) {
+                let key = coord_key(&[x, y]);
+                *endpoint_counts.entry(key).or_default() += 1;
+                endpoint_wkts
+                    .entry(key)
+                    .or_insert_with(|| format!("POINT ({} {})", x, y));
+            }
+
+            // End point
+            let last = n - 1;
+            if let (Ok(x), Ok(y)) = (cs.get_x(last), cs.get_y(last)) {
+                let key = coord_key(&[x, y]);
+                *endpoint_counts.entry(key).or_default() += 1;
+                endpoint_wkts
+                    .entry(key)
+                    .or_insert_with(|| format!("POINT ({} {})", x, y));
+            }
+        }
+    }
+
+    endpoint_counts
+        .iter()
+        .filter(|&(_, &count)| count > 1)
+        .filter_map(|(key, _)| {
+            endpoint_wkts
+                .get(key)
+                .and_then(|wkt| GGeometry::new_from_wkt(wkt).ok())
+        })
+        .collect()
+}
+
+/// Dissolve geometries by connected component labels.
+/// Returns one merged (union) geometry per component.
+fn dissolve_by_components(geoms: &[GGeometry]) -> Vec<GGeometry> {
+    if geoms.is_empty() {
+        return vec![];
+    }
+
+    let labels = nodes::get_components(geoms);
+    let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (i, &label) in labels.iter().enumerate() {
+        groups.entry(label).or_default().push(i);
+    }
+
+    groups
+        .values()
+        .filter_map(|indices| {
+            if indices.len() == 1 {
+                Some(Clone::clone(&geoms[indices[0]]))
+            } else {
+                let mut merged = Clone::clone(&geoms[indices[0]]);
+                for &i in &indices[1..] {
+                    merged = merged.union(&geoms[i]).ok()?;
+                }
+                Some(merged)
+            }
+        })
+        .collect()
+}
+
+/// Create a shortest line between two geometries.
+fn make_shortest_line_between(a: &GGeometry, b: &GGeometry) -> Option<GGeometry> {
+    let cs = a.nearest_points(b).ok()?;
+    let x0 = cs.get_x(0).ok()?;
+    let y0 = cs.get_y(0).ok()?;
+    let x1 = cs.get_x(1).ok()?;
+    let y1 = cs.get_y(1).ok()?;
+    let dist = ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt();
+    if dist < 1e-10 {
+        return None;
+    }
+    GGeometry::new_from_wkt(&format!("LINESTRING ({} {}, {} {})", x0, y0, x1, y1)).ok()
+}
+
+/// Filter skeleton connections: when multiple connections hit the same C group,
+/// keep only the shortest one that reaches a target node.
+///
+/// Mirrors Python `filter_connections()`.
+fn filter_connections(
+    primes: &[GGeometry],
+    snap_targets: &[GGeometry],
+    conts_groups: &[GGeometry],
+    connections: &[GGeometry],
+) -> Vec<GGeometry> {
+    if connections.is_empty() || conts_groups.is_empty() {
+        return connections.to_vec();
+    }
+
+    // Build union of all targets (primes + snap targets)
+    let mut all_targets: Vec<GGeometry> = Vec::new();
+    all_targets.extend(primes.iter().map(|g| Clone::clone(g)));
+    all_targets.extend(snap_targets.iter().map(|g| Clone::clone(g)));
+    let targets_union = union_all_geoms(&all_targets);
+
+    let mut unwanted: HashSet<usize> = HashSet::new();
+    let mut keeping: Vec<GGeometry> = Vec::new();
+
+    for c_group in conts_groups {
+        // Find connections that intersect this C group
+        let intersecting_c: Vec<usize> = connections
+            .iter()
+            .enumerate()
+            .filter(|(_, conn)| conn.intersects(c_group).unwrap_or(false))
+            .map(|(i, _)| i)
+            .collect();
+
+        if intersecting_c.len() > 1 {
+            // Multiple connections to this C — find which ones reach targets
+            let reaching_targets: Vec<usize> = if let Some(ref tu) = targets_union {
+                intersecting_c
+                    .iter()
+                    .filter(|&&i| connections[i].intersects(tu).unwrap_or(false))
+                    .copied()
+                    .collect()
+            } else {
+                vec![]
+            };
+
+            if !reaching_targets.is_empty() {
+                // Keep only shortest connection that reaches a target
+                let shortest_idx = reaching_targets
+                    .iter()
+                    .min_by(|&&a, &&b| {
+                        let la = connections[a].length().unwrap_or(f64::INFINITY);
+                        let lb = connections[b].length().unwrap_or(f64::INFINITY);
+                        la.partial_cmp(&lb).unwrap_or(std::cmp::Ordering::Equal)
+                    })
+                    .copied();
+
+                // Mark all intersecting-C as unwanted
+                for &i in &intersecting_c {
+                    unwanted.insert(i);
+                }
+                // Add back the shortest
+                if let Some(idx) = shortest_idx {
+                    keeping.push(Clone::clone(&connections[idx]));
+                }
+            } else {
+                // Fork case: multiple C connections, none reaching targets
+                // Mark all as unwanted — reconnect will recover if needed
+                for &i in &intersecting_c {
+                    unwanted.insert(i);
+                }
+            }
+        }
+    }
+
+    let mut result: Vec<GGeometry> = connections
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| !unwanted.contains(i))
+        .map(|(_, g)| Clone::clone(g))
+        .collect();
+    result.extend(keeping);
+    result
+}
+
+/// Check for disconnected C groups and reconnect via shortest lines.
+///
+/// Mirrors Python `reconnect()`.
+fn reconnect_c_groups(
+    conts_groups: &[GGeometry],
+    connections: &[GGeometry],
+    artifact: &GGeometry,
+    eps: f64,
+) -> Vec<GGeometry> {
+    if connections.is_empty() || conts_groups.is_empty() {
+        return connections.to_vec();
+    }
+
+    // Dissolve connections by connected component
+    let conn_dissolved = dissolve_by_components(connections);
+
+    let mut additions = Vec::new();
+    for c_group in conts_groups {
+        let c_buf = c_group.buffer(eps, 8).ok();
+        let all_intersect = conn_dissolved.iter().all(|comp| {
+            if let Some(ref buf) = c_buf {
+                comp.intersects(buf).unwrap_or(false)
+            } else {
+                comp.intersects(c_group).unwrap_or(false)
+            }
+        });
+
+        if !all_intersect {
+            // Some components don't reach this C — add shortest connections
+            for comp in &conn_dissolved {
+                let intersects = if let Some(ref buf) = c_buf {
+                    comp.intersects(buf).unwrap_or(false)
+                } else {
+                    comp.intersects(c_group).unwrap_or(false)
+                };
+
+                if !intersects {
+                    if let Some(sl) = make_shortest_line_between(comp, c_group) {
+                        if geometry::is_within(&sl, artifact, eps) {
+                            additions.push(sl);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let mut result = connections.to_vec();
+    result.extend(additions);
+    result
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
