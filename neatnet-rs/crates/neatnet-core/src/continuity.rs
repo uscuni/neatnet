@@ -2,14 +2,17 @@
 //!
 //! Ports the `momepy.COINS` implementation: given a set of LineString
 //! geometries and an angle threshold, assigns each edge to a "stroke"
-//! group by greedily pairing edges that share an endpoint with the
-//! smallest deflection angle, provided it is below the threshold.
+//! group by greedily pairing edges at shared endpoints with the
+//! highest interior angle (most collinear continuation), provided
+//! the angle exceeds the threshold.
+//!
+//! Key design: each segment has independent best-links at its p1 (start)
+//! and p2 (end) endpoints. Links are cross-checked for reciprocity, then
+//! groups are formed by chain-walking along confirmed links.
 
 use std::collections::HashMap;
-use std::f64::consts::PI;
 
 use geos::{Geom, Geometry as GGeometry};
-use petgraph::unionfind::UnionFind;
 
 /// Result of COINS analysis for a collection of edges.
 #[derive(Debug, Clone)]
@@ -22,13 +25,19 @@ pub struct CoinsResult {
     pub stroke_length: Vec<f64>,
     /// Number of edges in each edge's stroke group.
     pub stroke_count: Vec<usize>,
+    /// Debug: number of segments
+    pub n_segments: usize,
+    /// Debug: number of confirmed p1 links
+    pub n_p1_confirmed: usize,
+    /// Debug: number of confirmed p2 links
+    pub n_p2_confirmed: usize,
 }
 
 /// Run the COINS algorithm on a set of LineString geometries.
 ///
 /// # Arguments
 /// * `geometries` – slice of GEOS LineString geometries
-/// * `angle_threshold` – maximum deflection angle (degrees) for pairing (default 120°)
+/// * `angle_threshold` – minimum interior angle (degrees) for pairing
 ///
 /// # Returns
 /// A `CoinsResult` with per-edge stroke assignments.
@@ -40,99 +49,249 @@ pub fn coins(geometries: &[GGeometry], angle_threshold: f64) -> CoinsResult {
             is_end: vec![],
             stroke_length: vec![],
             stroke_count: vec![],
+            n_segments: 0,
+            n_p1_confirmed: 0,
+            n_p2_confirmed: 0,
         };
     }
 
-    // 1. Extract endpoints for each edge and optionally split at
-    //    intermediate coordinates (flow_mode=True equivalent).
-    //    For each edge, store pairs of (start_coord, end_coord) for
-    //    each two-point segment.
+    // 1. Split edges into 2-point segments.
     let segments = extract_segments(geometries);
+    let n_segs = segments.len();
 
-    // 2. Build an endpoint→segment adjacency map.
-    //    Key: rounded coordinate (to handle floating point), Value: list of segment indices
-    let mut endpoint_map: HashMap<CoordKey, Vec<usize>> = HashMap::new();
-    for (seg_idx, seg) in segments.iter().enumerate() {
-        let start_key = coord_key(seg.start);
-        let end_key = coord_key(seg.end);
-        endpoint_map.entry(start_key).or_default().push(seg_idx);
-        endpoint_map.entry(end_key).or_default().push(seg_idx);
+    // 2. Build endpoint → segment adjacency.
+    //    p1_neighbors[i] = segments sharing the same start point as segment i
+    //    p2_neighbors[i] = segments sharing the same end point as segment i
+    let mut point_to_segs: HashMap<CoordKey, Vec<usize>> = HashMap::new();
+    for (idx, seg) in segments.iter().enumerate() {
+        point_to_segs
+            .entry(coord_key(seg.start))
+            .or_default()
+            .push(idx);
+        point_to_segs
+            .entry(coord_key(seg.end))
+            .or_default()
+            .push(idx);
     }
 
-    // 3. Greedy best-link pairing: at each shared endpoint, pair segments
-    //    with the smallest deflection angle (if below threshold).
-    let mut uf = UnionFind::new(segments.len());
-    let threshold_rad = angle_threshold * PI / 180.0;
+    let mut p1_neighbors: Vec<Vec<usize>> = vec![vec![]; n_segs];
+    let mut p2_neighbors: Vec<Vec<usize>> = vec![vec![]; n_segs];
 
-    for (_coord, seg_indices) in &endpoint_map {
-        if seg_indices.len() < 2 {
+    for (idx, seg) in segments.iter().enumerate() {
+        let sk = coord_key(seg.start);
+        if let Some(others) = point_to_segs.get(&sk) {
+            p1_neighbors[idx] = others.iter().copied().filter(|&j| j != idx).collect();
+        }
+        let ek = coord_key(seg.end);
+        if let Some(others) = point_to_segs.get(&ek) {
+            p2_neighbors[idx] = others.iter().copied().filter(|&j| j != idx).collect();
+        }
+    }
+
+    // 3. Compute angle pairs and find best link at each endpoint.
+    //    angle_pairs[(i, j)] = interior angle between segments i and j
+    let mut angle_pairs: HashMap<(usize, usize), f64> = HashMap::new();
+
+    // best_p1[i] = (best_partner_idx, best_angle) at p1, or None
+    let mut best_p1: Vec<Option<(usize, f64)>> = vec![None; n_segs];
+    let mut best_p2: Vec<Option<(usize, f64)>> = vec![None; n_segs];
+
+    for edge in 0..n_segs {
+        // Best link at p1 (start endpoint)
+        let mut p1_best_angle = 0.0_f64;
+        let mut p1_best_idx: Option<usize> = None;
+        let p1_key = coord_key(segments[edge].start);
+
+        for &link in &p1_neighbors[edge] {
+            let angle = compute_angle(&segments[edge], &segments[link], &p1_key);
+            angle_pairs.insert((edge, link), angle);
+            // Python: max((val, idx) for (idx, val) in enumerate(...))
+            // picks maximum angle; on tie, picks higher index
+            if angle > p1_best_angle || (angle == p1_best_angle && p1_best_idx.map_or(true, |prev| link > prev)) {
+                p1_best_angle = angle;
+                p1_best_idx = Some(link);
+            }
+        }
+
+        if let Some(idx) = p1_best_idx {
+            best_p1[edge] = Some((idx, p1_best_angle));
+        }
+
+        // Best link at p2 (end endpoint)
+        let mut p2_best_angle = 0.0_f64;
+        let mut p2_best_idx: Option<usize> = None;
+        let p2_key = coord_key(segments[edge].end);
+
+        for &link in &p2_neighbors[edge] {
+            let angle = *angle_pairs
+                .get(&(edge, link))
+                .unwrap_or(&compute_angle(&segments[edge], &segments[link], &p2_key));
+            // Store if not already
+            angle_pairs.entry((edge, link)).or_insert(angle);
+            if angle > p2_best_angle || (angle == p2_best_angle && p2_best_idx.map_or(true, |prev| link > prev)) {
+                p2_best_angle = angle;
+                p2_best_idx = Some(link);
+            }
+        }
+
+        if let Some(idx) = p2_best_idx {
+            best_p2[edge] = Some((idx, p2_best_angle));
+        }
+    }
+
+    // 4. Cross-check links: confirm reciprocity and angle threshold.
+    //    p1_final[i] = confirmed partner at p1, or None ("line_break")
+    //    p2_final[i] = confirmed partner at p2, or None ("line_break")
+    let mut p1_final: Vec<Option<usize>> = vec![None; n_segs];
+    let mut p2_final: Vec<Option<usize>> = vec![None; n_segs];
+
+    for edge in 0..n_segs {
+        // Check p1
+        if let Some((bp1, _)) = best_p1[edge] {
+            // bp1 must also consider `edge` as its best at whichever endpoint
+            let reciprocal = best_p1[bp1].map_or(false, |(b, _)| b == edge)
+                || best_p2[bp1].map_or(false, |(b, _)| b == edge);
+            let angle = angle_pairs.get(&(edge, bp1)).copied().unwrap_or(0.0);
+            if reciprocal && angle > angle_threshold {
+                p1_final[edge] = Some(bp1);
+            }
+        }
+
+        // Check p2
+        if let Some((bp2, _)) = best_p2[edge] {
+            let reciprocal = best_p1[bp2].map_or(false, |(b, _)| b == edge)
+                || best_p2[bp2].map_or(false, |(b, _)| b == edge);
+            let angle = angle_pairs.get(&(edge, bp2)).copied().unwrap_or(0.0);
+            if reciprocal && angle > angle_threshold {
+                p2_final[edge] = Some(bp2);
+            }
+        }
+    }
+
+    // 5. Merge by chain-walking (matches Python's _merge_lines_loop).
+    //    Each segment can connect at most once at each end, forming chains.
+    let mut seg_to_group: Vec<Option<usize>> = vec![None; n_segs];
+    let mut next_group = 0usize;
+
+    for start in 0..n_segs {
+        if seg_to_group[start].is_some() {
             continue;
         }
-        // For each segment at this node, find its best partner
-        let mut best_pairs: Vec<(usize, usize, f64)> = Vec::new();
 
-        for i in 0..seg_indices.len() {
-            let mut best_angle = f64::MAX;
-            let mut best_partner = None;
+        // Walk from this segment along p1_final/p2_final links
+        let mut group_members = vec![start];
+        let mut visited = vec![false; n_segs];
+        visited[start] = true;
 
-            for j in 0..seg_indices.len() {
-                if i == j {
-                    continue;
-                }
-                let si = seg_indices[i];
-                let sj = seg_indices[j];
-                let angle = deflection_angle(&segments[si], &segments[sj], _coord);
-                if angle < best_angle {
-                    best_angle = angle;
-                    best_partner = Some(j);
-                }
+        // Walk forward (following p1_final then p2_final)
+        let mut current = start;
+        loop {
+            let next = if let Some(p) = p1_final[current] {
+                if !visited[p] { Some(p) } else { None }
+            } else {
+                None
             }
-
-            if let Some(partner) = best_partner {
-                if best_angle < threshold_rad {
-                    let si = seg_indices[i];
-                    let sj = seg_indices[partner];
-                    best_pairs.push((si, sj, best_angle));
+            .or_else(|| {
+                if let Some(p) = p2_final[current] {
+                    if !visited[p] { Some(p) } else { None }
+                } else {
+                    None
                 }
+            });
+
+            match next {
+                Some(n) => {
+                    visited[n] = true;
+                    group_members.push(n);
+                    current = n;
+                }
+                None => break,
             }
         }
 
-        // Only pair if both segments agree on each other as best partner
-        for &(si, sj, _) in &best_pairs {
-            // Check reciprocity: sj's best partner at this node should be si
-            let reciprocal = best_pairs
+        // Walk backward from start (following p2_final then p1_final)
+        current = start;
+        loop {
+            let next = if let Some(p) = p2_final[current] {
+                if !visited[p] { Some(p) } else { None }
+            } else {
+                None
+            }
+            .or_else(|| {
+                if let Some(p) = p1_final[current] {
+                    if !visited[p] { Some(p) } else { None }
+                } else {
+                    None
+                }
+            });
+
+            match next {
+                Some(n) => {
+                    visited[n] = true;
+                    group_members.push(n);
+                    current = n;
+                }
+                None => break,
+            }
+        }
+
+        let gid = next_group;
+        next_group += 1;
+        for &m in &group_members {
+            seg_to_group[m] = Some(gid);
+        }
+    }
+
+    // 6. Map segment groups back to original edge indices.
+    //    Use the LAST segment's group for each edge (matches Python's dict overwrite).
+    let mut edge_to_seg_groups: Vec<Vec<usize>> = vec![vec![]; n];
+    for (seg_idx, seg) in segments.iter().enumerate() {
+        let gid = seg_to_group[seg_idx].unwrap_or(0);
+        edge_to_seg_groups[seg.edge_idx].push(gid);
+    }
+
+    // Collect all (edge_idx, group) pairs with last-wins semantics
+    // matching Python's inv_edges dict comprehension
+    let mut group_to_edges: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (seg_idx, seg) in segments.iter().enumerate() {
+        let gid = seg_to_group[seg_idx].unwrap_or(0);
+        group_to_edges.entry(gid).or_default();
+    }
+
+    // Build merged groups: Python deduplicates by sorted segment lists
+    // and collects original edge indices per merged group
+    let mut merged_groups: Vec<Vec<usize>> = Vec::new(); // group → set of edge indices
+    let mut seen_groups: HashMap<Vec<usize>, usize> = HashMap::new();
+
+    for start_seg in 0..n_segs {
+        // Walk from this segment to build its group (same as above but we cache)
+        let gid = seg_to_group[start_seg].unwrap_or(0);
+        // Collect all segments in this group
+        if !seen_groups.contains_key(&vec![gid]) {
+            // Find all segments with this group id
+            let seg_members: Vec<usize> = (0..n_segs)
+                .filter(|&s| seg_to_group[s] == Some(gid))
+                .collect();
+            let edge_members: Vec<usize> = seg_members
                 .iter()
-                .any(|&(a, b, _)| a == sj && b == si);
-            if reciprocal {
-                uf.union(si, sj);
-            }
+                .map(|&s| segments[s].edge_idx)
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
+                .collect();
+            seen_groups.insert(vec![gid], merged_groups.len());
+            merged_groups.push(edge_members);
         }
     }
 
-    // 4. Map segment groups back to original edge indices.
-    //    Each original edge may have been split into multiple segments;
-    //    we need the group of the *original edge* (union of its segments' groups).
-    let seg_labels: Vec<usize> = (0..segments.len()).map(|i| uf.find(i)).collect();
-
-    // Build segment_group -> canonical group label
-    let mut group_remap: HashMap<usize, usize> = HashMap::new();
-    let mut next_group = 0usize;
+    // Assign edge → canonical group via last-wins (matching Python inv_edges)
     let mut edge_groups = vec![0usize; n];
-
-    for edge_idx in 0..n {
-        // Find the segment(s) belonging to this edge
-        // and use the first segment's group as the edge group
-        let first_seg = edge_segment_start(edge_idx, geometries);
-        let raw_group = seg_labels[first_seg];
-        let group = *group_remap.entry(raw_group).or_insert_with(|| {
-            let g = next_group;
-            next_group += 1;
-            g
-        });
-        edge_groups[edge_idx] = group;
+    for (group_idx, edge_members) in merged_groups.iter().enumerate() {
+        for &eidx in edge_members {
+            edge_groups[eidx] = group_idx;
+        }
     }
 
-    // 5. Compute per-group aggregates.
+    // 7. Compute per-group aggregates.
     let mut group_lengths: HashMap<usize, f64> = HashMap::new();
     let mut group_counts: HashMap<usize, usize> = HashMap::new();
     for (edge_idx, &group) in edge_groups.iter().enumerate() {
@@ -141,10 +300,10 @@ pub fn coins(geometries: &[GGeometry], angle_threshold: f64) -> CoinsResult {
         *group_counts.entry(group).or_default() += 1;
     }
 
-    // 6. Determine which edges are stroke-ends.
-    //    An edge is a stroke-end if one of its endpoints connects to zero
-    //    other edges in the same group, or the edge is a singleton stroke.
-    let is_end = compute_stroke_ends(&edge_groups, geometries, &endpoint_map, &segments);
+    // 8. Determine stroke-ends.
+    let is_end = compute_stroke_ends(
+        &edge_groups, geometries, &p1_final, &p2_final, &segments,
+    );
 
     let stroke_length: Vec<f64> = edge_groups
         .iter()
@@ -155,11 +314,17 @@ pub fn coins(geometries: &[GGeometry], angle_threshold: f64) -> CoinsResult {
         .map(|g| *group_counts.get(g).unwrap_or(&0))
         .collect();
 
+    let n_p1_confirmed = p1_final.iter().filter(|x| x.is_some()).count();
+    let n_p2_confirmed = p2_final.iter().filter(|x| x.is_some()).count();
+
     CoinsResult {
         group: edge_groups,
         is_end,
         stroke_length,
         stroke_count,
+        n_segments: n_segs,
+        n_p1_confirmed,
+        n_p2_confirmed,
     }
 }
 
@@ -174,22 +339,22 @@ struct Segment {
     edge_idx: usize,
 }
 
-/// Coordinate key for hashing (rounded to avoid float issues).
+/// Coordinate key for hashing using exact float bit equality.
+/// This matches Python's exact string comparison for coordinate matching.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct CoordKey {
-    x: i64,
-    y: i64,
+    x: u64,
+    y: u64,
 }
 
 fn coord_key(c: [f64; 2]) -> CoordKey {
-    // Round to ~1e-8 precision
     CoordKey {
-        x: (c[0] * 1e8).round() as i64,
-        y: (c[1] * 1e8).round() as i64,
+        x: c[0].to_bits(),
+        y: c[1].to_bits(),
     }
 }
 
-/// Extract two-point segments from all edges (flow_mode=True).
+/// Extract two-point segments from all edges.
 /// Each edge with N coordinates produces N-1 segments.
 fn extract_segments(geometries: &[GGeometry]) -> Vec<Segment> {
     let mut segments = Vec::new();
@@ -218,59 +383,68 @@ fn extract_segments(geometries: &[GGeometry]) -> Vec<Segment> {
     segments
 }
 
-/// Get the global segment index for the first segment of an edge.
-fn edge_segment_start(edge_idx: usize, geometries: &[GGeometry]) -> usize {
-    let mut offset = 0;
-    for (i, geom) in geometries.iter().enumerate() {
-        if i == edge_idx {
-            return offset;
-        }
-        let n = geom
-            .get_coord_seq()
-            .and_then(|cs| cs.size())
-            .unwrap_or(0);
-        offset += if n > 1 { n - 1 } else { 0 };
-    }
-    offset
-}
+/// Compute interior angle between two segments sharing a node.
+///
+/// Returns degrees in [0, 180]:
+/// - 180 for collinear same-direction continuation
+/// - 90 for perpendicular
+/// - 0 for opposite directions or no shared node
+///
+/// Matches Python momepy `_angle_between_two_lines()`.
+fn compute_angle(s1: &Segment, s2: &Segment, node: &CoordKey) -> f64 {
+    // Get the 4 points
+    let a = s1.start;
+    let b = s1.end;
+    let c = s2.start;
+    let d = s2.end;
 
-/// Compute deflection angle between two segments meeting at `node`.
-/// Returns angle in radians in [0, π].
-fn deflection_angle(s1: &Segment, s2: &Segment, node: &CoordKey) -> f64 {
-    let k1 = coord_key(s1.start);
-    let k2 = coord_key(s1.end);
-    let k3 = coord_key(s2.start);
-    let k4 = coord_key(s2.end);
+    // Find the shared point (origin) and two other points
+    let points = [a, b, c, d];
+    let keys = [coord_key(a), coord_key(b), coord_key(c), coord_key(d)];
 
-    // Determine the "away" direction from the shared node for each segment
-    let (dx1, dy1) = if k2 == *node {
-        (s1.start[0] - s1.end[0], s1.start[1] - s1.end[1])
-    } else if k1 == *node {
-        (s1.end[0] - s1.start[0], s1.end[1] - s1.start[1])
+    // Origin is the point that appears twice (matching `node`)
+    let origin_idx = keys.iter().position(|k| k == node);
+    let origin_idx = match origin_idx {
+        Some(i) => i,
+        None => return 0.0,
+    };
+    let origin = points[origin_idx];
+
+    // The other point from the same segment as origin
+    let partner_of_origin = if origin_idx < 2 {
+        // origin is in s1 (a or b), so the "other" from s1 is the non-origin
+        if origin_idx == 0 { b } else { a }
     } else {
-        return f64::MAX;
+        // origin is in s2 (c or d), so the "other" from s2 is the non-origin
+        if origin_idx == 2 { d } else { c }
     };
 
-    let (dx2, dy2) = if k3 == *node {
-        (s2.end[0] - s2.start[0], s2.end[1] - s2.start[1])
-    } else if k4 == *node {
-        (s2.start[0] - s2.end[0], s2.start[1] - s2.end[1])
+    // The other unique point (from the other segment)
+    // Find which point in the OTHER segment matches the node
+    let other_point = if origin_idx < 2 {
+        // origin is in s1, find point in s2 that isn't the shared node
+        if coord_key(c) == *node { d } else { c }
     } else {
-        return f64::MAX;
+        // origin is in s2, find point in s1 that isn't the shared node
+        if coord_key(a) == *node { b } else { a }
     };
 
-    // Angle between the two direction vectors
-    let dot = dx1 * dx2 + dy1 * dy2;
-    let mag1 = (dx1 * dx1 + dy1 * dy1).sqrt();
-    let mag2 = (dx2 * dx2 + dy2 * dy2).sqrt();
+    // Vectors from origin to the two non-shared points
+    let v1 = [partner_of_origin[0] - origin[0], partner_of_origin[1] - origin[1]];
+    let v2 = [other_point[0] - origin[0], other_point[1] - origin[1]];
+
+    let dot = v1[0] * v2[0] + v1[1] * v2[1];
+    let mag1 = (v1[0] * v1[0] + v1[1] * v1[1]).sqrt();
+    let mag2 = (v2[0] * v2[0] + v2[1] * v2[1]).sqrt();
 
     if mag1 < 1e-12 || mag2 < 1e-12 {
-        return f64::MAX;
+        return 0.0;
     }
 
-    let cos_angle = (dot / (mag1 * mag2)).clamp(-1.0, 1.0);
-    // Deflection = π - angle (we want the deviation from straight)
-    PI - cos_angle.acos()
+    // Round to 6 decimal places like Python to match precision
+    let cos_theta = (dot / (mag1 * mag2)).clamp(-1.0, 1.0);
+    let cos_rounded = (cos_theta * 1e6).round() / 1e6;
+    cos_rounded.acos().to_degrees()
 }
 
 /// Get the length of a geometry.
@@ -279,66 +453,22 @@ fn geometry_length(geometries: &[GGeometry], idx: usize) -> f64 {
 }
 
 /// Determine which edges are stroke-ends.
+/// An edge is a stroke-end if any of its segments has a "line_break" at p1 or p2.
 fn compute_stroke_ends(
     edge_groups: &[usize],
-    geometries: &[GGeometry],
-    _endpoint_map: &HashMap<CoordKey, Vec<usize>>,
-    _segments: &[Segment],
+    _geometries: &[GGeometry],
+    p1_final: &[Option<usize>],
+    p2_final: &[Option<usize>],
+    segments: &[Segment],
 ) -> Vec<bool> {
     let n = edge_groups.len();
     let mut is_end = vec![false; n];
 
-    // Build edge endpoint coordinates
-    for edge_idx in 0..n {
-        let Ok(cs) = geometries[edge_idx].get_coord_seq() else {
-            is_end[edge_idx] = true;
-            continue;
-        };
-        let Ok(npts) = cs.size() else {
-            is_end[edge_idx] = true;
-            continue;
-        };
-        if npts < 2 {
-            is_end[edge_idx] = true;
-            continue;
-        }
-
-        let group = edge_groups[edge_idx];
-
-        // Check start endpoint
-        let (Ok(sx), Ok(sy)) = (cs.get_x(0), cs.get_y(0)) else {
-            is_end[edge_idx] = true;
-            continue;
-        };
-        let start_key = coord_key([sx, sy]);
-
-        // Check end endpoint
-        let (Ok(ex), Ok(ey)) = (cs.get_x(npts - 1), cs.get_y(npts - 1)) else {
-            is_end[edge_idx] = true;
-            continue;
-        };
-        let end_key = coord_key([ex, ey]);
-
-        // An edge is a stroke-end if at either endpoint there is no other
-        // edge from the same group
-        let start_same_group = _endpoint_map
-            .get(&start_key)
-            .map(|segs| {
-                segs.iter()
-                    .any(|&si| _segments[si].edge_idx != edge_idx && edge_groups.get(_segments[si].edge_idx) == Some(&group))
-            })
-            .unwrap_or(false);
-
-        let end_same_group = _endpoint_map
-            .get(&end_key)
-            .map(|segs| {
-                segs.iter()
-                    .any(|&si| _segments[si].edge_idx != edge_idx && edge_groups.get(_segments[si].edge_idx) == Some(&group))
-            })
-            .unwrap_or(false);
-
-        if !start_same_group || !end_same_group {
-            is_end[edge_idx] = true;
+    // An edge is a stroke-end if any of its segments has a line_break
+    // (None in p1_final or p2_final)
+    for (seg_idx, seg) in segments.iter().enumerate() {
+        if p1_final[seg_idx].is_none() || p2_final[seg_idx].is_none() {
+            is_end[seg.edge_idx] = true;
         }
     }
 
@@ -387,12 +517,50 @@ mod tests {
     }
 
     #[test]
-    fn test_coins_perpendicular() {
-        // Two perpendicular segments should NOT be grouped (90° deflection > threshold
-        // only if threshold is small enough)
+    fn test_coins_perpendicular_merges_low_threshold() {
+        // Perpendicular segments: interior angle = 90°.
+        // With threshold=30°, 90° > 30° → they SHOULD merge.
         let g1 = make_line(&[[0.0, 0.0], [1.0, 0.0]]);
         let g2 = make_line(&[[1.0, 0.0], [1.0, 1.0]]);
-        let result = coins(&[g1, g2], 30.0); // strict threshold
+        let result = coins(&[g1, g2], 30.0);
+        assert_eq!(result.group[0], result.group[1]);
+    }
+
+    #[test]
+    fn test_coins_perpendicular_splits_high_threshold() {
+        // Perpendicular segments: interior angle = 90°.
+        // With threshold=120°, 90° < 120° → they should NOT merge.
+        let g1 = make_line(&[[0.0, 0.0], [1.0, 0.0]]);
+        let g2 = make_line(&[[1.0, 0.0], [1.0, 1.0]]);
+        let result = coins(&[g1, g2], 120.0);
         assert_ne!(result.group[0], result.group[1]);
+    }
+
+    #[test]
+    fn test_coins_t_junction() {
+        // T-junction: A--B--C with D going up from B
+        // A-B-C should form one stroke, D should be separate
+        let a_b = make_line(&[[0.0, 0.0], [1.0, 0.0]]);
+        let b_c = make_line(&[[1.0, 0.0], [2.0, 0.0]]);
+        let b_d = make_line(&[[1.0, 0.0], [1.0, 1.0]]);
+        let result = coins(&[a_b, b_c, b_d], 120.0);
+        // A-B and B-C are collinear (180°) → should merge
+        assert_eq!(result.group[0], result.group[1]);
+        // B-D is perpendicular (90° < 120°) → should NOT merge with A-B-C
+        assert_ne!(result.group[0], result.group[2]);
+    }
+
+    #[test]
+    fn test_coins_chain_no_transitive() {
+        // A-B, B-C, C-D where B-C angle is below threshold
+        // A-B should NOT merge with C-D even though they're connected through B-C
+        let a_b = make_line(&[[0.0, 0.0], [1.0, 0.0]]);
+        let b_c = make_line(&[[1.0, 0.0], [1.0, 1.0]]); // 90° turn
+        let c_d = make_line(&[[1.0, 1.0], [2.0, 1.0]]);
+        let result = coins(&[a_b, b_c, c_d], 120.0);
+        // A-B to B-C is 90° < 120° → don't merge
+        // B-C to C-D is 90° < 120° → don't merge
+        assert_ne!(result.group[0], result.group[1]);
+        assert_ne!(result.group[1], result.group[2]);
     }
 }

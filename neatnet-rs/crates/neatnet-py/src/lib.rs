@@ -59,6 +59,9 @@ fn coins(
         dict.set_item("is_end", &result.is_end)?;
         dict.set_item("stroke_length", &result.stroke_length)?;
         dict.set_item("stroke_count", &result.stroke_count)?;
+        dict.set_item("n_segments", result.n_segments)?;
+        dict.set_item("n_p1_confirmed", result.n_p1_confirmed)?;
+        dict.set_item("n_p2_confirmed", result.n_p2_confirmed)?;
         Ok(dict.into())
     })
 }
