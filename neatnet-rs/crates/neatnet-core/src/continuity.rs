@@ -328,6 +328,132 @@ pub fn coins(geometries: &[GGeometry], angle_threshold: f64) -> CoinsResult {
     }
 }
 
+/// CES classification info for a single artifact polygon.
+#[derive(Debug, Clone)]
+pub struct CesInfo {
+    /// Total number of unique stroke groups touching this artifact.
+    pub stroke_count: usize,
+    /// Number of Continuing strokes (pass through the artifact).
+    pub c: usize,
+    /// Number of Ending strokes (end inside the artifact).
+    pub e: usize,
+    /// Number of Single strokes (entirely contained in the artifact).
+    pub s: usize,
+}
+
+/// Classify strokes within artifact polygons using CES typology.
+///
+/// For each artifact polygon, determines how many strokes are:
+/// - **C** (Continuing): stroke continues before and after the artifact
+/// - **E** (Ending): stroke continues only at one end
+/// - **S** (Single): stroke does not continue beyond the artifact
+///
+/// Requires COINS results for the full network and a spatial index.
+///
+/// Mirrors Python `get_stroke_info()`.
+pub fn get_stroke_info(
+    artifact_geoms: &[geos::Geometry],
+    street_geoms: &[geos::Geometry],
+    coins_result: &CoinsResult,
+) -> Vec<CesInfo> {
+    let tree = crate::spatial::build_rtree(street_geoms);
+
+    let mut result = Vec::with_capacity(artifact_geoms.len());
+
+    for artifact in artifact_geoms {
+        // Find edges covered by this artifact
+        let candidates = crate::nodes::envelope_query_indices_pub(&tree, artifact);
+        let mut covered_edges: Vec<usize> = Vec::new();
+        for idx in candidates {
+            // Check if edge is covered by (within) the artifact
+            if street_geoms[idx].covered_by(artifact).unwrap_or(false) {
+                covered_edges.push(idx);
+            }
+        }
+
+        if covered_edges.is_empty() {
+            result.push(CesInfo {
+                stroke_count: 0,
+                c: 0,
+                e: 0,
+                s: 0,
+            });
+            continue;
+        }
+
+        // Get unique groups among covered edges
+        let covered_groups: std::collections::HashSet<usize> =
+            covered_edges.iter().map(|&i| coins_result.group[i]).collect();
+        let stroke_count = covered_groups.len();
+
+        // Roundabout special case: if all covered edges belong to the same group
+        // and that group is entirely inside the artifact
+        if covered_groups.len() == 1 {
+            let group = *covered_groups.iter().next().unwrap();
+            let total_in_group = coins_result.stroke_count[covered_edges[0]];
+            if covered_edges.len() == total_in_group {
+                // All edges of this group are inside → Single
+                result.push(CesInfo {
+                    stroke_count,
+                    c: 0,
+                    e: 0,
+                    s: 1,
+                });
+                continue;
+            }
+        }
+
+        // Find end edges among covered edges
+        let end_edges: Vec<usize> = covered_edges
+            .iter()
+            .filter(|&&i| coins_result.is_end[i])
+            .copied()
+            .collect();
+        let end_groups: std::collections::HashSet<usize> =
+            end_edges.iter().map(|&i| coins_result.group[i]).collect();
+
+        // Groups not in end_groups are Continuing (C)
+        let c_count = covered_groups.iter().filter(|g| !end_groups.contains(g)).count();
+
+        // For end groups, classify as S or E
+        let mut s_count = 0;
+        let mut e_count = 0;
+        let mut visited_groups = std::collections::HashSet::new();
+
+        for &edge_idx in &end_edges {
+            let group = coins_result.group[edge_idx];
+            if visited_groups.contains(&group) {
+                continue;
+            }
+
+            let total_in_group = coins_result.stroke_count[edge_idx];
+            let count_in_artifact = covered_edges
+                .iter()
+                .filter(|&&i| coins_result.group[i] == group)
+                .count();
+
+            if count_in_artifact == total_in_group {
+                // All edges of this group are inside → Single
+                s_count += 1;
+                visited_groups.insert(group);
+            } else {
+                // Only some edges are inside → Ending
+                // Don't add to visited — may be disjoint within the artifact
+                e_count += 1;
+            }
+        }
+
+        result.push(CesInfo {
+            stroke_count,
+            c: c_count,
+            e: e_count,
+            s: s_count,
+        });
+    }
+
+    result
+}
+
 // ─── Internal helpers ───────────────────────────────────────────────────────
 
 /// A two-point segment extracted from an edge.

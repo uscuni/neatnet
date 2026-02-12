@@ -885,6 +885,15 @@ pub fn consolidate_nodes(
 }
 
 /// Query an R-tree for geometry indices whose envelopes intersect a given geometry.
+/// Public variant for use from other modules.
+pub fn envelope_query_indices_pub(
+    tree: &rstar::RTree<crate::spatial::IndexedEnvelope>,
+    geom: &GGeometry,
+) -> Vec<usize> {
+    envelope_query_indices(tree, geom)
+}
+
+/// Query an R-tree for geometry indices whose envelopes intersect a given geometry.
 fn envelope_query_indices(
     tree: &rstar::RTree<crate::spatial::IndexedEnvelope>,
     geom: &GGeometry,
