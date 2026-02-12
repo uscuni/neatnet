@@ -155,9 +155,11 @@ fn voronoi_skeleton(
 ///
 /// Returns
 /// -------
-/// list[str]
-///     WKT representations of the simplified geometries.
-///     (Temporary interface -- will be replaced with GeoArrow FFI.)
+/// dict
+///     Dictionary with keys:
+///     - 'geometries': list[str] - WKT representations of simplified geometries
+///     - 'statuses': list[str] - Edge status for each geometry ('original', 'new', 'changed')
+///     (Temporary WKT interface -- will be replaced with GeoArrow FFI.)
 #[pyfunction]
 #[pyo3(signature = (
     wkt_geometries,
@@ -173,6 +175,7 @@ fn voronoi_skeleton(
     n_loops=2,
 ))]
 fn neatify(
+    py: Python<'_>,
     wkt_geometries: Vec<String>,
     max_segment_length: f64,
     min_dangle_length: f64,
@@ -184,7 +187,7 @@ fn neatify(
     angle_threshold: f64,
     eps: f64,
     n_loops: usize,
-) -> PyResult<Vec<String>> {
+) -> PyResult<pyo3::Py<pyo3::types::PyDict>> {
     // Parse WKT geometries
     let geometries: Vec<geos::Geometry> = wkt_geometries
         .iter()
@@ -217,12 +220,20 @@ fn neatify(
     neatnet_core::neatify(&mut network, &params, None)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
-    // Convert back to WKT
-    let result: Vec<String> = network
+    // Convert back to WKT + statuses
+    let geom_wkts: Vec<String> = network
         .geometries
         .iter()
         .filter_map(|g| g.to_wkt().ok())
         .collect();
+    let status_strs: Vec<&str> = network
+        .statuses
+        .iter()
+        .map(|s| s.as_str())
+        .collect();
 
-    Ok(result)
+    let dict = pyo3::types::PyDict::new(py);
+    dict.set_item("geometries", geom_wkts)?;
+    dict.set_item("statuses", status_strs)?;
+    Ok(dict.into())
 }
