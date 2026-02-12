@@ -13,7 +13,7 @@ repository = "https://github.com/uscuni/neatnet"
 geos = "10.0"
 geo = "0.32"
 geo-types = "0.7"
-voronoice = "0.2"
+delaunator = "1.0"
 
 # Graph & clustering
 petgraph = "0.8"

@@ -10,7 +10,7 @@ description = "Street network simplification – pure Rust core"
 geos = { workspace = true }
 geo = { workspace = true }
 geo-types = { workspace = true }
-voronoice = { workspace = true }
+delaunator = { workspace = true }
 petgraph = { workspace = true }
 kodama = { workspace = true }
 rstar = { workspace = true }

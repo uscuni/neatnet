@@ -14,6 +14,7 @@ use pyo3::prelude::*;
 fn _neatnet_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(neatify, m)?)?;
     m.add_function(wrap_pyfunction!(coins, m)?)?;
+    m.add_function(wrap_pyfunction!(voronoi_skeleton, m)?)?;
     m.add_function(wrap_pyfunction!(version, m)?)?;
     Ok(())
 }
@@ -62,6 +63,71 @@ fn coins(
         dict.set_item("n_segments", result.n_segments)?;
         dict.set_item("n_p1_confirmed", result.n_p1_confirmed)?;
         dict.set_item("n_p2_confirmed", result.n_p2_confirmed)?;
+        Ok(dict.into())
+    })
+}
+
+/// Compute voronoi skeleton from lines within a polygon.
+///
+/// Parameters
+/// ----------
+/// wkt_lines : list[str]
+///     WKT representations of LineString geometries.
+/// wkt_poly : str or None
+///     WKT representation of the bounding polygon.
+/// wkt_snap_to : list[str] or None
+///     WKT geometries to snap skeleton endpoints to.
+/// max_segment_length : float, default 1.0
+/// clip_limit : float, default 2.0
+///
+/// Returns
+/// -------
+/// dict
+///     Dictionary with 'edgelines' and 'splitters' as lists of WKT strings.
+#[pyfunction]
+#[pyo3(signature = (wkt_lines, wkt_poly=None, wkt_snap_to=None, max_segment_length=1.0, clip_limit=2.0))]
+fn voronoi_skeleton(
+    wkt_lines: Vec<String>,
+    wkt_poly: Option<String>,
+    wkt_snap_to: Option<Vec<String>>,
+    max_segment_length: f64,
+    clip_limit: f64,
+) -> PyResult<pyo3::Py<pyo3::types::PyDict>> {
+    let lines: Vec<geos::Geometry> = wkt_lines
+        .iter()
+        .filter_map(|wkt| geos::Geometry::new_from_wkt(wkt).ok())
+        .collect();
+
+    let poly = wkt_poly.and_then(|wkt| geos::Geometry::new_from_wkt(&wkt).ok());
+    let snap_geoms: Option<Vec<geos::Geometry>> = wkt_snap_to.map(|wkts| {
+        wkts.iter()
+            .filter_map(|wkt| geos::Geometry::new_from_wkt(wkt).ok())
+            .collect()
+    });
+
+    let (edgelines, splitters) = neatnet_core::geometry::voronoi_skeleton(
+        &lines,
+        poly.as_ref(),
+        snap_geoms.as_deref(),
+        max_segment_length,
+        None,
+        None,
+        clip_limit,
+        None,
+    );
+
+    Python::with_gil(|py| {
+        let dict = pyo3::types::PyDict::new(py);
+        let edge_wkts: Vec<String> = edgelines
+            .iter()
+            .filter_map(|g| g.to_wkt().ok())
+            .collect();
+        let split_wkts: Vec<String> = splitters
+            .iter()
+            .filter_map(|g| g.to_wkt().ok())
+            .collect();
+        dict.set_item("edgelines", edge_wkts)?;
+        dict.set_item("splitters", split_wkts)?;
         Ok(dict.into())
     })
 }
