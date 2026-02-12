@@ -323,9 +323,8 @@ def neatify_singletons(
         agg: dict[str, str | typing.Callable] = {"_status": _status}
         for c in cleaned_streets.columns.drop(cleaned_streets.active_geometry_name):
             if c != "_status":
-                # "first" skips NaN by default (skipna=True, pandas >= 2.2.1)
-                # so attributes from existing edges are preferred over NaN
-                # from new edges when they are joined together
+                # returning first non null as we may be joining new with existing
+                # and want attributes from existing
                 agg[c] = "first"
         non_empties = new_streets[~(new_streets.is_empty | new_streets.geometry.isna())]
         new_streets = remove_interstitial_nodes(non_empties, aggfunc=agg)
