@@ -2,29 +2,24 @@
 
 ## Current State
 
-The initial scaffolding compiles (25 tests pass) and produces partial results
-on Apalachicola (1,782 edges). Topology fixing is within 4 edges of Python.
+36 tests pass. Topology fixing is within 4 edges of Python.
 The full pipeline outputs 734 edges vs Python's 527 — the 207-edge gap is
 entirely from stubbed simplification stages.
 
 ### What works
 - **types.rs** — StreetNetwork, EdgeStatus, NeatifyParams, Artifacts, CoinsInfo
-- **spatial.rs** — R*-tree build/query via rstar
-- **continuity.rs** — COINS algorithm (has a known angle bug, see below)
-- **nodes.rs** — nodes_from_edges, get_components, remove_interstitial_nodes, fix_topology (dedup + merge), fcluster
+- **spatial.rs** — R*-tree build/query via rstar (fixed Polygon envelope handling)
+- **continuity.rs** — COINS algorithm (angle semantics fixed)
+- **nodes.rs** — nodes_from_edges, get_components, remove_interstitial_nodes, fix_topology (dedup + induce + merge), fcluster, consolidate_nodes (full spider geometry), induce_nodes (degree mismatch + loop contacts + split)
 - **artifacts.rs** — detect_artifacts (polygonize + FAI + KDE threshold), build_contiguity_graph, component_labels, shape metrics
 - **gaps.rs** — close_gaps, extend_lines
-- **geometry.rs** — segmentize, angle_between_two_lines, is_within, line_segments, snap_to_targets (partial)
+- **geometry.rs** — voronoi_skeleton (Delaunay-based), segmentize, angle_between_two_lines, is_within, line_segments, snap_to_targets
 - **simplify.rs** — neatify pipeline skeleton, neatify_loop classification
-- **neatnet-py** — PyO3 bindings (WKT interface: neatify, coins, version)
+- **neatnet-py** — PyO3 bindings (WKT interface: neatify, coins, voronoi_skeleton, version)
 
 ### What's stubbed or broken
 | Component | File | Status | Effort |
 |---|---|---|---|
-| COINS angle bug | continuity.rs | Bug: deflection vs interior angle semantics | S |
-| consolidate_nodes spider geometry | nodes.rs | Clustering done, spider lines not generated | M |
-| induce_nodes | nodes.rs | Missing entirely | M |
-| voronoi_skeleton edge extraction | geometry.rs | Voronoi built, ridge filtering incomplete | L |
 | get_artifacts iterative expansion | artifacts.rs | Only initial threshold, no block/circle expansion | M |
 | neatify_singletons full dispatch | simplify.rs | Only n1_g1 stub, needs all CES typologies | L |
 | neatify_pairs | simplify.rs | No-op stub | L |
@@ -111,47 +106,27 @@ better fit for the ridge extraction pattern.
 
 ---
 
-## Phase 3: Complete consolidate_nodes
+## Phase 3: Complete consolidate_nodes ✓
 
-**Priority: High** — called early in the pipeline and by voronoi_skeleton.
-
-The hierarchical clustering (kodama) and fcluster are done. Missing: spider
-geometry generation.
-
-**Implementation in `nodes.rs`:**
-1. For each cluster with >1 node:
-   a. Compute weighted centroid of cluster node coordinates
-   b. Create "cookie" = cluster convex hull buffered by tolerance/2
-   c. For each line intersecting the cookie:
-      - Compute `line.difference(cookie)` → remaining line outside cookie
-      - Compute `line.intersection(cookie.boundary())` → boundary points
-   d. For each boundary point, create spider line to centroid
-   e. Replace original lines with (remaining + spiders)
-2. Call `remove_interstitial_nodes()` on result
-3. Handle MultiLineString explosion (difference can produce multi-part)
-
-**GEOS operations:** `convex_hull`, `buffer`, `difference`, `intersection`,
-`boundary`, LineString construction from coordinates.
+**DONE.** Full spider geometry generation implemented with:
+- DBSCAN-like pre-filtering using R-tree proximity graph (avoids O(n²))
+- Hierarchical clustering (kodama) within each proximity component
+- Cookie geometry (convex hull buffered by tolerance/2)
+- Spider line generation from boundary intersection points to centroid
+- MultiLineString explosion and empty geometry removal
+- Final remove_interstitial_nodes cleanup
+- Also fixed Polygon envelope handling bug in spatial.rs build_rtree
 
 ---
 
-## Phase 4: Implement induce_nodes
+## Phase 4: Implement induce_nodes ✓
 
-**Priority: High** — part of fix_topology, currently skipped.
-
-**Implementation in `nodes.rs`:**
-1. `_identify_degree_mismatch()`:
-   - Extract all node coordinates (start/end of each edge)
-   - For each node, count how many edges have that endpoint (observed degree)
-   - Use spatial index to query how many edges actually intersect that point (expected degree)
-   - Nodes where expected > observed need splitting
-2. `_makes_loop_contact()`:
-   - Separate closed rings from non-closed lines
-   - Extract all vertices from loops
-   - Find where loop vertices intersect non-loop edges
-3. `split()`:
-   - For each edge that needs splitting at a point, use `shapely.ops.split` equivalent
-   - GEOS `snap` + split via coordinate insertion
+**DONE.** Full implementation with:
+- `identify_degree_mismatch()`: spatial index query for expected vs observed degree
+- `makes_loop_contact()`: loop vertex detection for non-loop and loop-loop contacts
+- `split_edges_at_points()`: iterative edge splitting with R-tree queries
+- `snap_n_split()`: GEOS snap + coordinate-based split at interior vertices
+- `fix_topology()` now calls induce_nodes between dedup and remove_interstitial_nodes
 
 ---
 

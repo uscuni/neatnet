@@ -1,7 +1,7 @@
 //! Spatial index utilities built on `rstar` R*-tree.
 
 use geo_types::Coord;
-use geos::Geom;
+use geos::{Geom, GeometryTypes};
 use rstar::{RTree, RTreeObject, AABB};
 
 /// A line segment stored in the R*-tree, carrying an index back to the
@@ -34,13 +34,20 @@ pub fn build_rtree(geometries: &[geos::Geometry]) -> RTree<IndexedEnvelope> {
         .filter_map(|(i, geom)| {
             // Get the envelope (bounding box) from GEOS
             let envelope = geom.envelope().ok()?;
-            let env_coords = envelope.get_coord_seq().ok()?;
+
+            // For Polygon envelopes, get the exterior ring first since
+            // get_coord_seq() only works on Point/LineString/LinearRing.
+            let env_coords = if envelope.geometry_type() == GeometryTypes::Polygon {
+                let ring = envelope.get_exterior_ring().ok()?;
+                ring.get_coord_seq().ok()?
+            } else {
+                envelope.get_coord_seq().ok()?
+            };
+
             if env_coords.size().ok()? == 0 {
                 return None;
             }
 
-            // For a point, envelope is a single point; for lines/polys it's a polygon
-            // Use the geometry's own min/max coordinates
             let mut min_x = f64::INFINITY;
             let mut min_y = f64::INFINITY;
             let mut max_x = f64::NEG_INFINITY;
