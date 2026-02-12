@@ -5,7 +5,7 @@
 
 use std::f64::consts::PI;
 
-use geos::{Geom, Geometry as GGeometry};
+use geos::{Geom, Geometry as GGeometry, GeometryTypes};
 use petgraph::graph::UnGraph;
 
 use crate::spatial;
@@ -220,6 +220,199 @@ pub fn detect_artifacts(
     Some((artifact_geoms, artifact_fais, final_threshold))
 }
 
+/// Full artifact detection with iterative expansion.
+///
+/// 1. Polygonize the network and compute FAI threshold.
+/// 2. Build rook contiguity graph.
+/// 3. Iteratively expand artifacts:
+///    - Block-like: (enclosed OR touching) AND small AND elongated
+///    - Circle-like enclosed: enclosed AND small AND circular
+///    - Circle-like touching: touching AND small AND circular
+/// 4. Filter by exclusion mask if provided.
+///
+/// Returns `(artifact_polygons, artifact_fais, threshold)`.
+///
+/// Mirrors Python `get_artifacts()`.
+pub fn get_artifacts(
+    geometries: &[GGeometry],
+    threshold: Option<f64>,
+    threshold_fallback: f64,
+    exclusion_mask: Option<&[GGeometry]>,
+    area_threshold_blocks: f64,
+    isoareal_threshold_blocks: f64,
+    area_threshold_circles: f64,
+    isoareal_threshold_circles_enclosed: f64,
+    isoperimetric_threshold_circles_touching: f64,
+) -> Option<(Vec<GGeometry>, Vec<f64>, f64)> {
+    // 1. Polygonize and compute initial artifacts
+    let union = union_all_lines(geometries)?;
+    let polygons = union.polygonize_full().ok()?;
+
+    let mut poly_geoms = Vec::new();
+    let mut fai_values = Vec::new();
+
+    let n_geoms = polygons.0.get_num_geometries().unwrap_or(0);
+    for i in 0..n_geoms {
+        if let Ok(poly) = polygons.0.get_geometry_n(i) {
+            let owned: GGeometry = Geom::clone(&poly);
+            let area = owned.area().unwrap_or(0.0);
+            let mbc_ratio = minimum_bounding_circle_ratio(&owned);
+            let fai = (mbc_ratio * area).ln();
+            fai_values.push(fai);
+            poly_geoms.push(owned);
+        }
+    }
+
+    if poly_geoms.is_empty() {
+        return None;
+    }
+
+    // 2. Determine FAI threshold
+    let final_threshold = if let Some(t) = threshold {
+        t
+    } else {
+        match find_fai_threshold(&fai_values) {
+            Some(t) => t,
+            None => threshold_fallback,
+        }
+    };
+
+    // 3. Initialize is_artifact flags
+    let mut is_artifact: Vec<bool> = fai_values.iter().map(|&fai| fai < final_threshold).collect();
+
+    // 4. Pre-compute shape metrics for all polygons
+    let areas: Vec<f64> = poly_geoms.iter().map(|g| g.area().unwrap_or(0.0)).collect();
+    let perimeters: Vec<f64> = poly_geoms.iter().map(|g| g.length().unwrap_or(0.0)).collect();
+    let isoareal: Vec<f64> = areas
+        .iter()
+        .zip(perimeters.iter())
+        .map(|(&a, &p)| isoareal_quotient(a, p))
+        .collect();
+    let isoperimetric: Vec<f64> = areas
+        .iter()
+        .zip(perimeters.iter())
+        .map(|(&a, &p)| isoperimetric_quotient(a, p))
+        .collect();
+
+    // 5. Build rook contiguity graph
+    let adjacency = build_contiguity_graph(&poly_geoms, true);
+
+    // Identify isolates (polygons with no neighbors)
+    let is_isolate: Vec<bool> = adjacency.iter().map(|adj| adj.is_empty()).collect();
+
+    // 6. Iterative expansion
+    loop {
+        let artifact_count_before: usize = is_artifact.iter().filter(|&&a| a).count();
+
+        // Compute enclosed/touching from contiguity graph
+        let (enclosed, touching) =
+            compute_enclosed_touching(&adjacency, &is_artifact, &is_isolate);
+
+        // Block-like: (enclosed OR touching) AND small area AND elongated
+        for i in 0..poly_geoms.len() {
+            if is_artifact[i] {
+                continue;
+            }
+            if (enclosed[i] || touching[i])
+                && areas[i] < area_threshold_blocks
+                && isoareal[i] < isoareal_threshold_blocks
+            {
+                is_artifact[i] = true;
+            }
+        }
+
+        // Circle-like enclosed: enclosed AND small AND circular
+        for i in 0..poly_geoms.len() {
+            if is_artifact[i] {
+                continue;
+            }
+            if enclosed[i]
+                && areas[i] < area_threshold_circles
+                && isoareal[i] > isoareal_threshold_circles_enclosed
+            {
+                is_artifact[i] = true;
+            }
+        }
+
+        // Circle-like touching: touching AND small AND circular
+        for i in 0..poly_geoms.len() {
+            if is_artifact[i] {
+                continue;
+            }
+            if touching[i]
+                && areas[i] < area_threshold_circles
+                && isoperimetric[i] > isoperimetric_threshold_circles_touching
+            {
+                is_artifact[i] = true;
+            }
+        }
+
+        let artifact_count_after: usize = is_artifact.iter().filter(|&&a| a).count();
+        if artifact_count_after == artifact_count_before {
+            break;
+        }
+    }
+
+    // 7. Apply exclusion mask if provided
+    if let Some(mask) = exclusion_mask {
+        for i in 0..poly_geoms.len() {
+            if !is_artifact[i] {
+                continue;
+            }
+            for mask_geom in mask {
+                if poly_geoms[i].intersects(mask_geom).unwrap_or(false) {
+                    is_artifact[i] = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    // 8. Collect artifact polygons
+    let mut artifact_geoms = Vec::new();
+    let mut artifact_fais = Vec::new();
+    for (i, geom) in poly_geoms.iter().enumerate() {
+        if is_artifact[i] {
+            artifact_geoms.push(Clone::clone(geom));
+            artifact_fais.push(fai_values[i]);
+        }
+    }
+
+    Some((artifact_geoms, artifact_fais, final_threshold))
+}
+
+/// Compute enclosed/touching flags from contiguity graph and artifact flags.
+///
+/// - `enclosed[i]` = true iff ALL neighbors of i are artifacts
+/// - `touching[i]` = true iff ANY neighbor of i is an artifact
+///
+/// Isolates are always false for both.
+fn compute_enclosed_touching(
+    adjacency: &[Vec<usize>],
+    is_artifact: &[bool],
+    is_isolate: &[bool],
+) -> (Vec<bool>, Vec<bool>) {
+    let n = adjacency.len();
+    let mut enclosed = vec![false; n];
+    let mut touching = vec![false; n];
+
+    for i in 0..n {
+        if is_isolate[i] || is_artifact[i] {
+            continue;
+        }
+        let neighbors = &adjacency[i];
+        if neighbors.is_empty() {
+            continue;
+        }
+        let all_artifact = neighbors.iter().all(|&j| is_artifact[j]);
+        let any_artifact = neighbors.iter().any(|&j| is_artifact[j]);
+        enclosed[i] = all_artifact;
+        touching[i] = any_artifact;
+    }
+
+    (enclosed, touching)
+}
+
 /// Find the FAI threshold from KDE analysis.
 ///
 /// Finds the valley between the two highest peaks.
@@ -275,9 +468,17 @@ pub fn build_contiguity_graph(
             Ok(e) => e,
             Err(_) => continue,
         };
-        let cs = match env.get_coord_seq() {
-            Ok(c) => c,
-            Err(_) => continue,
+        // Handle Polygon envelopes (get_coord_seq only works on Point/LineString/Ring)
+        let cs = if env.geometry_type() == GeometryTypes::Polygon {
+            match env.get_exterior_ring().and_then(|r| r.get_coord_seq()) {
+                Ok(c) => c,
+                Err(_) => continue,
+            }
+        } else {
+            match env.get_coord_seq() {
+                Ok(c) => c,
+                Err(_) => continue,
+            }
         };
 
         let mut min = [f64::INFINITY; 2];
@@ -430,5 +631,50 @@ mod tests {
         assert_eq!(labels[0], labels[1]);
         assert_eq!(labels[2], labels[3]);
         assert_ne!(labels[0], labels[2]);
+    }
+
+    #[test]
+    fn test_compute_enclosed_touching() {
+        // 5 polygons: 0,1,2 form a chain, 3 adjacent to 1, 4 isolated
+        // If 0 and 2 are artifacts:
+        //   - 1 is enclosed (all neighbors 0,2 are artifacts)
+        //   - 3 is touching (neighbor 1 is NOT artifact, so not enclosed, but
+        //     it depends on adjacency)
+        let adjacency = vec![
+            vec![1],       // 0 → 1
+            vec![0, 2, 3], // 1 → 0, 2, 3
+            vec![1],       // 2 → 1
+            vec![1],       // 3 → 1
+            vec![],        // 4 (isolate)
+        ];
+        let is_artifact = vec![true, false, true, false, false];
+        let is_isolate = vec![false, false, false, false, true];
+
+        let (enclosed, touching) =
+            compute_enclosed_touching(&adjacency, &is_artifact, &is_isolate);
+
+        // Polygon 1: neighbors are [0, 2, 3]. Artifact flags: [true, true, false]
+        // Not all neighbors are artifacts (3 is not), so enclosed=false
+        // At least one neighbor is artifact (0 and 2), so touching=true
+        assert!(!enclosed[1]);
+        assert!(touching[1]);
+
+        // Polygon 3: neighbors are [1]. is_artifact[1]=false
+        // No artifact neighbors, so touching=false
+        assert!(!enclosed[3]);
+        assert!(!touching[3]);
+
+        // Polygon 4: isolate → both false
+        assert!(!enclosed[4]);
+        assert!(!touching[4]);
+
+        // Now make polygon 3 an artifact too:
+        let is_artifact2 = vec![true, false, true, true, false];
+        let (enclosed2, touching2) =
+            compute_enclosed_touching(&adjacency, &is_artifact2, &is_isolate);
+
+        // Polygon 1: neighbors [0, 2, 3] all are artifacts → enclosed=true
+        assert!(enclosed2[1]);
+        assert!(touching2[1]);
     }
 }

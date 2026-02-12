@@ -20,7 +20,6 @@ entirely from stubbed simplification stages.
 ### What's stubbed or broken
 | Component | File | Status | Effort |
 |---|---|---|---|
-| get_artifacts iterative expansion | artifacts.rs | Only initial threshold, no block/circle expansion | M |
 | neatify_singletons full dispatch | simplify.rs | Only n1_g1 stub, needs all CES typologies | L |
 | neatify_pairs | simplify.rs | No-op stub | L |
 | neatify_clusters | simplify.rs | No-op stub | M |
@@ -130,26 +129,16 @@ better fit for the ridge extraction pattern.
 
 ---
 
-## Phase 5: Implement get_artifacts iterative expansion
+## Phase 5: Implement get_artifacts iterative expansion ✓
 
-**Priority: High** — current version only applies the initial KDE threshold.
-
-**Implementation in `artifacts.rs`:**
-
-After the initial FAI threshold classification, add iterative expansion:
-1. Build rook contiguity graph on all polygons
-2. For each non-artifact polygon, check:
-   - **Block-like:** `isoareal_quotient < 0.5` AND `area < 1e5` AND
-     (enclosed by artifacts OR touching artifacts)
-   - **Circle-like enclosed:** `isoareal_quotient >= 0.75` AND `area < 5e4` AND
-     fully enclosed by artifacts
-   - **Circle-like touching:** `isoperimetric_quotient >= 0.9` AND `area < 5e4` AND
-     touching artifacts
-3. Mark newly identified artifacts
-4. Repeat until no new artifacts found
-5. Filter by exclusion mask if provided
-
-**Requires:** `enclosed` / `touching` relationship computation from contiguity graph.
+**DONE.** Full iterative expansion implemented:
+- `get_artifacts()` function with all expansion parameters
+- `compute_enclosed_touching()` from rook contiguity graph
+- Block-like, circle-like enclosed, circle-like touching expansion criteria
+- Loop until convergence (no new artifacts)
+- Exclusion mask filtering
+- Fixed Polygon envelope handling in `build_contiguity_graph`
+- `simplify.rs` updated to use `get_artifacts` instead of `detect_artifacts`
 
 ---
 

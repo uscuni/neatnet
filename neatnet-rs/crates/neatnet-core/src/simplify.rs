@@ -45,14 +45,20 @@ pub fn neatify(
     network.geometries = consol_geoms;
     network.statuses = consol_statuses;
 
-    // Step 3: Detect artifacts
-    let artifacts = artifacts::detect_artifacts(
+    // Step 3: Detect artifacts (with iterative expansion)
+    let artifacts = artifacts::get_artifacts(
         &network.geometries,
         params.artifact_threshold,
         params.artifact_threshold_fallback,
+        exclusion_mask,
+        params.area_threshold_blocks,
+        params.isoareal_threshold_blocks,
+        params.area_threshold_circles,
+        params.isoareal_threshold_circles_enclosed,
+        params.isoperimetric_threshold_circles_touching,
     );
 
-    let (artifact_geoms, artifact_fais, threshold) = match artifacts {
+    let (artifact_geoms, _artifact_fais, threshold) = match artifacts {
         Some(a) => a,
         None => {
             log::warn!("No artifacts detected. Returning after topology fixes.");
@@ -71,13 +77,19 @@ pub fn neatify(
 
         // Re-detect artifacts for subsequent loops
         if loop_idx < params.n_loops - 1 {
-            let _re_artifacts = artifacts::detect_artifacts(
+            let re_artifacts = artifacts::get_artifacts(
                 &network.geometries,
                 Some(threshold),
                 params.artifact_threshold_fallback,
+                exclusion_mask,
+                params.area_threshold_blocks,
+                params.isoareal_threshold_blocks,
+                params.area_threshold_circles,
+                params.isoareal_threshold_circles_enclosed,
+                params.isoperimetric_threshold_circles_touching,
             );
             // If no more artifacts, stop early
-            if _re_artifacts.is_none() {
+            if re_artifacts.is_none() {
                 break;
             }
         }
