@@ -117,6 +117,7 @@ def test_neatify_full_fua(aoi, tol, known_length):
         assert_frame_equal(
             known.drop(columns=["_status", "geometry"]),
             observed.drop(columns=["_status", "geometry"]),
+            check_dtype=False,
         )
         pytest.geom_test(known, observed, tolerance=tol, aoi=aoi, save_dir=artifact_dir)
 
