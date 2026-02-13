@@ -205,19 +205,17 @@ better fit for the ridge extraction pattern.
 
 ---
 
-## Phase 8: GeoArrow FFI for zero-copy Python interface
+## Phase 8: GeoArrow FFI for zero-copy Python interface ✓
 
-**Priority: Medium** — WKT works for correctness testing, GeoArrow for performance.
-
-Replace WKT serialization in `neatnet-py/src/lib.rs` with:
-1. Accept `geoarrow.ChunkedArray` via `pyo3-geoarrow`
-2. Convert to `Vec<geos::Geometry>` using geoarrow's WKB or coordinate access
-3. Run pipeline
-4. Convert result back to `geoarrow.ChunkedArray`
-5. Return Arrow arrays for status column
-
-This eliminates the WKT parse/serialize overhead (~50% of current Rust time
-on small datasets).
+**DONE.** GeoArrow FFI implemented:
+- `neatify()` accepts `PyGeoArray` (GeoArrow LineString), returns `(PyGeoArray, PyArrow StringArray)`
+- `coins()` accepts `PyGeoArray`, returns dict
+- Conversion: GeoArrow → geo_types → geos (pipeline) → geo_types → GeoArrow
+- Status column as `pyarrow.StringArray` via Arrow PyCapsule FFI
+- WKT functions kept as `neatify_wkt/coins_wkt/voronoi_skeleton_wkt` for compatibility
+- Dependencies: `geos` with `"geo"` feature, `geo-traits` for scalar conversion
+- Python callers use `gdf.geometry.to_arrow(geometry_encoding="geoarrow")`
+- On Apalachicola (1782 edges): WKT ~0.9s, GeoArrow ~0.95s (parity on small data)
 
 ---
 
