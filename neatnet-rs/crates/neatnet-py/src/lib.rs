@@ -43,6 +43,7 @@ fn version() -> &'static str {
 #[pyfunction]
 #[pyo3(signature = (wkt_geometries, angle_threshold=120.0))]
 fn coins(
+    py: Python<'_>,
     wkt_geometries: Vec<String>,
     angle_threshold: f64,
 ) -> PyResult<pyo3::Py<pyo3::types::PyDict>> {
@@ -54,17 +55,15 @@ fn coins(
 
     let result = neatnet_core::continuity::coins(&geometries, angle_threshold);
 
-    Python::with_gil(|py| {
-        let dict = pyo3::types::PyDict::new(py);
-        dict.set_item("group", &result.group)?;
-        dict.set_item("is_end", &result.is_end)?;
-        dict.set_item("stroke_length", &result.stroke_length)?;
-        dict.set_item("stroke_count", &result.stroke_count)?;
-        dict.set_item("n_segments", result.n_segments)?;
-        dict.set_item("n_p1_confirmed", result.n_p1_confirmed)?;
-        dict.set_item("n_p2_confirmed", result.n_p2_confirmed)?;
-        Ok(dict.into())
-    })
+    let dict = pyo3::types::PyDict::new(py);
+    dict.set_item("group", &result.group)?;
+    dict.set_item("is_end", &result.is_end)?;
+    dict.set_item("stroke_length", &result.stroke_length)?;
+    dict.set_item("stroke_count", &result.stroke_count)?;
+    dict.set_item("n_segments", result.n_segments)?;
+    dict.set_item("n_p1_confirmed", result.n_p1_confirmed)?;
+    dict.set_item("n_p2_confirmed", result.n_p2_confirmed)?;
+    Ok(dict.into())
 }
 
 /// Compute voronoi skeleton from lines within a polygon.
@@ -87,6 +86,7 @@ fn coins(
 #[pyfunction]
 #[pyo3(signature = (wkt_lines, wkt_poly=None, wkt_snap_to=None, max_segment_length=1.0, clip_limit=2.0))]
 fn voronoi_skeleton(
+    py: Python<'_>,
     wkt_lines: Vec<String>,
     wkt_poly: Option<String>,
     wkt_snap_to: Option<Vec<String>>,
@@ -116,20 +116,18 @@ fn voronoi_skeleton(
         None,
     );
 
-    Python::with_gil(|py| {
-        let dict = pyo3::types::PyDict::new(py);
-        let edge_wkts: Vec<String> = edgelines
-            .iter()
-            .filter_map(|g| g.to_wkt().ok())
-            .collect();
-        let split_wkts: Vec<String> = splitters
-            .iter()
-            .filter_map(|g| g.to_wkt().ok())
-            .collect();
-        dict.set_item("edgelines", edge_wkts)?;
-        dict.set_item("splitters", split_wkts)?;
-        Ok(dict.into())
-    })
+    let dict = pyo3::types::PyDict::new(py);
+    let edge_wkts: Vec<String> = edgelines
+        .iter()
+        .filter_map(|g| g.to_wkt().ok())
+        .collect();
+    let split_wkts: Vec<String> = splitters
+        .iter()
+        .filter_map(|g| g.to_wkt().ok())
+        .collect();
+    dict.set_item("edgelines", edge_wkts)?;
+    dict.set_item("splitters", split_wkts)?;
+    Ok(dict.into())
 }
 
 /// Simplify a street network.
