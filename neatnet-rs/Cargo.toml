@@ -10,7 +10,7 @@ repository = "https://github.com/uscuni/neatnet"
 
 [workspace.dependencies]
 # Geometry
-geos = "10.0"
+geos = { version = "10.0", features = ["geo"] }
 geo = "0.32"
 geo-types = "0.7"
 delaunator = "1.0"

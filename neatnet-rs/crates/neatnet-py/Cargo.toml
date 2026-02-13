@@ -19,3 +19,4 @@ geoarrow = { workspace = true }
 arrow = { workspace = true }
 geos = { workspace = true }
 geo-types = { workspace = true }
+geo-traits = "0.3"
