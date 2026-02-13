@@ -768,9 +768,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0473e63acafe4109b096ab8c1e6b8151e1cb25397811525779a9bc7187382a7b"
 dependencies = [
  "c_vec",
+ "geo-types",
  "geos-sys",
  "libc",
  "num",
+ "wkt 0.10.3",
 ]
 
 [[package]]
@@ -1299,6 +1301,7 @@ name = "neatnet-py"
 version = "0.1.0"
 dependencies = [
  "arrow",
+ "geo-traits",
  "geo-types",
  "geoarrow",
  "geos",
@@ -2305,6 +2308,18 @@ dependencies = [
  "byteorder",
  "geo-traits",
  "num_enum",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "wkt"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3c2252781f8927974e8ba6a67c965a759a2b88ea2b1825f6862426bbb1c8f41"
+dependencies = [
+ "geo-types",
+ "log",
+ "num-traits",
  "thiserror 1.0.69",
 ]
 

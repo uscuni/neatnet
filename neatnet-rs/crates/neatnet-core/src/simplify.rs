@@ -3,7 +3,7 @@
 //! Ports Python `neatnet.simplify`: `neatify`, `neatify_loop`,
 //! `neatify_singletons`, `neatify_pairs`, `neatify_clusters`.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use geos::{Geom, Geometry as GGeometry};
 
@@ -286,7 +286,7 @@ fn neatify_pairs(
     params: &NeatifyParams,
 ) -> Result<(), NeatifyError> {
     // Group artifacts by component label into pairs
-    let mut pair_groups: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut pair_groups: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     for &i in artifact_indices {
         pair_groups.entry(comp_labels[i]).or_default().push(i);
     }
@@ -389,7 +389,10 @@ fn neatify_clusters(
     let mut to_drop: Vec<usize> = Vec::new();
     let mut to_add: Vec<GGeometry> = Vec::new();
 
-    for (_label, cluster) in &cluster_groups {
+    let mut sorted_cluster_labels: Vec<_> = cluster_groups.keys().copied().collect();
+    sorted_cluster_labels.sort();
+    for label in &sorted_cluster_labels {
+        let cluster = &cluster_groups[label];
         if cluster.len() < 3 {
             continue;
         }
@@ -1173,7 +1176,7 @@ fn dissolve_by_components(geoms: &[GGeometry]) -> Vec<GGeometry> {
     }
 
     let labels = nodes::get_components(geoms);
-    let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut groups: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     for (i, &label) in labels.iter().enumerate() {
         groups.entry(label).or_default().push(i);
     }

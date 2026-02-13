@@ -3,7 +3,7 @@
 //! Ports Python `neatnet.nodes`: `fix_topology`, `consolidate_nodes`,
 //! `get_components`, `remove_interstitial_nodes`, `induce_nodes`.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use geos::{Geom, Geometry as GGeometry, GeometryTypes};
 use petgraph::algo::connected_components;
@@ -186,7 +186,10 @@ pub fn remove_interstitial_nodes<'a>(
     let mut result_geoms = Vec::new();
     let mut result_statuses = Vec::new();
 
-    for (_label, indices) in &groups {
+    let mut sorted_labels: Vec<_> = groups.keys().copied().collect();
+    sorted_labels.sort();
+    for label in sorted_labels {
+        let indices = &groups[&label];
         if indices.len() == 1 {
             // Single edge in component, keep as-is
             result_geoms.push(Clone::clone(&geometries[indices[0]]));
@@ -743,7 +746,7 @@ pub fn consolidate_nodes(
         let labels = fcluster(&dendrogram, tolerance as f32, n);
 
         // Group by label
-        let mut label_groups: HashMap<usize, Vec<usize>> = HashMap::new();
+        let mut label_groups: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
         for (i, &label) in labels.iter().enumerate() {
             label_groups
                 .entry(label)

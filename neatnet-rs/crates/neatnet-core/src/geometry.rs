@@ -2,7 +2,7 @@
 //!
 //! Ports Python `neatnet.geometry`.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use geos::{Geom, Geometry as GGeometry, GeometryTypes};
 
@@ -568,7 +568,7 @@ fn build_edgelines(
     let mut edgelines = Vec::new();
 
     // Group ridges by (line_a, line_b) pair (normalized so a < b)
-    let mut ridge_groups: HashMap<(usize, usize), Vec<&Ridge>> = HashMap::new();
+    let mut ridge_groups: BTreeMap<(usize, usize), Vec<&Ridge>> = BTreeMap::new();
     for ridge in ridges {
         let key = if ridge.line_a < ridge.line_b {
             (ridge.line_a, ridge.line_b)
