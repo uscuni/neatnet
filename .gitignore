@@ -171,3 +171,6 @@ cache/
 
 ci_artifacts/
 docs/source/generated
+
+# Claude worktree management
+.claude-wt/worktrees
