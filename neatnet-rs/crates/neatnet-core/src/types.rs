@@ -88,6 +88,60 @@ impl StreetNetwork {
     pub fn is_empty(&self) -> bool {
         self.geometries.is_empty()
     }
+
+    /// Filter rows by boolean mask (keep rows where mask[i] is true).
+    ///
+    /// Filters geometries, statuses, and attributes in parallel.
+    pub fn filter_rows(&mut self, keep: &[bool]) {
+        assert_eq!(keep.len(), self.geometries.len());
+
+        let mut new_geoms = Vec::new();
+        let mut new_statuses = Vec::new();
+        for (i, &k) in keep.iter().enumerate() {
+            if k {
+                new_geoms.push(self.geometries[i].clone());
+                new_statuses.push(self.statuses[i]);
+            }
+        }
+        self.geometries = new_geoms;
+        self.statuses = new_statuses;
+
+        if let Some(ref batch) = self.attributes {
+            let bool_array = arrow::array::BooleanArray::from(keep.to_vec());
+            if let Ok(filtered) = arrow::compute::filter_record_batch(batch, &bool_array) {
+                self.attributes = Some(filtered);
+            }
+        }
+    }
+
+    /// Append n null-attribute rows (for newly created edges).
+    ///
+    /// Creates a RecordBatch with matching schema but all-null columns,
+    /// then concatenates with existing attributes.
+    pub fn append_null_rows(&mut self, n: usize) {
+        if n == 0 {
+            return;
+        }
+        if let Some(ref batch) = self.attributes {
+            let schema = batch.schema();
+            let null_columns: Vec<arrow::array::ArrayRef> = schema
+                .fields()
+                .iter()
+                .map(|field| {
+                    arrow::array::new_null_array(field.data_type(), n)
+                })
+                .collect();
+            if let Ok(null_batch) =
+                arrow::record_batch::RecordBatch::try_new(schema.clone(), null_columns)
+            {
+                if let Ok(concatenated) =
+                    arrow::compute::concat_batches(&schema, [batch, &null_batch])
+                {
+                    self.attributes = Some(concatenated);
+                }
+            }
+        }
+    }
 }
 
 /// Face artifacts detected by the polygonization & FAI pipeline.

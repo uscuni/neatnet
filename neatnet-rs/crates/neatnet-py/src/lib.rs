@@ -165,6 +165,11 @@ fn wkt_to_polygon(wkt_str: &str) -> Option<geo_types::Polygon<f64>> {
     angle_threshold=120.0,
     eps=1e-4,
     n_loops=2,
+    area_threshold_blocks=1e5,
+    isoareal_threshold_blocks=0.5,
+    area_threshold_circles=5e4,
+    isoareal_threshold_circles_enclosed=0.75,
+    isoperimetric_threshold_circles_touching=0.9,
 ))]
 fn neatify(
     py: Python<'_>,
@@ -179,6 +184,11 @@ fn neatify(
     angle_threshold: f64,
     eps: f64,
     n_loops: usize,
+    area_threshold_blocks: f64,
+    isoareal_threshold_blocks: f64,
+    area_threshold_circles: f64,
+    isoareal_threshold_circles_enclosed: f64,
+    isoperimetric_threshold_circles_touching: f64,
 ) -> PyResult<(PyGeoArray, Py<PyAny>)> {
     let geo_geoms = geoarrow_to_geo(&geometries)?;
     let statuses = vec![neatnet_core::EdgeStatus::Original; geo_geoms.len()];
@@ -201,7 +211,11 @@ fn neatify(
         angle_threshold,
         eps,
         n_loops,
-        ..Default::default()
+        area_threshold_blocks,
+        isoareal_threshold_blocks,
+        area_threshold_circles,
+        isoareal_threshold_circles_enclosed,
+        isoperimetric_threshold_circles_touching,
     };
 
     neatnet_core::neatify(&mut network, &params, None)
@@ -265,6 +279,11 @@ fn coins(
     angle_threshold=120.0,
     eps=1e-4,
     n_loops=2,
+    area_threshold_blocks=1e5,
+    isoareal_threshold_blocks=0.5,
+    area_threshold_circles=5e4,
+    isoareal_threshold_circles_enclosed=0.75,
+    isoperimetric_threshold_circles_touching=0.9,
 ))]
 fn neatify_wkt(
     py: Python<'_>,
@@ -279,6 +298,11 @@ fn neatify_wkt(
     angle_threshold: f64,
     eps: f64,
     n_loops: usize,
+    area_threshold_blocks: f64,
+    isoareal_threshold_blocks: f64,
+    area_threshold_circles: f64,
+    isoareal_threshold_circles_enclosed: f64,
+    isoperimetric_threshold_circles_touching: f64,
 ) -> PyResult<Py<pyo3::types::PyDict>> {
     let geometries: Vec<LineString<f64>> = wkt_geometries
         .iter()
@@ -305,7 +329,11 @@ fn neatify_wkt(
         angle_threshold,
         eps,
         n_loops,
-        ..Default::default()
+        area_threshold_blocks,
+        isoareal_threshold_blocks,
+        area_threshold_circles,
+        isoareal_threshold_circles_enclosed,
+        isoperimetric_threshold_circles_touching,
     };
 
     neatnet_core::neatify(&mut network, &params, None)

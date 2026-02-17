@@ -77,7 +77,7 @@ pub fn voronoi_skeleton(
     buffer: Option<f64>,
     secondary_snap_to: Option<&[LineString<f64>]>,
     clip_limit: f64,
-    _consolidation_tolerance: Option<f64>,
+    consolidation_tolerance: Option<f64>,
 ) -> (Vec<LineString<f64>>, Vec<LineString<f64>>) {
     let buffer_dist = buffer.unwrap_or(max_segment_length * 20.0);
 
@@ -210,6 +210,17 @@ pub fn voronoi_skeleton(
     // 11. Line merge and explode
     edgelines = ops::line_merge(&edgelines);
     edgelines.retain(|e| e.0.len() >= 2 && Euclidean.length(e) > 0.0);
+
+    // 12. Consolidation (matches Python geometry.py consolidation_tolerance)
+    if let Some(ct) = consolidation_tolerance {
+        if !edgelines.is_empty() && ct > 0.0 {
+            let temp_statuses = vec![crate::types::EdgeStatus::New; edgelines.len()];
+            let (consol, _) =
+                crate::nodes::consolidate_nodes(&edgelines, &temp_statuses, ct, true);
+            edgelines = consol;
+            edgelines.retain(|e| e.0.len() >= 2 && Euclidean.length(e) > 0.0);
+        }
+    }
 
     (edgelines, splitters)
 }
