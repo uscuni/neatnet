@@ -356,12 +356,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 
 [[package]]
-name = "c_vec"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdd7a427adc0135366d99db65b36dae9237130997e560ed61118041fb72be6e8"
-
-[[package]]
 name = "cc"
 version = "1.2.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -759,31 +753,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
-]
-
-[[package]]
-name = "geos"
-version = "10.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0473e63acafe4109b096ab8c1e6b8151e1cb25397811525779a9bc7187382a7b"
-dependencies = [
- "c_vec",
- "geo-types",
- "geos-sys",
- "libc",
- "num",
- "wkt 0.10.3",
-]
-
-[[package]]
-name = "geos-sys"
-version = "2.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dc873d24aefc72aa94c3c1c251afb82beb7be5926002746c0e1f585fef9854c"
-dependencies = [
- "libc",
- "pkg-config",
- "semver",
 ]
 
 [[package]]
@@ -1284,7 +1253,6 @@ dependencies = [
  "delaunator",
  "geo 0.32.0",
  "geo-types",
- "geos",
  "hashbrown 0.15.5",
  "kodama",
  "log",
@@ -1294,6 +1262,7 @@ dependencies = [
  "rstar 0.12.2",
  "sprs",
  "thiserror 2.0.18",
+ "wkt 0.14.0",
 ]
 
 [[package]]
@@ -1304,25 +1273,11 @@ dependencies = [
  "geo-traits",
  "geo-types",
  "geoarrow",
- "geos",
  "neatnet-core",
  "pyo3",
  "pyo3-arrow",
  "pyo3-geoarrow",
-]
-
-[[package]]
-name = "num"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35bd024e8b2ff75562e5f34e7f4905839deb4b22955ef5e73d2fea1b9813cb23"
-dependencies = [
- "num-bigint",
- "num-complex 0.4.6",
- "num-integer",
- "num-iter",
- "num-rational",
- "num-traits",
+ "wkt 0.14.0",
 ]
 
 [[package]]
@@ -1360,28 +1315,6 @@ version = "0.1.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7969661fd2958a5cb096e56c8e1ad0444ac2bbcd0061bd28660485a44879858f"
 dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "num-iter"
-version = "0.1.45"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1429034a0490724d0075ebb2bc9e875d6503c3cf69e235a8941aa757d83ef5bf"
-dependencies = [
- "autocfg",
- "num-integer",
- "num-traits",
-]
-
-[[package]]
-name = "num-rational"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f83d14da390562dca69fc84082e73e548e1ad308d24accdedd2720017cb37824"
-dependencies = [
- "num-bigint",
- "num-integer",
  "num-traits",
 ]
 
@@ -1500,12 +1433,6 @@ checksum = "06005508882fb681fd97892ecff4b7fd0fee13ef1aa569f8695dae7ab9099981"
 dependencies = [
  "siphasher",
 ]
-
-[[package]]
-name = "pkg-config"
-version = "0.3.32"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "portable-atomic"
@@ -2308,18 +2235,6 @@ dependencies = [
  "byteorder",
  "geo-traits",
  "num_enum",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "wkt"
-version = "0.10.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3c2252781f8927974e8ba6a67c965a759a2b88ea2b1825f6862426bbb1c8f41"
-dependencies = [
- "geo-types",
- "log",
- "num-traits",
  "thiserror 1.0.69",
 ]
 

@@ -10,9 +10,9 @@ repository = "https://github.com/uscuni/neatnet"
 
 [workspace.dependencies]
 # Geometry
-geos = { version = "10.0", features = ["geo"] }
 geo = "0.32"
 geo-types = "0.7"
+wkt = "0.14"
 delaunator = "1.0"
 
 # Graph & clustering

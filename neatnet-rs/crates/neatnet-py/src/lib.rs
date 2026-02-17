@@ -10,8 +10,8 @@ use geoarrow::array::{
     AsGeoArrowArray, GeoArrowArray, GeoArrowArrayAccessor, LineStringBuilder,
 };
 use geoarrow::datatypes::{Dimension, LineStringType, Metadata};
-use geos::Geom;
 use geo_traits::to_geo::ToGeoLineString;
+use geo_types::LineString;
 use pyo3::prelude::*;
 use pyo3_arrow::PyArray;
 use pyo3_geoarrow::PyGeoArray;
@@ -38,15 +38,15 @@ fn version() -> &'static str {
 // Conversion helpers
 // ---------------------------------------------------------------------------
 
-/// Convert a PyGeoArray (LineString) to Vec<geos::Geometry>.
-fn geoarrow_to_geos(input: &PyGeoArray) -> PyResult<Vec<geos::Geometry>> {
+/// Convert a PyGeoArray (LineString) to Vec<geo_types::LineString<f64>>.
+fn geoarrow_to_geo(input: &PyGeoArray) -> PyResult<Vec<LineString<f64>>> {
     let geo_array = input.inner();
 
     let ls_array = geo_array.as_line_string_opt().ok_or_else(|| {
         pyo3::exceptions::PyTypeError::new_err("Expected a GeoArrow LineString array")
     })?;
 
-    let mut geos_geoms = Vec::with_capacity(ls_array.len());
+    let mut geoms = Vec::with_capacity(ls_array.len());
     for i in 0..ls_array.len() {
         if ls_array.is_null(i) {
             return Err(pyo3::exceptions::PyValueError::new_err(format!(
@@ -59,42 +59,16 @@ fn geoarrow_to_geos(input: &PyGeoArray) -> PyResult<Vec<geos::Geometry>> {
             ))
         })?;
         let gt_ls: geo_types::LineString<f64> = scalar.to_line_string();
-        let geos_geom: geos::Geometry = (&gt_ls).try_into().map_err(|e: geos::Error| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!(
-                "GEOS conversion failed at index {i}: {e}"
-            ))
-        })?;
-        geos_geoms.push(geos_geom);
+        geoms.push(gt_ls);
     }
 
-    Ok(geos_geoms)
+    Ok(geoms)
 }
 
-/// Convert Vec<geos::Geometry> to a PyGeoArray (LineString).
-fn geos_to_geoarrow(geoms: &[geos::Geometry]) -> PyResult<PyGeoArray> {
-    let gt_linestrings: Vec<geo_types::LineString<f64>> = geoms
-        .iter()
-        .enumerate()
-        .map(|(i, g)| {
-            let gt_geom: geo_types::Geometry<f64> =
-                g.try_into().map_err(|e: geos::Error| {
-                    pyo3::exceptions::PyRuntimeError::new_err(format!(
-                        "GEOS->geo_types conversion failed at index {i}: {e}"
-                    ))
-                })?;
-
-            match gt_geom {
-                geo_types::Geometry::LineString(ls) => Ok(ls),
-                other => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-                    "Expected LineString at index {i}, got {:?}",
-                    other
-                ))),
-            }
-        })
-        .collect::<PyResult<Vec<_>>>()?;
-
+/// Convert Vec<geo_types::LineString<f64>> to a PyGeoArray (LineString).
+fn geo_to_geoarrow(geoms: &[LineString<f64>]) -> PyResult<PyGeoArray> {
     let ls_type = LineStringType::new(Dimension::XY, Arc::new(Metadata::default()));
-    let builder = LineStringBuilder::from_line_strings(&gt_linestrings, ls_type);
+    let builder = LineStringBuilder::from_line_strings(geoms, ls_type);
     let ls_array = builder.finish();
     let geo_array: Arc<dyn GeoArrowArray> = Arc::new(ls_array);
     Ok(PyGeoArray::new(geo_array))
@@ -110,6 +84,42 @@ fn statuses_to_arrow(
     let field = arrow::datatypes::Field::new("status", arrow::datatypes::DataType::Utf8, false);
     let py_array = PyArray::new(array_ref, Arc::new(field));
     py_array.to_pyarrow(py).map(|bound| bound.unbind())
+}
+
+/// Parse a WKT string to a geo_types::LineString<f64>.
+fn wkt_to_linestring(wkt_str: &str) -> Option<LineString<f64>> {
+    use std::str::FromStr;
+    let wkt_obj = wkt::Wkt::from_str(wkt_str).ok()?;
+    let geom: geo_types::Geometry<f64> = wkt_obj.try_into().ok()?;
+    match geom {
+        geo_types::Geometry::LineString(ls) => Some(ls),
+        _ => None,
+    }
+}
+
+/// Convert a geo_types::LineString<f64> to a WKT string.
+fn linestring_to_wkt(ls: &LineString<f64>) -> String {
+    use std::fmt::Write;
+    let mut s = String::from("LINESTRING (");
+    for (i, coord) in ls.0.iter().enumerate() {
+        if i > 0 {
+            s.push_str(", ");
+        }
+        write!(s, "{} {}", coord.x, coord.y).unwrap();
+    }
+    s.push(')');
+    s
+}
+
+/// Parse a WKT string to a geo_types::Polygon<f64>.
+fn wkt_to_polygon(wkt_str: &str) -> Option<geo_types::Polygon<f64>> {
+    use std::str::FromStr;
+    let wkt_obj = wkt::Wkt::from_str(wkt_str).ok()?;
+    let geom: geo_types::Geometry<f64> = wkt_obj.try_into().ok()?;
+    match geom {
+        geo_types::Geometry::Polygon(p) => Some(p),
+        _ => None,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -170,11 +180,11 @@ fn neatify(
     eps: f64,
     n_loops: usize,
 ) -> PyResult<(PyGeoArray, Py<PyAny>)> {
-    let geos_geoms = geoarrow_to_geos(&geometries)?;
-    let statuses = vec![neatnet_core::EdgeStatus::Original; geos_geoms.len()];
+    let geo_geoms = geoarrow_to_geo(&geometries)?;
+    let statuses = vec![neatnet_core::EdgeStatus::Original; geo_geoms.len()];
 
     let mut network = neatnet_core::StreetNetwork {
-        geometries: geos_geoms,
+        geometries: geo_geoms,
         statuses,
         attributes: None,
         crs: None,
@@ -197,7 +207,7 @@ fn neatify(
     neatnet_core::neatify(&mut network, &params, None)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
-    let result_geom = geos_to_geoarrow(&network.geometries)?;
+    let result_geom = geo_to_geoarrow(&network.geometries)?;
     let result_status = statuses_to_arrow(py, &network.statuses)?;
 
     Ok((result_geom, result_status))
@@ -223,8 +233,8 @@ fn coins(
     geometries: PyGeoArray,
     angle_threshold: f64,
 ) -> PyResult<Py<pyo3::types::PyDict>> {
-    let geos_geoms = geoarrow_to_geos(&geometries)?;
-    let result = neatnet_core::continuity::coins(&geos_geoms, angle_threshold);
+    let geo_geoms = geoarrow_to_geo(&geometries)?;
+    let result = neatnet_core::continuity::coins(&geo_geoms, angle_threshold);
 
     let dict = pyo3::types::PyDict::new(py);
     dict.set_item("group", &result.group)?;
@@ -270,9 +280,9 @@ fn neatify_wkt(
     eps: f64,
     n_loops: usize,
 ) -> PyResult<Py<pyo3::types::PyDict>> {
-    let geometries: Vec<geos::Geometry> = wkt_geometries
+    let geometries: Vec<LineString<f64>> = wkt_geometries
         .iter()
-        .filter_map(|wkt| geos::Geometry::new_from_wkt(wkt).ok())
+        .filter_map(|wkt| wkt_to_linestring(wkt))
         .collect();
 
     let statuses = vec![neatnet_core::EdgeStatus::Original; geometries.len()];
@@ -304,7 +314,7 @@ fn neatify_wkt(
     let geom_wkts: Vec<String> = network
         .geometries
         .iter()
-        .filter_map(|g| g.to_wkt().ok())
+        .map(|g| linestring_to_wkt(g))
         .collect();
     let status_strs: Vec<&str> = network.statuses.iter().map(|s| s.as_str()).collect();
 
@@ -322,9 +332,9 @@ fn coins_wkt(
     wkt_geometries: Vec<String>,
     angle_threshold: f64,
 ) -> PyResult<Py<pyo3::types::PyDict>> {
-    let geometries: Vec<geos::Geometry> = wkt_geometries
+    let geometries: Vec<LineString<f64>> = wkt_geometries
         .iter()
-        .filter_map(|wkt| geos::Geometry::new_from_wkt(wkt).ok())
+        .filter_map(|wkt| wkt_to_linestring(wkt))
         .collect();
 
     let result = neatnet_core::continuity::coins(&geometries, angle_threshold);
@@ -351,15 +361,15 @@ fn voronoi_skeleton_wkt(
     max_segment_length: f64,
     clip_limit: f64,
 ) -> PyResult<Py<pyo3::types::PyDict>> {
-    let lines: Vec<geos::Geometry> = wkt_lines
+    let lines: Vec<LineString<f64>> = wkt_lines
         .iter()
-        .filter_map(|wkt| geos::Geometry::new_from_wkt(wkt).ok())
+        .filter_map(|wkt| wkt_to_linestring(wkt))
         .collect();
 
-    let poly = wkt_poly.and_then(|wkt| geos::Geometry::new_from_wkt(&wkt).ok());
-    let snap_geoms: Option<Vec<geos::Geometry>> = wkt_snap_to.map(|wkts| {
+    let poly = wkt_poly.and_then(|wkt| wkt_to_polygon(&wkt));
+    let snap_geoms: Option<Vec<LineString<f64>>> = wkt_snap_to.map(|wkts| {
         wkts.iter()
-            .filter_map(|wkt| geos::Geometry::new_from_wkt(wkt).ok())
+            .filter_map(|wkt| wkt_to_linestring(wkt))
             .collect()
     });
 
@@ -377,11 +387,11 @@ fn voronoi_skeleton_wkt(
     let dict = pyo3::types::PyDict::new(py);
     let edge_wkts: Vec<String> = edgelines
         .iter()
-        .filter_map(|g| g.to_wkt().ok())
+        .map(|g| linestring_to_wkt(g))
         .collect();
     let split_wkts: Vec<String> = splitters
         .iter()
-        .filter_map(|g| g.to_wkt().ok())
+        .map(|g| linestring_to_wkt(g))
         .collect();
     dict.set_item("edgelines", edge_wkts)?;
     dict.set_item("splitters", split_wkts)?;

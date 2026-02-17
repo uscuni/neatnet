@@ -7,9 +7,9 @@ repository.workspace = true
 description = "Street network simplification – pure Rust core"
 
 [dependencies]
-geos = { workspace = true }
 geo = { workspace = true }
 geo-types = { workspace = true }
+wkt = { workspace = true }
 delaunator = { workspace = true }
 petgraph = { workspace = true }
 kodama = { workspace = true }

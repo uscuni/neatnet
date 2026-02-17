@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use geos::Geometry as GGeometry;
+use geo_types::LineString;
 
 /// Tracking status of edges through the simplification pipeline.
 ///
@@ -63,13 +63,13 @@ impl EdgeStatus {
     }
 }
 
-/// A street network: geometry stored as GEOS LineStrings, attributes in Arrow.
+/// A street network: geometry stored as geo_types LineStrings, attributes in Arrow.
 ///
 /// This is the main data structure flowing through the pipeline.
 /// Geometry and attributes are stored in parallel arrays (same length, same order).
 pub struct StreetNetwork {
     /// LineString geometries (one per edge).
-    pub geometries: Vec<GGeometry>,
+    pub geometries: Vec<LineString<f64>>,
     /// Per-edge status tracking.
     pub statuses: Vec<EdgeStatus>,
     /// Optional Arrow RecordBatch holding non-geometry attribute columns.
@@ -93,7 +93,7 @@ impl StreetNetwork {
 /// Face artifacts detected by the polygonization & FAI pipeline.
 pub struct Artifacts {
     /// Polygon geometries (one per artifact face).
-    pub geometries: Vec<GGeometry>,
+    pub geometries: Vec<geo_types::Polygon<f64>>,
     /// Number of network nodes touching each artifact.
     pub node_count: Vec<usize>,
     /// Face artifact index value per polygon.

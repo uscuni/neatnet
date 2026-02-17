@@ -1,7 +1,7 @@
 //! Spatial index utilities built on `rstar` R*-tree.
 
-use geo_types::Coord;
-use geos::{Geom, GeometryTypes};
+use geo::BoundingRect;
+use geo_types::{Coord, LineString, Polygon};
 use rstar::{RTree, RTreeObject, AABB};
 
 /// A line segment stored in the R*-tree, carrying an index back to the
@@ -23,50 +23,35 @@ impl RTreeObject for IndexedEnvelope {
     }
 }
 
-/// Build an R*-tree from GEOS geometries using their envelopes.
-///
-/// Each geometry is represented by its bounding box with an index
-/// back to its position in the input slice.
-pub fn build_rtree(geometries: &[geos::Geometry]) -> RTree<IndexedEnvelope> {
+/// Build an R*-tree from LineString geometries using their bounding rects.
+pub fn build_rtree(geometries: &[LineString<f64>]) -> RTree<IndexedEnvelope> {
     let items: Vec<IndexedEnvelope> = geometries
         .iter()
         .enumerate()
         .filter_map(|(i, geom)| {
-            // Get the envelope (bounding box) from GEOS
-            let envelope = geom.envelope().ok()?;
-
-            // For Polygon envelopes, get the exterior ring first since
-            // get_coord_seq() only works on Point/LineString/LinearRing.
-            let env_coords = if envelope.geometry_type() == GeometryTypes::Polygon {
-                let ring = envelope.get_exterior_ring().ok()?;
-                ring.get_coord_seq().ok()?
-            } else {
-                envelope.get_coord_seq().ok()?
-            };
-
-            if env_coords.size().ok()? == 0 {
-                return None;
-            }
-
-            let mut min_x = f64::INFINITY;
-            let mut min_y = f64::INFINITY;
-            let mut max_x = f64::NEG_INFINITY;
-            let mut max_y = f64::NEG_INFINITY;
-
-            let n = env_coords.size().ok()?;
-            for j in 0..n {
-                let x = env_coords.get_x(j).ok()?;
-                let y = env_coords.get_y(j).ok()?;
-                min_x = min_x.min(x);
-                min_y = min_y.min(y);
-                max_x = max_x.max(x);
-                max_y = max_y.max(y);
-            }
-
+            let rect = geom.bounding_rect()?;
             Some(IndexedEnvelope {
                 index: i,
-                min: [min_x, min_y],
-                max: [max_x, max_y],
+                min: [rect.min().x, rect.min().y],
+                max: [rect.max().x, rect.max().y],
+            })
+        })
+        .collect();
+
+    RTree::bulk_load(items)
+}
+
+/// Build an R*-tree from Polygon geometries using their bounding rects.
+pub fn build_rtree_polys(geometries: &[Polygon<f64>]) -> RTree<IndexedEnvelope> {
+    let items: Vec<IndexedEnvelope> = geometries
+        .iter()
+        .enumerate()
+        .filter_map(|(i, geom)| {
+            let rect = geom.bounding_rect()?;
+            Some(IndexedEnvelope {
+                index: i,
+                min: [rect.min().x, rect.min().y],
+                max: [rect.max().x, rect.max().y],
             })
         })
         .collect();

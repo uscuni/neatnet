@@ -33,6 +33,7 @@ pub mod continuity;
 pub mod gaps;
 pub mod geometry;
 pub mod nodes;
+pub mod ops;
 pub mod simplify;
 pub mod spatial;
 pub mod types;

@@ -5,12 +5,14 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use geos::{Geom, Geometry as GGeometry};
+use geo::{BooleanOps, Buffer, Centroid, Distance, Euclidean, Intersects, Length, Relate};
+use geo_types::{Coord, LineString, MultiLineString, MultiPolygon, Point, Polygon};
 
 use crate::artifacts;
 use crate::continuity;
 use crate::geometry;
 use crate::nodes;
+use crate::ops;
 use crate::types::{EdgeStatus, NeatifyParams, StreetNetwork};
 
 /// Top-level simplification entry point.
@@ -30,7 +32,7 @@ use crate::types::{EdgeStatus, NeatifyParams, StreetNetwork};
 pub fn neatify(
     network: &mut StreetNetwork,
     params: &NeatifyParams,
-    exclusion_mask: Option<&[GGeometry]>,
+    exclusion_mask: Option<&[Polygon<f64>]>,
 ) -> Result<(), NeatifyError> {
     // Step 1: Fix topology
     let (fixed_geoms, fixed_statuses) =
@@ -109,7 +111,7 @@ pub fn neatify(
 /// Mirrors Python `neatify_loop()`.
 fn neatify_loop(
     network: &mut StreetNetwork,
-    artifact_geoms: &[GGeometry],
+    artifact_geoms: &[Polygon<f64>],
     params: &NeatifyParams,
 ) -> Result<(), NeatifyError> {
     // 1. Remove dangles: drop edges fully inside any artifact, then clean
@@ -118,7 +120,7 @@ fn neatify_loop(
     for artifact in artifact_geoms {
         let candidates = nodes::envelope_query_indices_pub(&tree, artifact);
         for idx in candidates {
-            if artifact.contains(&network.geometries[idx]).unwrap_or(false) {
+            if artifact.relate(&network.geometries[idx]).is_contains() {
                 dangle_indices.insert(idx);
             }
         }
@@ -129,7 +131,7 @@ fn neatify_loop(
         let mut new_statuses = Vec::new();
         for (i, geom) in network.geometries.iter().enumerate() {
             if !dangle_indices.contains(&i) {
-                new_geoms.push(Clone::clone(geom));
+                new_geoms.push(geom.clone());
                 new_statuses.push(network.statuses[i]);
             }
         }
@@ -192,7 +194,7 @@ fn neatify_loop(
 /// 3. Dispatch to appropriate handler (n1_g1_identical, nx_gx_identical, nx_gx)
 fn neatify_singletons(
     network: &mut StreetNetwork,
-    artifact_geoms: &[GGeometry],
+    artifact_geoms: &[Polygon<f64>],
     artifact_indices: &[usize],
     params: &NeatifyParams,
 ) -> Result<(), NeatifyError> {
@@ -200,30 +202,33 @@ fn neatify_singletons(
     let coins_result = continuity::coins(&network.geometries, params.angle_threshold);
 
     // Get CES info for singletons
-    let singleton_geoms: Vec<GGeometry> = artifact_indices
+    let singleton_geoms: Vec<Polygon<f64>> = artifact_indices
         .iter()
-        .map(|&i| Clone::clone(&artifact_geoms[i]))
+        .map(|&i| artifact_geoms[i].clone())
         .collect();
     let ces_info =
         continuity::get_stroke_info(&singleton_geoms, &network.geometries, &coins_result);
 
+    // Build R-tree once for all singleton lookups
+    let tree = crate::spatial::build_rtree(&network.geometries);
+
     let mut to_drop: Vec<usize> = Vec::new();
-    let mut to_add: Vec<GGeometry> = Vec::new();
+    let mut to_add: Vec<LineString<f64>> = Vec::new();
 
     for (local_idx, &art_idx) in artifact_indices.iter().enumerate() {
         let artifact = &artifact_geoms[art_idx];
         let ces = &ces_info[local_idx];
 
         // Find edges covered by this artifact
-        let covered_edges = find_covered_edges(&network.geometries, artifact, params.eps);
+        let covered_edges = find_covered_edges_with_tree(&network.geometries, &tree, artifact, params.eps);
         if covered_edges.is_empty() {
             continue;
         }
 
         // Get network nodes touching this artifact
-        let covered_geoms: Vec<GGeometry> = covered_edges
+        let covered_geoms: Vec<LineString<f64>> = covered_edges
             .iter()
-            .map(|&i| Clone::clone(&network.geometries[i]))
+            .map(|&i| network.geometries[i].clone())
             .collect();
         let (node_coords, _) = nodes::nodes_from_edges(&covered_geoms);
         let n_nodes = node_coords.len();
@@ -280,7 +285,7 @@ fn neatify_singletons(
 /// Simplify pairs of face artifacts.
 fn neatify_pairs(
     network: &mut StreetNetwork,
-    artifact_geoms: &[GGeometry],
+    artifact_geoms: &[Polygon<f64>],
     artifact_indices: &[usize],
     comp_labels: &[usize],
     params: &NeatifyParams,
@@ -293,6 +298,9 @@ fn neatify_pairs(
 
     let coins_result = continuity::coins(&network.geometries, params.angle_threshold);
 
+    // Build R-tree once for all pair lookups
+    let tree = crate::spatial::build_rtree(&network.geometries);
+
     // Determine solution for each pair
     let mut drop_interline_pairs: Vec<Vec<usize>> = Vec::new();
     let mut iterate_pairs: Vec<Vec<usize>> = Vec::new();
@@ -304,8 +312,8 @@ fn neatify_pairs(
         }
 
         // Find shared edge (covered by both artifact polygons)
-        let covered_a = find_covered_edges(&network.geometries, &artifact_geoms[pair[0]], params.eps);
-        let covered_b = find_covered_edges(&network.geometries, &artifact_geoms[pair[1]], params.eps);
+        let covered_a = find_covered_edges_with_tree(&network.geometries, &tree, &artifact_geoms[pair[0]], params.eps);
+        let covered_b = find_covered_edges_with_tree(&network.geometries, &tree, &artifact_geoms[pair[1]], params.eps);
         let set_a: HashSet<usize> = covered_a.iter().copied().collect();
         let set_b: HashSet<usize> = covered_b.iter().copied().collect();
         let shared: Vec<usize> = set_a.intersection(&set_b).copied().collect();
@@ -375,7 +383,7 @@ fn neatify_pairs(
 /// Simplify clusters of face artifacts.
 fn neatify_clusters(
     network: &mut StreetNetwork,
-    artifact_geoms: &[GGeometry],
+    artifact_geoms: &[Polygon<f64>],
     artifact_indices: &[usize],
     comp_labels: &[usize],
     params: &NeatifyParams,
@@ -387,10 +395,14 @@ fn neatify_clusters(
     }
 
     let mut to_drop: Vec<usize> = Vec::new();
-    let mut to_add: Vec<GGeometry> = Vec::new();
+    let mut to_add: Vec<LineString<f64>> = Vec::new();
 
     let mut sorted_cluster_labels: Vec<_> = cluster_groups.keys().copied().collect();
     sorted_cluster_labels.sort();
+
+    // Build R-tree once for all cluster lookups
+    let tree = crate::spatial::build_rtree(&network.geometries);
+
     for label in &sorted_cluster_labels {
         let cluster = &cluster_groups[label];
         if cluster.len() < 3 {
@@ -398,16 +410,19 @@ fn neatify_clusters(
         }
 
         // Merge all artifact polygons in the cluster
-        let mut merged = Clone::clone(&artifact_geoms[cluster[0]]);
+        let mut merged: MultiPolygon<f64> = MultiPolygon(vec![artifact_geoms[cluster[0]].clone()]);
         for &i in &cluster[1..] {
-            merged = match merged.union(&artifact_geoms[i]) {
-                Ok(m) => m,
-                Err(_) => continue,
-            };
+            merged = merged.union(&MultiPolygon(vec![artifact_geoms[i].clone()]));
         }
 
+        // Extract as single polygon (take the largest)
+        let merged_poly = match largest_polygon(&merged) {
+            Some(p) => p,
+            None => continue,
+        };
+
         // Find edges fully within the merged polygon (to drop)
-        let covered = find_covered_edges(&network.geometries, &merged, params.eps);
+        let covered = find_covered_edges_with_tree(&network.geometries, &tree, &merged_poly, params.eps);
         if covered.is_empty() {
             continue;
         }
@@ -420,23 +435,23 @@ fn neatify_clusters(
         let (skeleton_edges, cleaned) = if use_decomposition {
             cluster_skeleton_decomposed(
                 &network.geometries,
-                &merged,
+                &merged_poly,
                 params,
             )
         } else {
             // Original approach: full boundary edges
             let boundary_edges =
-                find_boundary_edges(&network.geometries, &merged, params.eps);
+                find_boundary_edges_with_tree(&network.geometries, &tree, &merged_poly, params.eps);
             if boundary_edges.is_empty() {
                 (vec![], vec![])
             } else {
-                let boundary_geoms: Vec<GGeometry> = boundary_edges
+                let boundary_geoms: Vec<LineString<f64>> = boundary_edges
                     .iter()
-                    .map(|&i| Clone::clone(&network.geometries[i]))
+                    .map(|&i| network.geometries[i].clone())
                     .collect();
                 let (skel, _) = geometry::voronoi_skeleton(
                     &boundary_geoms,
-                    Some(&merged),
+                    Some(&merged_poly),
                     None,
                     params.max_segment_length,
                     None,
@@ -444,11 +459,10 @@ fn neatify_clusters(
                     params.clip_limit,
                     None,
                 );
-                let cl = remove_dangles(&skel, &merged, params.eps);
+                let cl = remove_dangles(&skel, &merged_poly, params.eps);
                 (skel, cl)
             }
         };
-
 
         // Only replace if skeleton doesn't increase edge count significantly
         if !skeleton_edges.is_empty() && cleaned.len() <= covered.len() + 3 {
@@ -468,20 +482,20 @@ fn neatify_clusters(
 /// Drop the covered edge and generate voronoi_skeleton replacement.
 fn process_n1_g1_identical(
     covered_edges: &[usize],
-    artifact: &GGeometry,
+    artifact: &Polygon<f64>,
     node_coords: &[[f64; 2]],
-    geometries: &[GGeometry],
+    geometries: &[LineString<f64>],
     params: &NeatifyParams,
     to_drop: &mut Vec<usize>,
-    to_add: &mut Vec<GGeometry>,
+    to_add: &mut Vec<LineString<f64>>,
 ) {
-    let covered_geoms: Vec<GGeometry> = covered_edges
+    let covered_geoms: Vec<LineString<f64>> = covered_edges
         .iter()
-        .map(|&i| Clone::clone(&geometries[i]))
+        .map(|&i| geometries[i].clone())
         .collect();
 
     // Build snap targets from node coordinates
-    let snap_targets = node_coords_to_points(node_coords);
+    let snap_targets = node_coords_to_lines(node_coords);
 
     let (edgelines, _splitters) = geometry::voronoi_skeleton(
         &covered_geoms,
@@ -505,12 +519,12 @@ fn process_n1_g1_identical(
 /// If connections aren't within the polygon, use voronoi_skeleton instead.
 fn process_nx_gx_identical(
     covered_edges: &[usize],
-    artifact: &GGeometry,
+    artifact: &Polygon<f64>,
     node_coords: &[[f64; 2]],
-    geometries: &[GGeometry],
+    geometries: &[LineString<f64>],
     params: &NeatifyParams,
     to_drop: &mut Vec<usize>,
-    to_add: &mut Vec<GGeometry>,
+    to_add: &mut Vec<LineString<f64>>,
 ) {
     // Find relevant nodes (nodes touching the artifact)
     let relevant_nodes: Vec<[f64; 2]> = find_nodes_near_polygon(node_coords, artifact, params.eps);
@@ -520,32 +534,27 @@ fn process_nx_gx_identical(
     }
 
     // Compute centroid of the artifact
-    let centroid = match artifact.get_centroid() {
-        Ok(c) => c,
-        Err(_) => return,
+    let centroid = match artifact.centroid() {
+        Some(c) => c,
+        None => return,
     };
-    let centroid_cs = match centroid.get_coord_seq() {
-        Ok(cs) => cs,
-        Err(_) => return,
-    };
-    let (cx, cy) = match (centroid_cs.get_x(0), centroid_cs.get_y(0)) {
-        (Ok(x), Ok(y)) => (x, y),
-        _ => return,
-    };
+    let cx = centroid.x();
+    let cy = centroid.y();
 
     // Create shortest lines from each relevant node to centroid
     let mut lines = Vec::new();
     let mut all_within = true;
 
     for node in &relevant_nodes {
-        let wkt = format!("LINESTRING ({} {}, {} {})", node[0], node[1], cx, cy);
-        if let Ok(line) = GGeometry::new_from_wkt(&wkt) {
-            if !geometry::is_within(&line, artifact, 0.1) {
-                all_within = false;
-                break;
-            }
-            lines.push(line);
+        let line = LineString::new(vec![
+            Coord { x: node[0], y: node[1] },
+            Coord { x: cx, y: cy },
+        ]);
+        if !geometry::is_within(&line, artifact, 0.1) {
+            all_within = false;
+            break;
         }
+        lines.push(line);
     }
 
     to_drop.extend(covered_edges);
@@ -556,27 +565,22 @@ fn process_nx_gx_identical(
             let angle = geometry::angle_between_two_lines(&lines[0], &lines[1]);
             if angle < params.angle_threshold {
                 // Replace with direct connection between nodes
-                let wkt = format!(
-                    "LINESTRING ({} {}, {} {})",
-                    relevant_nodes[0][0],
-                    relevant_nodes[0][1],
-                    relevant_nodes[1][0],
-                    relevant_nodes[1][1]
-                );
-                if let Ok(direct) = GGeometry::new_from_wkt(&wkt) {
-                    to_add.push(direct);
-                    return;
-                }
+                let direct = LineString::new(vec![
+                    Coord { x: relevant_nodes[0][0], y: relevant_nodes[0][1] },
+                    Coord { x: relevant_nodes[1][0], y: relevant_nodes[1][1] },
+                ]);
+                to_add.push(direct);
+                return;
             }
         }
         to_add.extend(lines);
     } else {
         // Use voronoi_skeleton instead
-        let covered_geoms: Vec<GGeometry> = covered_edges
+        let covered_geoms: Vec<LineString<f64>> = covered_edges
             .iter()
-            .map(|&i| Clone::clone(&geometries[i]))
+            .map(|&i| geometries[i].clone())
             .collect();
-        let snap_targets = node_coords_to_points(&relevant_nodes);
+        let snap_targets = node_coords_to_lines(&relevant_nodes);
 
         let (edgelines, _) = geometry::voronoi_skeleton(
             &covered_geoms,
@@ -606,13 +610,13 @@ fn process_nx_gx_identical(
 /// 5. Sausage special case: 2 nodes + 2 strokes → shortest line between endpoints
 fn process_nx_gx(
     covered_edges: &[usize],
-    artifact: &GGeometry,
+    artifact: &Polygon<f64>,
     node_coords: &[[f64; 2]],
-    geometries: &[GGeometry],
+    geometries: &[LineString<f64>],
     coins_result: &continuity::CoinsResult,
     params: &NeatifyParams,
     to_drop: &mut Vec<usize>,
-    to_add: &mut Vec<GGeometry>,
+    to_add: &mut Vec<LineString<f64>>,
 ) {
     // Classify edges by CES hierarchy
     let (c_edges, e_edges, s_edges, es_mask, highest) =
@@ -632,9 +636,9 @@ fn process_nx_gx(
     to_drop.extend(&es_mask);
 
     // Check connected components after dropping ES
-    let remaining_geoms: Vec<GGeometry> = highest
+    let remaining_geoms: Vec<LineString<f64>> = highest
         .iter()
-        .map(|&i| Clone::clone(&geometries[i]))
+        .map(|&i| geometries[i].clone())
         .collect();
     let n_comps = if remaining_geoms.is_empty() {
         0
@@ -647,20 +651,17 @@ fn process_nx_gx(
     // === BRANCH: Loop special case ===
     // C == 1, (E + S) == 1, and a shortest line within the polygon is much shorter than C
     if n_c == 1 && (n_e + n_s) == 1 && relevant_nodes.len() == 2 {
-        let wkt = format!(
-            "LINESTRING ({} {}, {} {})",
-            relevant_nodes[0][0], relevant_nodes[0][1],
-            relevant_nodes[1][0], relevant_nodes[1][1]
-        );
-        if let Ok(shortest) = GGeometry::new_from_wkt(&wkt) {
-            let c_len: f64 = c_edges.iter()
-                .map(|&i| geometries[i].length().unwrap_or(0.0))
-                .sum();
-            let s_len = shortest.length().unwrap_or(f64::INFINITY);
-            if geometry::is_within(&shortest, artifact, params.eps) && s_len < c_len * 0.5 {
-                to_add.push(shortest);
-                return;
-            }
+        let shortest = LineString::new(vec![
+            Coord { x: relevant_nodes[0][0], y: relevant_nodes[0][1] },
+            Coord { x: relevant_nodes[1][0], y: relevant_nodes[1][1] },
+        ]);
+        let c_len: f64 = c_edges.iter()
+            .map(|&i| Euclidean.length(&geometries[i]))
+            .sum();
+        let s_len = Euclidean.length(&shortest);
+        if geometry::is_within(&shortest, artifact, params.eps) && s_len < c_len * 0.5 {
+            to_add.push(shortest);
+            return;
         }
         // Otherwise fall through to general handling
     }
@@ -673,11 +674,11 @@ fn process_nx_gx(
 
     // === BRANCH: All dropped (no C edges) → replace with skeleton ===
     if highest.is_empty() && !es_mask.is_empty() {
-        let es_geoms: Vec<GGeometry> = es_mask
+        let es_geoms: Vec<LineString<f64>> = es_mask
             .iter()
-            .map(|&i| Clone::clone(&geometries[i]))
+            .map(|&i| geometries[i].clone())
             .collect();
-        let snap_targets = node_coords_to_points(&relevant_nodes);
+        let snap_targets = node_coords_to_lines(&relevant_nodes);
         let (edgelines, _) = geometry::voronoi_skeleton(
             &es_geoms,
             Some(artifact),
@@ -700,22 +701,19 @@ fn process_nx_gx(
     }
 
     // Need to reconnect. Find nodes not on C edges.
-    let highest_geoms: Vec<GGeometry> = highest
+    let highest_geoms: Vec<LineString<f64>> = highest
         .iter()
-        .map(|&i| Clone::clone(&geometries[i]))
+        .map(|&i| geometries[i].clone())
         .collect();
 
     let mut nodes_on_c = HashSet::new();
     for node in &relevant_nodes {
-        let pt_wkt = format!("POINT ({} {})", node[0], node[1]);
-        if let Ok(pt) = GGeometry::new_from_wkt(&pt_wkt) {
-            for geom in &highest_geoms {
-                if let Ok(dist) = geom.distance(&pt) {
-                    if dist < params.eps {
-                        nodes_on_c.insert(coord_key(node));
-                        break;
-                    }
-                }
+        let pt = Point::new(node[0], node[1]);
+        for geom in &highest_geoms {
+            let dist = Euclidean.distance(&pt, geom);
+            if dist < params.eps {
+                nodes_on_c.insert(coord_key(node));
+                break;
             }
         }
     }
@@ -743,19 +741,14 @@ fn process_nx_gx(
         // Compute node degrees from full network for relevant_targets
         let mut degree_map: HashMap<(i64, i64), usize> = HashMap::new();
         for geom in geometries.iter() {
-            if let Ok(cs) = geom.get_coord_seq() {
-                let n = cs.size().unwrap_or(0);
-                if n < 2 {
-                    continue;
-                }
-                if let (Ok(x), Ok(y)) = (cs.get_x(0), cs.get_y(0)) {
-                    *degree_map.entry(coord_key(&[x, y])).or_default() += 1;
-                }
-                let last = n - 1;
-                if let (Ok(x), Ok(y)) = (cs.get_x(last), cs.get_y(last)) {
-                    *degree_map.entry(coord_key(&[x, y])).or_default() += 1;
-                }
+            let coords = &geom.0;
+            if coords.len() < 2 {
+                continue;
             }
+            let c0 = coords[0];
+            *degree_map.entry(coord_key(&[c0.x, c0.y])).or_default() += 1;
+            let cn = coords[coords.len() - 1];
+            *degree_map.entry(coord_key(&[cn.x, cn.y])).or_default() += 1;
         }
 
         // Relevant targets: nodes on C edges with degree > 3
@@ -763,25 +756,21 @@ fn process_nx_gx(
         for node in &relevant_nodes {
             let key = coord_key(node);
             let is_on_c = {
-                let pt_wkt = format!("POINT ({} {})", node[0], node[1]);
-                if let Ok(pt) = GGeometry::new_from_wkt(&pt_wkt) {
-                    highest_geoms
-                        .iter()
-                        .any(|g| g.distance(&pt).unwrap_or(f64::INFINITY) < params.eps)
-                } else {
-                    false
-                }
+                let pt = Point::new(node[0], node[1]);
+                highest_geoms
+                    .iter()
+                    .any(|g| Euclidean.distance(&pt, g) < params.eps)
             };
             if is_on_c && degree_map.get(&key).copied().unwrap_or(0) > 3 {
                 target_nodes.push(*node);
             }
         }
-        let snap_targets = node_coords_to_points(&target_nodes);
+        let snap_targets = node_coords_to_lines(&target_nodes);
 
         // Use ALL covered edges for skeleton (matching Python)
-        let all_covered_geoms: Vec<GGeometry> = covered_edges
+        let all_covered_geoms: Vec<LineString<f64>> = covered_edges
             .iter()
-            .map(|&i| Clone::clone(&geometries[i]))
+            .map(|&i| geometries[i].clone())
             .collect();
 
         let snap_to = if snap_targets.is_empty() {
@@ -848,11 +837,11 @@ fn process_nx_gx(
             }
         }
         // Fall back to skeleton
-        let es_geoms: Vec<GGeometry> = es_mask
+        let es_geoms: Vec<LineString<f64>> = es_mask
             .iter()
-            .map(|&i| Clone::clone(&geometries[i]))
+            .map(|&i| geometries[i].clone())
             .collect();
-        let snap_targets = node_coords_to_points(&remaining_nodes);
+        let snap_targets = node_coords_to_lines(&remaining_nodes);
         let (edgelines, _) = geometry::voronoi_skeleton(
             &es_geoms,
             Some(artifact),
@@ -867,11 +856,11 @@ fn process_nx_gx(
         to_add.extend(cleaned);
     } else {
         // Multiple remaining nodes: skeleton with C as secondary snap
-        let es_geoms: Vec<GGeometry> = es_mask
+        let es_geoms: Vec<LineString<f64>> = es_mask
             .iter()
-            .map(|&i| Clone::clone(&geometries[i]))
+            .map(|&i| geometries[i].clone())
             .collect();
-        let snap_targets = node_coords_to_points(&remaining_nodes);
+        let snap_targets = node_coords_to_lines(&remaining_nodes);
         let (edgelines, _) = geometry::voronoi_skeleton(
             &es_geoms,
             Some(artifact),
@@ -956,26 +945,20 @@ fn classify_ces_edges(
 }
 
 /// Make a shortest line from a point to the nearest of a set of edges.
-fn make_shortest_to_edges(point: &[f64; 2], edges: &[GGeometry]) -> Option<GGeometry> {
-    let pt_wkt = format!("POINT ({} {})", point[0], point[1]);
-    let pt = GGeometry::new_from_wkt(&pt_wkt).ok()?;
-
-    let mut best_line: Option<GGeometry> = None;
+fn make_shortest_to_edges(point: &[f64; 2], edges: &[LineString<f64>]) -> Option<LineString<f64>> {
+    let mut best_line: Option<LineString<f64>> = None;
     let mut best_dist = f64::INFINITY;
 
     for geom in edges {
-        if let Ok(cs) = geom.nearest_points(&pt) {
-            if let (Ok(x0), Ok(y0), Ok(x1), Ok(y1)) =
-                (cs.get_x(0), cs.get_y(0), cs.get_x(1), cs.get_y(1))
-            {
-                let wkt = format!("LINESTRING ({} {}, {} {})", x0, y0, x1, y1);
-                if let Ok(line) = GGeometry::new_from_wkt(&wkt) {
-                    let len = line.length().unwrap_or(f64::INFINITY);
-                    if len < best_dist {
-                        best_dist = len;
-                        best_line = Some(line);
-                    }
-                }
+        if let Some((pa, pb)) = ops::nearest_points(
+            &LineString::new(vec![Coord { x: point[0], y: point[1] }, Coord { x: point[0], y: point[1] }]),
+            geom,
+        ) {
+            let line = LineString::new(vec![pa, pb]);
+            let len = Euclidean.length(&line);
+            if len < best_dist {
+                best_dist = len;
+                best_line = Some(line);
             }
         }
     }
@@ -998,82 +981,106 @@ fn coord_key(c: &[f64; 2]) -> (i64, i64) {
 ///
 /// Returns (skeleton_edges, cleaned_edges).
 fn cluster_skeleton_decomposed(
-    geometries: &[GGeometry],
-    merged: &GGeometry,
+    geometries: &[LineString<f64>],
+    merged: &Polygon<f64>,
     params: &NeatifyParams,
-) -> (Vec<GGeometry>, Vec<GGeometry>) {
-    let boundary = match merged.boundary() {
-        Ok(b) => b,
-        Err(_) => return (vec![], vec![]),
-    };
-    let boundary_buf = match boundary.buffer(params.eps, 8) {
-        Ok(b) => b,
-        Err(_) => return (vec![], vec![]),
-    };
+) -> (Vec<LineString<f64>>, Vec<LineString<f64>>) {
+    let boundary_ls = merged.exterior().clone();
+    let boundary_buf: MultiPolygon<f64> = boundary_ls.buffer(params.eps);
+    if boundary_buf.0.is_empty() {
+        return (vec![], vec![]);
+    }
 
-    // 1. Clip ALL edges to cluster boundary → boundary segments
-    let mut boundary_segments: Vec<GGeometry> = Vec::new();
-    for geom in geometries.iter() {
-        if let Ok(clipped) = geom.intersection(&boundary_buf) {
-            explode_geometry(&clipped, &mut boundary_segments);
+    // Use R-tree to only consider edges near this cluster (not all 13K edges)
+    let tree = crate::spatial::build_rtree(geometries);
+    let candidates = nodes::envelope_query_indices_pub(&tree, merged);
+
+    // 1. Clip candidate edges to cluster boundary → boundary segments
+    let mut boundary_segments: Vec<LineString<f64>> = Vec::new();
+    for &idx in &candidates {
+        let mls = MultiLineString(vec![geometries[idx].clone()]);
+        for poly in &boundary_buf.0 {
+            let clipped = poly.clip(&mls, false);
+            for ls in clipped.0 {
+                boundary_segments.push(ls);
+            }
         }
     }
-    boundary_segments.retain(|g| g.length().unwrap_or(0.0) > 100.0 * params.eps);
+    boundary_segments.retain(|g| Euclidean.length(g) > 100.0 * params.eps);
 
     if boundary_segments.is_empty() {
         return (vec![], vec![]);
     }
 
     // 2. Find crossing edges (edges that cross the cluster boundary)
-    let merged_buf = match merged.buffer(params.eps, 8) {
-        Ok(b) => b,
-        Err(_) => Clone::clone(merged),
-    };
-    let mut crossing_union: Option<GGeometry> = None;
-    for geom in geometries.iter() {
-        if geom.crosses(&merged_buf).unwrap_or(false) {
-            crossing_union = match crossing_union {
-                None => Some(Clone::clone(geom)),
-                Some(prev) => prev.union(geom).ok(),
-            };
+    // Compute exterior buffer ONCE outside the loop
+    let exterior_buf: MultiPolygon<f64> = boundary_ls.buffer(params.eps);
+    let mut crossing_lines: Vec<LineString<f64>> = Vec::new();
+    for &idx in &candidates {
+        let geom = &geometries[idx];
+        let intersects_boundary = exterior_buf.0.iter().any(|p| p.intersects(geom));
+        let fully_inside = merged.relate(geom).is_contains();
+        if intersects_boundary && !fully_inside {
+            crossing_lines.push(geom.clone());
         }
     }
 
     // 3. Find nodes_to_keep: boundary endpoints touching crossing edges
-    let mut nodes_to_keep_pts: Vec<GGeometry> = Vec::new();
-    if let Some(ref cu) = crossing_union {
+    let mut nodes_to_keep_coords: Vec<[f64; 2]> = Vec::new();
+    if !crossing_lines.is_empty() {
+        // Build R-tree of crossing line envelopes for fast distance checks
         for seg in &boundary_segments {
-            if let Ok(cs) = seg.get_coord_seq() {
-                let n = cs.size().unwrap_or(0);
-                if n < 2 {
-                    continue;
-                }
-                for pt_idx in [0, n - 1] {
-                    if let (Ok(x), Ok(y)) = (cs.get_x(pt_idx), cs.get_y(pt_idx)) {
-                        let pt_wkt = format!("POINT ({} {})", x, y);
-                        if let Ok(pt) = GGeometry::new_from_wkt(&pt_wkt) {
-                            if pt.distance(cu).unwrap_or(f64::INFINITY) < params.eps * 10.0 {
-                                nodes_to_keep_pts.push(pt);
-                            }
-                        }
-                    }
+            let coords = &seg.0;
+            if coords.len() < 2 {
+                continue;
+            }
+            for &pt_idx in &[0, coords.len() - 1] {
+                let c = coords[pt_idx];
+                let pt = Point::new(c.x, c.y);
+                let near_crossing = crossing_lines.iter().any(|cl| {
+                    Euclidean.distance(&pt, cl) < params.eps * 10.0
+                });
+                if near_crossing {
+                    nodes_to_keep_coords.push([c.x, c.y]);
                 }
             }
         }
     }
 
     // 4. Subtract nodes_to_keep from boundary segments to break into groups
-    let skel_input = if !nodes_to_keep_pts.is_empty() {
-        let nodes_buf = union_all_geoms(&nodes_to_keep_pts)
-            .and_then(|u| u.buffer(params.eps, 8).ok());
-        if let Some(ref nbuf) = nodes_buf {
-            let mut split_segs: Vec<GGeometry> = Vec::new();
+    let skel_input = if !nodes_to_keep_coords.is_empty() {
+        // Buffer all node points and union in one batch via MultiPolygon
+        let mut all_node_polys: Vec<Polygon<f64>> = Vec::new();
+        for c in &nodes_to_keep_coords {
+            let pt_buf: MultiPolygon<f64> = Point::new(c[0], c[1]).buffer(params.eps);
+            all_node_polys.extend(pt_buf.0);
+        }
+        let nodes_buf = if all_node_polys.len() <= 1 {
+            MultiPolygon(all_node_polys)
+        } else {
+            // Single union call instead of sequential O(n) unions
+            let mut acc = MultiPolygon(vec![all_node_polys[0].clone()]);
+            // Union in balanced batches: merge pairs, then pairs of pairs, etc.
+            let rest = &all_node_polys[1..];
+            for chunk in rest.chunks(8) {
+                let chunk_mp = MultiPolygon(chunk.to_vec());
+                acc = acc.union(&chunk_mp);
+            }
+            acc
+        };
+
+        if !nodes_buf.0.is_empty() {
+            let mut split_segs: Vec<LineString<f64>> = Vec::new();
             for seg in &boundary_segments {
-                if let Ok(diff) = seg.difference(nbuf) {
-                    explode_geometry(&diff, &mut split_segs);
+                let mls = MultiLineString(vec![seg.clone()]);
+                for poly in &nodes_buf.0 {
+                    let diff = poly.clip(&mls, true);
+                    for ls in diff.0 {
+                        split_segs.push(ls);
+                    }
                 }
             }
-            split_segs.retain(|g| g.length().unwrap_or(0.0) > 100.0 * params.eps);
+            split_segs.retain(|g| Euclidean.length(g) > 100.0 * params.eps);
             if split_segs.is_empty() {
                 boundary_segments
             } else {
@@ -1091,7 +1098,7 @@ fn cluster_skeleton_decomposed(
     }
 
     // 5. Skeleton with tiny clip_limit and no snap targets
-    let no_snap: Vec<GGeometry> = vec![];
+    let no_snap: Vec<LineString<f64>> = vec![];
     let (skeleton_edges, _) = geometry::voronoi_skeleton(
         &skel_input,
         Some(merged),
@@ -1108,69 +1115,44 @@ fn cluster_skeleton_decomposed(
 
 // ─── Multi-C branch helpers ──────────────────────────────────────────────
 
-/// Union all geometries into a single geometry.
-fn union_all_geoms(geoms: &[GGeometry]) -> Option<GGeometry> {
-    if geoms.is_empty() {
-        return None;
-    }
-    let mut result = Clone::clone(&geoms[0]);
-    for geom in &geoms[1..] {
-        result = result.union(geom).ok()?;
-    }
-    Some(result)
-}
-
 /// Compute "primes" — boundary points shared between multiple C edges.
 /// These are junction points within the C edge network.
 ///
 /// Mirrors Python: `bd_points = highest_hierarchy.boundary.explode();
 /// primes = bd_points[bd_points.duplicated()]`
-fn compute_c_primes(c_geoms: &[GGeometry]) -> Vec<GGeometry> {
+fn compute_c_primes(c_geoms: &[LineString<f64>]) -> Vec<[f64; 2]> {
     let mut endpoint_counts: HashMap<(i64, i64), usize> = HashMap::new();
-    let mut endpoint_wkts: HashMap<(i64, i64), String> = HashMap::new();
+    let mut endpoint_coords: HashMap<(i64, i64), [f64; 2]> = HashMap::new();
 
     for geom in c_geoms {
-        if let Ok(cs) = geom.get_coord_seq() {
-            let n = cs.size().unwrap_or(0);
-            if n < 2 {
-                continue;
-            }
-
-            // Start point
-            if let (Ok(x), Ok(y)) = (cs.get_x(0), cs.get_y(0)) {
-                let key = coord_key(&[x, y]);
-                *endpoint_counts.entry(key).or_default() += 1;
-                endpoint_wkts
-                    .entry(key)
-                    .or_insert_with(|| format!("POINT ({} {})", x, y));
-            }
-
-            // End point
-            let last = n - 1;
-            if let (Ok(x), Ok(y)) = (cs.get_x(last), cs.get_y(last)) {
-                let key = coord_key(&[x, y]);
-                *endpoint_counts.entry(key).or_default() += 1;
-                endpoint_wkts
-                    .entry(key)
-                    .or_insert_with(|| format!("POINT ({} {})", x, y));
-            }
+        let coords = &geom.0;
+        if coords.len() < 2 {
+            continue;
         }
+
+        // Start point
+        let c0 = coords[0];
+        let key = coord_key(&[c0.x, c0.y]);
+        *endpoint_counts.entry(key).or_default() += 1;
+        endpoint_coords.entry(key).or_insert([c0.x, c0.y]);
+
+        // End point
+        let cn = coords[coords.len() - 1];
+        let key = coord_key(&[cn.x, cn.y]);
+        *endpoint_counts.entry(key).or_default() += 1;
+        endpoint_coords.entry(key).or_insert([cn.x, cn.y]);
     }
 
     endpoint_counts
         .iter()
         .filter(|&(_, &count)| count > 1)
-        .filter_map(|(key, _)| {
-            endpoint_wkts
-                .get(key)
-                .and_then(|wkt| GGeometry::new_from_wkt(wkt).ok())
-        })
+        .filter_map(|(key, _)| endpoint_coords.get(key).copied())
         .collect()
 }
 
 /// Dissolve geometries by connected component labels.
-/// Returns one merged (union) geometry per component.
-fn dissolve_by_components(geoms: &[GGeometry]) -> Vec<GGeometry> {
+/// Returns one merged (line_merge) geometry per component.
+fn dissolve_by_components(geoms: &[LineString<f64>]) -> Vec<LineString<f64>> {
     if geoms.is_empty() {
         return vec![];
     }
@@ -1183,32 +1165,28 @@ fn dissolve_by_components(geoms: &[GGeometry]) -> Vec<GGeometry> {
 
     groups
         .values()
-        .filter_map(|indices| {
+        .flat_map(|indices| {
             if indices.len() == 1 {
-                Some(Clone::clone(&geoms[indices[0]]))
+                vec![geoms[indices[0]].clone()]
             } else {
-                let mut merged = Clone::clone(&geoms[indices[0]]);
-                for &i in &indices[1..] {
-                    merged = merged.union(&geoms[i]).ok()?;
-                }
-                Some(merged)
+                let group_geoms: Vec<LineString<f64>> =
+                    indices.iter().map(|&i| geoms[i].clone()).collect();
+                ops::line_merge(&group_geoms)
             }
         })
         .collect()
 }
 
-/// Create a shortest line between two geometries.
-fn make_shortest_line_between(a: &GGeometry, b: &GGeometry) -> Option<GGeometry> {
-    let cs = a.nearest_points(b).ok()?;
-    let x0 = cs.get_x(0).ok()?;
-    let y0 = cs.get_y(0).ok()?;
-    let x1 = cs.get_x(1).ok()?;
-    let y1 = cs.get_y(1).ok()?;
-    let dist = ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt();
+/// Create a shortest line between two LineString geometries.
+fn make_shortest_line_between(a: &LineString<f64>, b: &LineString<f64>) -> Option<LineString<f64>> {
+    let (pa, pb) = ops::nearest_points(a, b)?;
+    let dx = pb.x - pa.x;
+    let dy = pb.y - pa.y;
+    let dist = (dx * dx + dy * dy).sqrt();
     if dist < 1e-10 {
         return None;
     }
-    GGeometry::new_from_wkt(&format!("LINESTRING ({} {}, {} {})", x0, y0, x1, y1)).ok()
+    Some(LineString::new(vec![pa, pb]))
 }
 
 /// Filter skeleton connections: when multiple connections hit the same C group,
@@ -1216,39 +1194,48 @@ fn make_shortest_line_between(a: &GGeometry, b: &GGeometry) -> Option<GGeometry>
 ///
 /// Mirrors Python `filter_connections()`.
 fn filter_connections(
-    primes: &[GGeometry],
-    snap_targets: &[GGeometry],
-    conts_groups: &[GGeometry],
-    connections: &[GGeometry],
-) -> Vec<GGeometry> {
+    primes: &[[f64; 2]],
+    snap_targets: &[LineString<f64>],
+    conts_groups: &[LineString<f64>],
+    connections: &[LineString<f64>],
+) -> Vec<LineString<f64>> {
     if connections.is_empty() || conts_groups.is_empty() {
         return connections.to_vec();
     }
 
-    // Build union of all targets (primes + snap targets)
-    let mut all_targets: Vec<GGeometry> = Vec::new();
-    all_targets.extend(primes.iter().map(|g| Clone::clone(g)));
-    all_targets.extend(snap_targets.iter().map(|g| Clone::clone(g)));
-    let targets_union = union_all_geoms(&all_targets);
+    // Build union of all target points as small lines for intersection testing
+    let mut all_target_pts: Vec<Point<f64>> = Vec::new();
+    for p in primes {
+        all_target_pts.push(Point::new(p[0], p[1]));
+    }
+    for snap in snap_targets {
+        if !snap.0.is_empty() {
+            all_target_pts.push(Point::new(snap.0[0].x, snap.0[0].y));
+        }
+    }
 
     let mut unwanted: HashSet<usize> = HashSet::new();
-    let mut keeping: Vec<GGeometry> = Vec::new();
+    let mut keeping: Vec<LineString<f64>> = Vec::new();
 
     for c_group in conts_groups {
         // Find connections that intersect this C group
         let intersecting_c: Vec<usize> = connections
             .iter()
             .enumerate()
-            .filter(|(_, conn)| conn.intersects(c_group).unwrap_or(false))
+            .filter(|(_, conn)| conn.intersects(c_group))
             .map(|(i, _)| i)
             .collect();
 
         if intersecting_c.len() > 1 {
             // Multiple connections to this C — find which ones reach targets
-            let reaching_targets: Vec<usize> = if let Some(ref tu) = targets_union {
+            let reaching_targets: Vec<usize> = if !all_target_pts.is_empty() {
                 intersecting_c
                     .iter()
-                    .filter(|&&i| connections[i].intersects(tu).unwrap_or(false))
+                    .filter(|&&i| {
+                        all_target_pts.iter().any(|pt| {
+                            Euclidean.distance(pt, &connections[i]) < 5.0
+                        })
+                    })
                     .copied()
                     .collect()
             } else {
@@ -1260,8 +1247,8 @@ fn filter_connections(
                 let shortest_idx = reaching_targets
                     .iter()
                     .min_by(|&&a, &&b| {
-                        let la = connections[a].length().unwrap_or(f64::INFINITY);
-                        let lb = connections[b].length().unwrap_or(f64::INFINITY);
+                        let la = Euclidean.length(&connections[a]);
+                        let lb = Euclidean.length(&connections[b]);
                         la.partial_cmp(&lb).unwrap_or(std::cmp::Ordering::Equal)
                     })
                     .copied();
@@ -1272,7 +1259,7 @@ fn filter_connections(
                 }
                 // Add back the shortest
                 if let Some(idx) = shortest_idx {
-                    keeping.push(Clone::clone(&connections[idx]));
+                    keeping.push(connections[idx].clone());
                 }
             } else {
                 // Fork case: multiple C connections, none reaching targets
@@ -1284,11 +1271,11 @@ fn filter_connections(
         }
     }
 
-    let mut result: Vec<GGeometry> = connections
+    let mut result: Vec<LineString<f64>> = connections
         .iter()
         .enumerate()
         .filter(|(i, _)| !unwanted.contains(i))
-        .map(|(_, g)| Clone::clone(g))
+        .map(|(_, g)| g.clone())
         .collect();
     result.extend(keeping);
     result
@@ -1298,11 +1285,11 @@ fn filter_connections(
 ///
 /// Mirrors Python `reconnect()`.
 fn reconnect_c_groups(
-    conts_groups: &[GGeometry],
-    connections: &[GGeometry],
-    artifact: &GGeometry,
+    conts_groups: &[LineString<f64>],
+    connections: &[LineString<f64>],
+    artifact: &Polygon<f64>,
     eps: f64,
-) -> Vec<GGeometry> {
+) -> Vec<LineString<f64>> {
     if connections.is_empty() || conts_groups.is_empty() {
         return connections.to_vec();
     }
@@ -1312,22 +1299,23 @@ fn reconnect_c_groups(
 
     let mut additions = Vec::new();
     for c_group in conts_groups {
-        let c_buf = c_group.buffer(eps, 8).ok();
+        let c_buf: MultiPolygon<f64> = c_group.buffer(eps);
+
         let all_intersect = conn_dissolved.iter().all(|comp| {
-            if let Some(ref buf) = c_buf {
-                comp.intersects(buf).unwrap_or(false)
+            if !c_buf.0.is_empty() {
+                c_buf.0.iter().any(|p| comp.intersects(p))
             } else {
-                comp.intersects(c_group).unwrap_or(false)
+                comp.intersects(c_group)
             }
         });
 
         if !all_intersect {
             // Some components don't reach this C — add shortest connections
             for comp in &conn_dissolved {
-                let intersects = if let Some(ref buf) = c_buf {
-                    comp.intersects(buf).unwrap_or(false)
+                let intersects = if !c_buf.0.is_empty() {
+                    c_buf.0.iter().any(|p| comp.intersects(p))
                 } else {
-                    comp.intersects(c_group).unwrap_or(false)
+                    comp.intersects(c_group)
                 };
 
                 if !intersects {
@@ -1348,6 +1336,18 @@ fn reconnect_c_groups(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
+/// Extract the largest polygon from a MultiPolygon.
+fn largest_polygon(mp: &MultiPolygon<f64>) -> Option<Polygon<f64>> {
+    use geo::Area;
+    mp.0.iter()
+        .max_by(|a, b| {
+            a.unsigned_area()
+                .partial_cmp(&b.unsigned_area())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .cloned()
+}
+
 /// Apply accumulated drops and additions to the network.
 ///
 /// Post-processing matches Python:
@@ -1359,7 +1359,7 @@ fn reconnect_c_groups(
 fn apply_changes(
     network: &mut StreetNetwork,
     to_drop: &[usize],
-    to_add: &[GGeometry],
+    to_add: &[LineString<f64>],
 ) {
     if to_drop.is_empty() && to_add.is_empty() {
         return;
@@ -1372,7 +1372,7 @@ fn apply_changes(
 
     for (i, geom) in network.geometries.iter().enumerate() {
         if !drop_set.contains(&i) {
-            new_geoms.push(Clone::clone(geom));
+            new_geoms.push(geom.clone());
             new_statuses.push(network.statuses[i]);
         }
     }
@@ -1407,139 +1407,95 @@ fn is_identical_ces(ces: &continuity::CesInfo) -> bool {
     types_present <= 1
 }
 
-/// Merge a set of geometries via GEOS line_merge, then explode MultiLineStrings
-/// into individual LineStrings.
-fn merge_and_explode(geoms: &[GGeometry]) -> Vec<GGeometry> {
+/// Merge a set of geometries via line_merge, then explode into individual LineStrings.
+fn merge_and_explode(geoms: &[LineString<f64>]) -> Vec<LineString<f64>> {
     if geoms.is_empty() {
         return vec![];
     }
-
-    // Collect into a GeometryCollection and line_merge
-    let wkt_parts: Vec<String> = geoms
-        .iter()
-        .filter_map(|g| g.to_wkt().ok())
-        .collect();
-
-    if wkt_parts.is_empty() {
-        return geoms.iter().map(|g| Clone::clone(g)).collect();
+    let merged = ops::line_merge(geoms);
+    if merged.is_empty() {
+        return geoms.to_vec();
     }
-
-    // Build a GeometryCollection WKT
-    let gc_wkt = format!("GEOMETRYCOLLECTION ({})", wkt_parts.join(", "));
-    let collection = match GGeometry::new_from_wkt(&gc_wkt) {
-        Ok(gc) => gc,
-        Err(_) => return geoms.iter().map(|g| Clone::clone(g)).collect(),
-    };
-
-    let merged = match collection.line_merge() {
-        Ok(m) => m,
-        Err(_) => return geoms.iter().map(|g| Clone::clone(g)).collect(),
-    };
-
-    // Explode result into individual LineStrings
-    let mut result = Vec::new();
-    explode_geometry(&merged, &mut result);
-    if result.is_empty() {
-        // Fallback: return originals
-        return geoms.iter().map(|g| Clone::clone(g)).collect();
-    }
-    result
-}
-
-/// Recursively explode a geometry (possibly Multi or Collection) into simple geometries.
-fn explode_geometry(geom: &GGeometry, out: &mut Vec<GGeometry>) {
-    use geos::GeometryTypes;
-    match geom.geometry_type() {
-        GeometryTypes::LineString => {
-            // Only include non-empty
-            if geom.is_empty().unwrap_or(true) {
-                return;
-            }
-            out.push(Clone::clone(geom));
-        }
-        GeometryTypes::MultiLineString | GeometryTypes::GeometryCollection => {
-            let n = geom.get_num_geometries().unwrap_or(0);
-            for i in 0..n {
-                if let Ok(part) = geom.get_geometry_n(i) {
-                    let owned = geos::Geom::clone(&part);
-                    explode_geometry(&owned, out);
-                }
-            }
-        }
-        _ => {
-            // Skip non-line geometries (points, polygons)
-        }
-    }
+    merged
 }
 
 /// Deduplicate geometries by normalized WKT.
-fn dedup_geometries(geoms: &[GGeometry]) -> Vec<GGeometry> {
+fn dedup_geometries(geoms: &[LineString<f64>]) -> Vec<LineString<f64>> {
     let mut seen = HashSet::new();
     let mut result = Vec::new();
     for geom in geoms {
-        // Normalize for consistent WKT
-        let mut g = Clone::clone(geom);
-        let _ = g.normalize();
-        if let Ok(wkt) = g.to_wkt() {
-            if seen.insert(wkt) {
-                result.push(Clone::clone(geom));
-            }
-        } else {
-            result.push(Clone::clone(geom));
+        let normalized = ops::normalize_linestring(geom);
+        let wkt = ops::linestring_to_wkt(&normalized);
+        if seen.insert(wkt) {
+            result.push(geom.clone());
         }
     }
     result
 }
 
 /// Find edge indices whose geometry is covered by the artifact polygon.
+#[cfg(test)]
 fn find_covered_edges(
-    geometries: &[GGeometry],
-    artifact: &GGeometry,
+    geometries: &[LineString<f64>],
+    artifact: &Polygon<f64>,
     eps: f64,
 ) -> Vec<usize> {
     let tree = crate::spatial::build_rtree(geometries);
-    let candidates = nodes::envelope_query_indices_pub(&tree, artifact);
+    find_covered_edges_with_tree(geometries, &tree, artifact, eps)
+}
 
-    let buffered = match artifact.buffer(eps, 8) {
-        Ok(b) => b,
-        Err(_) => return vec![],
-    };
+/// find_covered_edges using a pre-built R-tree.
+fn find_covered_edges_with_tree(
+    geometries: &[LineString<f64>],
+    tree: &rstar::RTree<crate::spatial::IndexedEnvelope>,
+    artifact: &Polygon<f64>,
+    eps: f64,
+) -> Vec<usize> {
+    let candidates = nodes::envelope_query_indices_pub(tree, artifact);
 
+    // Buffer the polygon to include boundary-touching edges
+    let artifact_buf: MultiPolygon<f64> = artifact.buffer(eps);
+
+    // Use rayon for parallel relate checks (these are the expensive part)
+    use rayon::prelude::*;
     candidates
-        .into_iter()
-        .filter(|&i| buffered.covers(&geometries[i]).unwrap_or(false))
+        .par_iter()
+        .filter(|&&i| {
+            artifact_buf.0.iter().any(|p| p.relate(&geometries[i]).is_covers())
+        })
+        .copied()
         .collect()
 }
 
 /// Find edges that intersect the artifact boundary but are not fully covered.
+#[cfg(test)]
 fn find_boundary_edges(
-    geometries: &[GGeometry],
-    artifact: &GGeometry,
+    geometries: &[LineString<f64>],
+    artifact: &Polygon<f64>,
     eps: f64,
 ) -> Vec<usize> {
     let tree = crate::spatial::build_rtree(geometries);
-    let candidates = nodes::envelope_query_indices_pub(&tree, artifact);
+    find_boundary_edges_with_tree(geometries, &tree, artifact, eps)
+}
 
-    let buffered = match artifact.buffer(eps, 8) {
-        Ok(b) => b,
-        Err(_) => return vec![],
-    };
+/// find_boundary_edges using a pre-built R-tree.
+fn find_boundary_edges_with_tree(
+    geometries: &[LineString<f64>],
+    tree: &rstar::RTree<crate::spatial::IndexedEnvelope>,
+    artifact: &Polygon<f64>,
+    eps: f64,
+) -> Vec<usize> {
+    let candidates = nodes::envelope_query_indices_pub(tree, artifact);
 
-    let boundary = match artifact.boundary() {
-        Ok(b) => b,
-        Err(_) => return vec![],
-    };
-    let boundary_buf = match boundary.buffer(eps, 8) {
-        Ok(b) => b,
-        Err(_) => return vec![],
-    };
+    let artifact_buf: MultiPolygon<f64> = artifact.buffer(eps);
+    let boundary_buf: MultiPolygon<f64> = artifact.exterior().clone().buffer(eps);
 
     candidates
         .into_iter()
         .filter(|&i| {
             let geom = &geometries[i];
-            let is_covered = buffered.covers(geom).unwrap_or(false);
-            let touches_boundary = geom.intersects(&boundary_buf).unwrap_or(false);
+            let is_covered = artifact_buf.0.iter().any(|p| p.relate(geom).is_covers());
+            let touches_boundary = boundary_buf.0.iter().any(|p| geom.intersects(p));
             !is_covered && touches_boundary
         })
         .collect()
@@ -1548,18 +1504,15 @@ fn find_boundary_edges(
 /// Find network nodes near a polygon (within eps).
 fn find_nodes_near_polygon(
     node_coords: &[[f64; 2]],
-    polygon: &GGeometry,
+    polygon: &Polygon<f64>,
     eps: f64,
 ) -> Vec<[f64; 2]> {
     let mut result = Vec::new();
     for coord in node_coords {
-        let pt_wkt = format!("POINT ({} {})", coord[0], coord[1]);
-        if let Ok(pt) = GGeometry::new_from_wkt(&pt_wkt) {
-            if let Ok(dist) = polygon.distance(&pt) {
-                if dist <= eps {
-                    result.push(*coord);
-                }
-            }
+        let pt = Point::new(coord[0], coord[1]);
+        let dist = Euclidean.distance(&pt, polygon);
+        if dist <= eps {
+            result.push(*coord);
         }
     }
     result
@@ -1572,7 +1525,7 @@ fn find_nodes_near_polygon(
 /// boundary (where the skeleton connects to the network).
 ///
 /// Mirrors Python `remove_dangles()`.
-fn remove_dangles(connections: &[GGeometry], artifact: &GGeometry, _eps: f64) -> Vec<GGeometry> {
+fn remove_dangles(connections: &[LineString<f64>], artifact: &Polygon<f64>, _eps: f64) -> Vec<LineString<f64>> {
     if connections.len() <= 1 {
         return connections.to_vec();
     }
@@ -1584,10 +1537,7 @@ fn remove_dangles(connections: &[GGeometry], artifact: &GGeometry, _eps: f64) ->
     }
 
     // Get artifact boundary
-    let boundary = match artifact.boundary() {
-        Ok(b) => b,
-        Err(_) => return merged,
-    };
+    let boundary = artifact.exterior().clone();
 
     // For each connection, check if each endpoint either:
     // 1. Touches another connection (within snap tolerance), or
@@ -1603,34 +1553,22 @@ fn remove_dangles(connections: &[GGeometry], artifact: &GGeometry, _eps: f64) ->
     let mut keep = vec![true; merged.len()];
 
     for i in 0..merged.len() {
-        let cs = match merged[i].get_coord_seq() {
-            Ok(c) => c,
-            Err(_) => continue,
-        };
-        let n = cs.size().unwrap_or(0);
-        if n < 2 {
+        let coords = &merged[i].0;
+        if coords.len() < 2 {
             continue;
         }
 
         // Check both endpoints
-        for pt_idx in [0, n - 1] {
-            let (x, y) = match (cs.get_x(pt_idx), cs.get_y(pt_idx)) {
-                (Ok(x), Ok(y)) => (x, y),
-                _ => continue,
-            };
-            let pt_wkt = format!("POINT ({} {})", x, y);
-            let pt_geom = match GGeometry::new_from_wkt(&pt_wkt) {
-                Ok(p) => p,
-                Err(_) => continue,
-            };
+        for &pt_idx in &[0, coords.len() - 1] {
+            let c = coords[pt_idx];
+            let pt = Point::new(c.x, c.y);
 
             let mut connected = false;
 
             // Check distance to artifact boundary
-            if let Ok(dist) = boundary.distance(&pt_geom) {
-                if dist < snap_tol {
-                    connected = true;
-                }
+            let dist_to_boundary = Euclidean.distance(&pt, &boundary);
+            if dist_to_boundary < snap_tol {
+                connected = true;
             }
 
             if !connected {
@@ -1639,11 +1577,10 @@ fn remove_dangles(connections: &[GGeometry], artifact: &GGeometry, _eps: f64) ->
                     if i == j {
                         continue;
                     }
-                    if let Ok(dist) = merged[j].distance(&pt_geom) {
-                        if dist < snap_tol {
-                            connected = true;
-                            break;
-                        }
+                    let dist = Euclidean.distance(&pt, &merged[j]);
+                    if dist < snap_tol {
+                        connected = true;
+                        break;
                     }
                 }
             }
@@ -1663,19 +1600,27 @@ fn remove_dangles(connections: &[GGeometry], artifact: &GGeometry, _eps: f64) ->
         .collect()
 }
 
-/// Convert node coordinate arrays to GEOS Point geometries.
-fn node_coords_to_points(coords: &[[f64; 2]]) -> Vec<GGeometry> {
+/// Convert node coordinate arrays to small LineString geometries for snap targets.
+///
+/// Creates 2-point degenerate LineStrings (point-like) that the voronoi_skeleton
+/// snap_to parameter expects.
+fn node_coords_to_lines(coords: &[[f64; 2]]) -> Vec<LineString<f64>> {
     coords
         .iter()
-        .filter_map(|c| GGeometry::new_from_wkt(&format!("POINT ({} {})", c[0], c[1])).ok())
+        .map(|c| {
+            LineString::new(vec![
+                Coord { x: c[0], y: c[1] },
+                Coord { x: c[0], y: c[1] },
+            ])
+        })
         .collect()
 }
 
 /// Error type for the neatify pipeline.
 #[derive(Debug, thiserror::Error)]
 pub enum NeatifyError {
-    #[error("GEOS error: {0}")]
-    Geos(String),
+    #[error("Geometry error: {0}")]
+    Geometry(String),
     #[error("No projected CRS set on input data")]
     NoCrs,
     #[error("Artifact detection failed: {0}")]
@@ -1685,6 +1630,27 @@ pub enum NeatifyError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn make_line(coords: &[[f64; 2]]) -> LineString<f64> {
+        LineString::new(
+            coords
+                .iter()
+                .map(|c| Coord { x: c[0], y: c[1] })
+                .collect(),
+        )
+    }
+
+    fn make_poly(coords: &[[f64; 2]]) -> Polygon<f64> {
+        Polygon::new(
+            LineString::new(
+                coords
+                    .iter()
+                    .map(|c| Coord { x: c[0], y: c[1] })
+                    .collect(),
+            ),
+            vec![],
+        )
+    }
 
     #[test]
     fn test_neatify_params_default() {
@@ -1745,19 +1711,10 @@ mod tests {
 
     #[test]
     fn test_find_covered_edges() {
-        // Create a small polygon and lines inside/outside
-        let poly = GGeometry::new_from_wkt(
-            "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))"
-        ).unwrap();
-        let inside = GGeometry::new_from_wkt(
-            "LINESTRING (2 5, 8 5)"
-        ).unwrap();
-        let outside = GGeometry::new_from_wkt(
-            "LINESTRING (12 5, 18 5)"
-        ).unwrap();
-        let crossing = GGeometry::new_from_wkt(
-            "LINESTRING (5 5, 15 5)"
-        ).unwrap();
+        let poly = make_poly(&[[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0], [0.0, 0.0]]);
+        let inside = make_line(&[[2.0, 5.0], [8.0, 5.0]]);
+        let outside = make_line(&[[12.0, 5.0], [18.0, 5.0]]);
+        let crossing = make_line(&[[5.0, 5.0], [15.0, 5.0]]);
 
         let geoms = vec![inside, outside, crossing];
         let covered = find_covered_edges(&geoms, &poly, 0.001);
@@ -1769,18 +1726,10 @@ mod tests {
 
     #[test]
     fn test_find_boundary_edges() {
-        let poly = GGeometry::new_from_wkt(
-            "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))"
-        ).unwrap();
-        let inside = GGeometry::new_from_wkt(
-            "LINESTRING (2 5, 8 5)"
-        ).unwrap();
-        let boundary = GGeometry::new_from_wkt(
-            "LINESTRING (5 -5, 5 5)"
-        ).unwrap();
-        let outside = GGeometry::new_from_wkt(
-            "LINESTRING (12 5, 18 5)"
-        ).unwrap();
+        let poly = make_poly(&[[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0], [0.0, 0.0]]);
+        let inside = make_line(&[[2.0, 5.0], [8.0, 5.0]]);
+        let boundary = make_line(&[[5.0, -5.0], [5.0, 5.0]]);
+        let outside = make_line(&[[12.0, 5.0], [18.0, 5.0]]);
 
         let geoms = vec![inside, boundary, outside];
         let boundary_edges = find_boundary_edges(&geoms, &poly, 0.001);
@@ -1793,23 +1742,23 @@ mod tests {
     #[test]
     fn test_merge_and_explode() {
         // Two connected linestrings should merge into one
-        let l1 = GGeometry::new_from_wkt("LINESTRING (0 0, 5 0)").unwrap();
-        let l2 = GGeometry::new_from_wkt("LINESTRING (5 0, 10 0)").unwrap();
+        let l1 = make_line(&[[0.0, 0.0], [5.0, 0.0]]);
+        let l2 = make_line(&[[5.0, 0.0], [10.0, 0.0]]);
         let result = merge_and_explode(&[l1, l2]);
         assert_eq!(result.len(), 1, "two connected lines should merge to one");
 
         // Two disconnected linestrings should stay as two
-        let l3 = GGeometry::new_from_wkt("LINESTRING (0 0, 5 0)").unwrap();
-        let l4 = GGeometry::new_from_wkt("LINESTRING (20 0, 25 0)").unwrap();
+        let l3 = make_line(&[[0.0, 0.0], [5.0, 0.0]]);
+        let l4 = make_line(&[[20.0, 0.0], [25.0, 0.0]]);
         let result2 = merge_and_explode(&[l3, l4]);
         assert_eq!(result2.len(), 2, "two disconnected lines should stay as two");
     }
 
     #[test]
     fn test_dedup_geometries() {
-        let l1 = GGeometry::new_from_wkt("LINESTRING (0 0, 5 0)").unwrap();
-        let l2 = GGeometry::new_from_wkt("LINESTRING (0 0, 5 0)").unwrap();
-        let l3 = GGeometry::new_from_wkt("LINESTRING (10 0, 15 0)").unwrap();
+        let l1 = make_line(&[[0.0, 0.0], [5.0, 0.0]]);
+        let l2 = make_line(&[[0.0, 0.0], [5.0, 0.0]]);
+        let l3 = make_line(&[[10.0, 0.0], [15.0, 0.0]]);
         let result = dedup_geometries(&[l1, l2, l3]);
         assert_eq!(result.len(), 2, "duplicate should be removed");
     }
@@ -1826,10 +1775,10 @@ mod tests {
 
     #[test]
     fn test_make_shortest_to_edges() {
-        let edge = GGeometry::new_from_wkt("LINESTRING (0 0, 10 0)").unwrap();
+        let edge = make_line(&[[0.0, 0.0], [10.0, 0.0]]);
         let point = [5.0, 3.0];
         let line = make_shortest_to_edges(&point, &[edge]).unwrap();
-        let len = line.length().unwrap();
+        let len = Euclidean.length(&line);
         assert!((len - 3.0).abs() < 0.01, "shortest line from (5,3) to x-axis should be ~3");
     }
 }
