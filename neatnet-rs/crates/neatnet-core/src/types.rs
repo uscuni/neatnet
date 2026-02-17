@@ -142,6 +142,42 @@ impl StreetNetwork {
             }
         }
     }
+
+    /// Remap attributes based on source row indices from a nodes operation.
+    ///
+    /// `source_indices[i]` is `Some(j)` to copy row `j` from the original
+    /// attributes, or `None` for a newly created row (filled with nulls).
+    /// The new geometries and statuses must already be set before calling this.
+    pub fn remap_attributes(&mut self, source_indices: &[Option<usize>]) {
+        let batch = match self.attributes {
+            Some(ref b) => b,
+            None => return,
+        };
+        let schema = batch.schema();
+        let n_out = source_indices.len();
+
+        let new_columns: Vec<arrow::array::ArrayRef> = schema
+            .fields()
+            .iter()
+            .enumerate()
+            .map(|(col_idx, field)| {
+                let src_col = batch.column(col_idx);
+                let indices: arrow::array::UInt32Array = source_indices
+                    .iter()
+                    .map(|opt| opt.map(|i| i as u32))
+                    .collect();
+                // take() copies elements at the given indices, null index → null output
+                arrow::compute::take(src_col.as_ref(), &indices, None)
+                    .unwrap_or_else(|_| arrow::array::new_null_array(field.data_type(), n_out))
+            })
+            .collect();
+
+        if let Ok(new_batch) =
+            arrow::record_batch::RecordBatch::try_new(schema.clone(), new_columns)
+        {
+            self.attributes = Some(new_batch);
+        }
+    }
 }
 
 /// Face artifacts detected by the polygonization & FAI pipeline.

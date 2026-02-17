@@ -94,7 +94,7 @@ fn test_apalachicola_topology_only() {
     let params = NeatifyParams::default();
 
     // Step 1: Fix topology
-    let (fixed_geoms, fixed_statuses) =
+    let (fixed_geoms, fixed_statuses, _) =
         neatnet_core::nodes::fix_topology(&geoms, &statuses, params.eps);
 
     println!("After fix_topology: {} edges", fixed_geoms.len());
@@ -107,7 +107,7 @@ fn test_apalachicola_topology_only() {
     );
 
     // Step 2: Consolidate nodes
-    let (consol_geoms, _consol_statuses) = neatnet_core::nodes::consolidate_nodes(
+    let (consol_geoms, _consol_statuses, _) = neatnet_core::nodes::consolidate_nodes(
         &fixed_geoms,
         &fixed_statuses,
         params.max_segment_length * 2.1,
@@ -163,13 +163,13 @@ fn test_apalachicola_fix_topology_steps() {
         deduped.len(), dedup_len, dedup_len / orig_length);
 
     // Step 2: Induce nodes
-    let (induced, induced_st) = nodes::induce_nodes(&deduped, &deduped_st, 1e-4);
+    let (induced, induced_st, _) = nodes::induce_nodes(&deduped, &deduped_st, 1e-4);
     let induced_len: f64 = induced.iter().map(|g| Euclidean.length(g)).sum();
     println!("After induce_nodes: {} edges, length {:.2} (ratio {:.3})",
         induced.len(), induced_len, induced_len / orig_length);
 
     // Step 3: Remove interstitial
-    let (cleaned, _) = nodes::remove_interstitial_nodes(&induced, &induced_st);
+    let (cleaned, _, _) = nodes::remove_interstitial_nodes(&induced, &induced_st);
     let cleaned_len: f64 = cleaned.iter().map(|g| Euclidean.length(g)).sum();
     println!("After remove_interstitial: {} edges, length {:.2} (ratio {:.3})",
         cleaned.len(), cleaned_len, cleaned_len / orig_length);
@@ -186,12 +186,12 @@ fn test_apalachicola_pipeline_steps() {
     println!("  Edges: {}", geoms.len());
 
     // Step 1: Fix topology
-    let (fixed, fixed_st) = nodes::fix_topology(&geoms, &statuses, params.eps);
+    let (fixed, fixed_st, _) = nodes::fix_topology(&geoms, &statuses, params.eps);
     println!("=== Step 1: fix_topology ===");
     println!("  Edges: {}", fixed.len());
 
     // Step 2: Consolidate nodes
-    let (consol, consol_st) = nodes::consolidate_nodes(
+    let (consol, _consol_st, _) = nodes::consolidate_nodes(
         &fixed, &fixed_st, params.max_segment_length * 2.1, false,
     );
     println!("=== Step 2: consolidate_nodes ===");

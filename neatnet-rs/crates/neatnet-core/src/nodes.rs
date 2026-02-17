@@ -114,9 +114,10 @@ pub fn get_components(geometries: &[LineString<f64>]) -> Vec<usize> {
 pub fn remove_interstitial_nodes(
     geometries: &[LineString<f64>],
     statuses: &[EdgeStatus],
-) -> (Vec<LineString<f64>>, Vec<EdgeStatus>) {
+) -> (Vec<LineString<f64>>, Vec<EdgeStatus>, Vec<Option<usize>>) {
     if geometries.len() < 2 {
-        return (geometries.to_vec(), statuses.to_vec());
+        let sources = (0..geometries.len()).map(Some).collect();
+        return (geometries.to_vec(), statuses.to_vec(), sources);
     }
 
     let labels = get_components(geometries);
@@ -128,6 +129,7 @@ pub fn remove_interstitial_nodes(
 
     let mut result_geoms = Vec::new();
     let mut result_statuses = Vec::new();
+    let mut source_indices: Vec<Option<usize>> = Vec::new();
 
     let mut sorted_labels: Vec<_> = groups.keys().copied().collect();
     sorted_labels.sort();
@@ -136,6 +138,7 @@ pub fn remove_interstitial_nodes(
         if indices.len() == 1 {
             result_geoms.push(geometries[indices[0]].clone());
             result_statuses.push(statuses[indices[0]]);
+            source_indices.push(Some(indices[0]));
         } else {
             let group_statuses: Vec<EdgeStatus> =
                 indices.iter().map(|&i| statuses[i]).collect();
@@ -148,17 +151,20 @@ pub fn remove_interstitial_nodes(
             if merged.len() == 1 {
                 result_geoms.push(merged.into_iter().next().unwrap());
                 result_statuses.push(merged_status);
+                // "first" aggregation: use first index in the group
+                source_indices.push(Some(indices[0]));
             } else {
                 // Fallback: keep individual geometries
                 for &idx in indices {
                     result_geoms.push(geometries[idx].clone());
                     result_statuses.push(statuses[idx]);
+                    source_indices.push(Some(idx));
                 }
             }
         }
     }
 
-    (result_geoms, result_statuses)
+    (result_geoms, result_statuses, source_indices)
 }
 
 /// Fix street network topology.
@@ -166,26 +172,42 @@ pub fn fix_topology(
     geometries: &[LineString<f64>],
     statuses: &[EdgeStatus],
     eps: f64,
-) -> (Vec<LineString<f64>>, Vec<EdgeStatus>) {
+) -> (Vec<LineString<f64>>, Vec<EdgeStatus>, Vec<Option<usize>>) {
     // Step 1: Remove duplicates (by normalized WKT)
     let mut seen = std::collections::HashSet::new();
     let mut deduped_geoms = Vec::new();
     let mut deduped_statuses = Vec::new();
+    let mut dedup_sources: Vec<usize> = Vec::new();
 
-    for (geom, &status) in geometries.iter().zip(statuses.iter()) {
+    for (i, (geom, &status)) in geometries.iter().zip(statuses.iter()).enumerate() {
         let normalized = ops::normalize_linestring(geom);
         let wkt = ops::linestring_to_wkt(&normalized);
         if seen.insert(wkt) {
             deduped_geoms.push(geom.clone());
             deduped_statuses.push(status);
+            dedup_sources.push(i);
         }
     }
 
     // Step 2: Induce nodes at intersections
-    let (induced_geoms, induced_statuses) = induce_nodes(&deduped_geoms, &deduped_statuses, eps);
+    let (induced_geoms, induced_statuses, induce_sources) =
+        induce_nodes(&deduped_geoms, &deduped_statuses, eps);
 
     // Step 3: Remove interstitial nodes
-    remove_interstitial_nodes(&induced_geoms, &induced_statuses)
+    let (result_geoms, result_statuses, rin_sources) =
+        remove_interstitial_nodes(&induced_geoms, &induced_statuses);
+
+    // Compose source mappings: rin → induce → dedup → original
+    let composed: Vec<Option<usize>> = rin_sources
+        .iter()
+        .map(|rin_src| {
+            rin_src
+                .and_then(|r| induce_sources.get(r).copied().flatten())
+                .and_then(|d| dedup_sources.get(d).copied())
+        })
+        .collect();
+
+    (result_geoms, result_statuses, composed)
 }
 
 /// Add missing nodes where line endpoints intersect other edges.
@@ -193,9 +215,9 @@ pub fn induce_nodes(
     geometries: &[LineString<f64>],
     statuses: &[EdgeStatus],
     eps: f64,
-) -> (Vec<LineString<f64>>, Vec<EdgeStatus>) {
+) -> (Vec<LineString<f64>>, Vec<EdgeStatus>, Vec<Option<usize>>) {
     if geometries.is_empty() {
-        return (vec![], vec![]);
+        return (vec![], vec![], vec![]);
     }
 
     let mismatch_points = identify_degree_mismatch(geometries, eps);
@@ -215,7 +237,8 @@ pub fn induce_nodes(
     }
 
     if all_split_points.is_empty() {
-        return (geometries.to_vec(), statuses.to_vec());
+        let sources = (0..geometries.len()).map(Some).collect();
+        return (geometries.to_vec(), statuses.to_vec(), sources);
     }
 
     split_edges_at_points(geometries, statuses, &all_split_points, eps)
@@ -324,9 +347,11 @@ fn split_edges_at_points(
     statuses: &[EdgeStatus],
     split_points: &[Coord<f64>],
     eps: f64,
-) -> (Vec<LineString<f64>>, Vec<EdgeStatus>) {
+) -> (Vec<LineString<f64>>, Vec<EdgeStatus>, Vec<Option<usize>>) {
     let mut result_geoms: Vec<LineString<f64>> = geometries.to_vec();
     let mut result_statuses: Vec<EdgeStatus> = statuses.to_vec();
+    // Track which original row each output row came from
+    let mut source_indices: Vec<Option<usize>> = (0..geometries.len()).map(Some).collect();
 
     for split_pt in split_points {
         let tree = crate::spatial::build_rtree(&result_geoms);
@@ -339,6 +364,7 @@ fn split_edges_at_points(
         let mut to_remove = Vec::new();
         let mut to_add_geoms = Vec::new();
         let mut to_add_statuses = Vec::new();
+        let mut to_add_sources: Vec<Option<usize>> = Vec::new();
 
         let pt = Point::new(split_pt.x, split_pt.y);
         for &idx in &candidates {
@@ -347,10 +373,13 @@ fn split_edges_at_points(
 
             let parts = snap_n_split(&result_geoms[idx], *split_pt, eps);
             if parts.len() > 1 {
+                // Split parts inherit the source of the edge being split
+                let parent_source = source_indices[idx];
                 to_remove.push(idx);
                 for part in parts {
                     to_add_geoms.push(part);
                     to_add_statuses.push(EdgeStatus::Changed);
+                    to_add_sources.push(parent_source);
                 }
             }
         }
@@ -361,13 +390,15 @@ fn split_edges_at_points(
             for &idx in to_remove.iter().rev() {
                 result_geoms.remove(idx);
                 result_statuses.remove(idx);
+                source_indices.remove(idx);
             }
             result_geoms.extend(to_add_geoms);
             result_statuses.extend(to_add_statuses);
+            source_indices.extend(to_add_sources);
         }
     }
 
-    (result_geoms, result_statuses)
+    (result_geoms, result_statuses, source_indices)
 }
 
 /// Snap a point onto a line and split the line at that point.
@@ -452,11 +483,12 @@ pub fn consolidate_nodes(
     statuses: &[EdgeStatus],
     tolerance: f64,
     preserve_ends: bool,
-) -> (Vec<LineString<f64>>, Vec<EdgeStatus>) {
+) -> (Vec<LineString<f64>>, Vec<EdgeStatus>, Vec<Option<usize>>) {
     let (node_coords, degrees) = nodes_from_edges(geometries);
 
     if node_coords.len() < 2 {
-        return (geometries.to_vec(), statuses.to_vec());
+        let sources = (0..geometries.len()).map(Some).collect();
+        return (geometries.to_vec(), statuses.to_vec(), sources);
     }
 
     let candidate_indices: Vec<usize> = (0..node_coords.len())
@@ -464,7 +496,8 @@ pub fn consolidate_nodes(
         .collect();
 
     if candidate_indices.len() < 2 {
-        return (geometries.to_vec(), statuses.to_vec());
+        let sources = (0..geometries.len()).map(Some).collect();
+        return (geometries.to_vec(), statuses.to_vec(), sources);
     }
 
     // Build R-tree and proximity graph
@@ -525,7 +558,8 @@ pub fn consolidate_nodes(
     }
 
     if proximity_components.is_empty() {
-        return (geometries.to_vec(), statuses.to_vec());
+        let sources = (0..geometries.len()).map(Some).collect();
+        return (geometries.to_vec(), statuses.to_vec(), sources);
     }
 
     // Hierarchical clustering per proximity component
@@ -590,7 +624,8 @@ pub fn consolidate_nodes(
     }
 
     if cluster_info.is_empty() {
-        return (geometries.to_vec(), statuses.to_vec());
+        let sources = (0..geometries.len()).map(Some).collect();
+        return (geometries.to_vec(), statuses.to_vec(), sources);
     }
 
     // Apply spider geometry
@@ -650,22 +685,36 @@ pub fn consolidate_nodes(
     }
 
     // Add spiders and remove empty geometries
+    // Track source indices: original edges keep their index, spiders are None (new)
+    let mut pre_sources: Vec<Option<usize>> = (0..geometries.len()).map(Some).collect();
     for spider in new_spiders {
         result_geoms.push(spider);
         result_statuses.push(EdgeStatus::New);
+        pre_sources.push(None);
     }
 
     let mut final_geoms = Vec::new();
     let mut final_statuses = Vec::new();
+    let mut final_sources: Vec<Option<usize>> = Vec::new();
 
-    for (geom, status) in result_geoms.iter().zip(result_statuses.iter()) {
+    for (i, (geom, status)) in result_geoms.iter().zip(result_statuses.iter()).enumerate() {
         if geom.0.len() >= 2 {
             final_geoms.push(geom.clone());
             final_statuses.push(*status);
+            final_sources.push(pre_sources[i]);
         }
     }
 
-    remove_interstitial_nodes(&final_geoms, &final_statuses)
+    let (rin_geoms, rin_statuses, rin_sources) =
+        remove_interstitial_nodes(&final_geoms, &final_statuses);
+
+    // Compose: rin → final → original
+    let composed: Vec<Option<usize>> = rin_sources
+        .iter()
+        .map(|rin_src| rin_src.and_then(|r| final_sources.get(r).copied().flatten()))
+        .collect();
+
+    (rin_geoms, rin_statuses, composed)
 }
 
 /// Query R-tree for line indices near a polygon's bounding box.
@@ -818,7 +867,7 @@ mod tests {
         let g1 = make_line(&[[0.0, 0.0], [5.0, 0.0]]);
         let g2 = make_line(&[[5.5, 0.0], [10.0, 0.0]]);
         let statuses = vec![EdgeStatus::Original, EdgeStatus::Original];
-        let (result_geoms, result_statuses) =
+        let (result_geoms, result_statuses, _) =
             consolidate_nodes(&[g1, g2], &statuses, 2.0, false);
         assert!(!result_geoms.is_empty());
         let total_len: f64 = result_geoms.iter().map(|g| Euclidean.length(g)).sum();
@@ -832,7 +881,7 @@ mod tests {
         let g1 = make_line(&[[0.0, 0.0], [1.0, 0.0]]);
         let g2 = make_line(&[[100.0, 0.0], [200.0, 0.0]]);
         let statuses = vec![EdgeStatus::Original, EdgeStatus::Original];
-        let (result_geoms, result_statuses) =
+        let (result_geoms, result_statuses, _) =
             consolidate_nodes(&[g1, g2], &statuses, 2.0, false);
         assert_eq!(result_geoms.len(), 2);
         assert!(result_statuses.iter().all(|s| *s == EdgeStatus::Original));
@@ -844,7 +893,7 @@ mod tests {
         let g2 = make_line(&[[5.0, 0.0], [10.0, 0.0]]);
         let g3 = make_line(&[[5.0, 0.0], [5.0, 5.0]]);
         let statuses = vec![EdgeStatus::Original; 3];
-        let (result_geoms, _) = consolidate_nodes(&[g1, g2, g3], &statuses, 2.0, true);
+        let (result_geoms, _, _) = consolidate_nodes(&[g1, g2, g3], &statuses, 2.0, true);
         assert!(result_geoms.len() >= 3);
     }
 
@@ -895,7 +944,7 @@ mod tests {
         let g1 = make_line(&[[0.0, 0.0], [10.0, 0.0]]);
         let g2 = make_line(&[[5.0, -5.0], [5.0, 0.0]]);
         let statuses = vec![EdgeStatus::Original; 2];
-        let (result_geoms, _) = induce_nodes(&[g1, g2], &statuses, 1e-4);
+        let (result_geoms, _, _) = induce_nodes(&[g1, g2], &statuses, 1e-4);
         assert!(result_geoms.len() >= 3, "Expected at least 3 edges, got {}", result_geoms.len());
     }
 }

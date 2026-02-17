@@ -35,13 +35,14 @@ pub fn neatify(
     exclusion_mask: Option<&[Polygon<f64>]>,
 ) -> Result<(), NeatifyError> {
     // Step 1: Fix topology
-    let (fixed_geoms, fixed_statuses) =
+    let (fixed_geoms, fixed_statuses, fix_sources) =
         nodes::fix_topology(&network.geometries, &network.statuses, params.eps);
     network.geometries = fixed_geoms;
     network.statuses = fixed_statuses;
+    network.remap_attributes(&fix_sources);
 
     // Step 2: Consolidate nodes
-    let (consol_geoms, consol_statuses) = nodes::consolidate_nodes(
+    let (consol_geoms, consol_statuses, consol_sources) = nodes::consolidate_nodes(
         &network.geometries,
         &network.statuses,
         params.max_segment_length * 2.1,
@@ -49,6 +50,7 @@ pub fn neatify(
     );
     network.geometries = consol_geoms;
     network.statuses = consol_statuses;
+    network.remap_attributes(&consol_sources);
 
     // Step 3: Detect artifacts (with iterative expansion)
     let artifacts = artifacts::get_artifacts(
@@ -82,10 +84,11 @@ pub fn neatify(
         neatify_loop(network, &current_artifacts, params)?;
 
         // Post-loop topology fix (matches Python simplify.py:934-935, 968-969)
-        let (induced_geoms, induced_statuses) =
+        let (induced_geoms, induced_statuses, induce_sources) =
             nodes::induce_nodes(&network.geometries, &network.statuses, params.eps);
         network.geometries = induced_geoms;
         network.statuses = induced_statuses;
+        network.remap_attributes(&induce_sources);
 
         // Dedup by normalized geometry
         dedup_network(network);
@@ -142,10 +145,11 @@ fn neatify_loop(
         network.filter_rows(&keep);
     }
 
-    let (cleaned, statuses) =
+    let (cleaned, statuses, rin_sources) =
         nodes::remove_interstitial_nodes(&network.geometries, &network.statuses);
     network.geometries = cleaned;
     network.statuses = statuses;
+    network.remap_attributes(&rin_sources);
 
     // 2. Build contiguity graph on artifacts → classify as singles/pairs/clusters
     let adjacency = artifacts::build_contiguity_graph(artifact_geoms, true);
@@ -588,10 +592,11 @@ fn neatify_pairs(
         network.filter_rows(&keep);
 
         // Clean topology after dropping
-        let (cleaned, statuses) =
+        let (cleaned, statuses, rin_sources) =
             nodes::remove_interstitial_nodes(&network.geometries, &network.statuses);
         network.geometries = cleaned;
         network.statuses = statuses;
+        network.remap_attributes(&rin_sources);
     }
 
     // Recompute COINS after drops for subsequent dispatches
@@ -1682,10 +1687,11 @@ fn apply_changes(
     }
 
     // Clean topology after changes
-    let (cleaned, statuses) =
+    let (cleaned, statuses, rin_sources) =
         nodes::remove_interstitial_nodes(&network.geometries, &network.statuses);
     network.geometries = cleaned;
     network.statuses = statuses;
+    network.remap_attributes(&rin_sources);
 }
 
 /// Check if a CES classification represents an "identical" case
@@ -1799,14 +1805,17 @@ fn find_boundary_edges_with_tree(
     let artifact_buf: MultiPolygon<f64> = artifact.buffer(eps);
     let boundary_buf: MultiPolygon<f64> = artifact.exterior().clone().buffer(eps);
 
+    // Use rayon for parallel relate/intersects checks (these are the expensive part)
+    use rayon::prelude::*;
     candidates
-        .into_iter()
-        .filter(|&i| {
+        .par_iter()
+        .filter(|&&i| {
             let geom = &geometries[i];
             let is_covered = artifact_buf.0.iter().any(|p| p.relate(geom).is_covers());
             let touches_boundary = boundary_buf.0.iter().any(|p| geom.intersects(p));
             !is_covered && touches_boundary
         })
+        .copied()
         .collect()
 }
 
@@ -2091,7 +2100,7 @@ mod tests {
     fn test_coord_key() {
         let c1 = [1.23456789, 4.56789012];
         let c2 = [1.23456789, 4.56789012];
-        let c3 = [1.234567891, 4.56789012]; // differs at 10th decimal
+        let _c3 = [1.234567891, 4.56789012]; // differs at 10th decimal
         assert_eq!(coord_key(&c1), coord_key(&c2));
         // c3 might or might not match depending on floating point precision
         // but should be stable for same input
