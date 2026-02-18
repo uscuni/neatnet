@@ -192,31 +192,30 @@ pub fn coins(geometries: &[LineString<f64>], angle_threshold: f64) -> CoinsResul
     }
 
     // 6. Map segment groups back to original edge indices.
-    let mut seen_groups: HashMap<Vec<usize>, usize> = HashMap::new();
-    let mut merged_groups: Vec<Vec<usize>> = Vec::new();
-
-    for start_seg in 0..n_segs {
-        let gid = seg_to_group[start_seg].unwrap_or(0);
-        if !seen_groups.contains_key(&vec![gid]) {
-            let seg_members: Vec<usize> = (0..n_segs)
-                .filter(|&s| seg_to_group[s] == Some(gid))
-                .collect();
-            let edge_members: Vec<usize> = seg_members
-                .iter()
-                .map(|&s| segments[s].edge_idx)
-                .collect::<std::collections::BTreeSet<_>>()
-                .into_iter()
-                .collect();
-            seen_groups.insert(vec![gid], merged_groups.len());
-            merged_groups.push(edge_members);
-        }
+    // Build inverted index: group_id → segment indices (O(n) instead of O(n²))
+    let mut group_to_segments: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (seg_idx, group_opt) in seg_to_group.iter().enumerate() {
+        let gid = group_opt.unwrap_or(seg_idx);
+        group_to_segments.entry(gid).or_default().push(seg_idx);
     }
 
+    // Sort group keys for deterministic ordering
+    let mut sorted_gids: Vec<usize> = group_to_segments.keys().copied().collect();
+    sorted_gids.sort();
+
     let mut edge_groups = vec![0usize; n];
-    for (group_idx, edge_members) in merged_groups.iter().enumerate() {
-        for &eidx in edge_members {
-            edge_groups[eidx] = group_idx;
+    let mut merged_group_idx = 0;
+
+    for gid in &sorted_gids {
+        let seg_members = &group_to_segments[gid];
+        let mut edge_set = std::collections::BTreeSet::new();
+        for &s in seg_members {
+            edge_set.insert(segments[s].edge_idx);
         }
+        for &eidx in &edge_set {
+            edge_groups[eidx] = merged_group_idx;
+        }
+        merged_group_idx += 1;
     }
 
     // 7. Compute per-group aggregates.

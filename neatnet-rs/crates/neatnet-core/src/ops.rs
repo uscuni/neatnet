@@ -64,16 +64,22 @@ pub fn polygonize(lines: &[LineString<f64>]) -> Vec<Polygon<f64>> {
         targets.dedup();
     }
 
-    // 2. Sort outgoing edges by angle at each node
+    // 2. Sort outgoing edges by angle at each node (precompute angles)
     for (&node, targets) in adj.iter_mut() {
         let nc = coord_from_key(node);
-        targets.sort_by(|a, b| {
-            let ac = coord_from_key(*a);
-            let bc = coord_from_key(*b);
-            let angle_a = (ac.y - nc.y).atan2(ac.x - nc.x);
-            let angle_b = (bc.y - nc.y).atan2(bc.x - nc.x);
-            angle_a.partial_cmp(&angle_b).unwrap_or(std::cmp::Ordering::Equal)
+        // Compute angles once, then sort by them
+        let mut with_angles: Vec<(CoordKey, f64)> = targets
+            .iter()
+            .map(|&t| {
+                let tc = coord_from_key(t);
+                let angle = (tc.y - nc.y).atan2(tc.x - nc.x);
+                (t, angle)
+            })
+            .collect();
+        with_angles.sort_by(|a, b| {
+            a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal)
         });
+        *targets = with_angles.into_iter().map(|(k, _)| k).collect();
     }
 
     // 3. Build "next" map: next(u→v) = at v, from incoming u, take next CW outgoing edge

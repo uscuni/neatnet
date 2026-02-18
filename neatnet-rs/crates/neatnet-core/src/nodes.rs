@@ -178,15 +178,21 @@ pub fn fix_topology(
     statuses: &[EdgeStatus],
     eps: f64,
 ) -> (Vec<LineString<f64>>, Vec<EdgeStatus>) {
-    // Step 1: Remove duplicates (by normalized WKT)
+    // Step 1: Remove duplicates (by normalized coordinate hash)
+    use std::hash::{Hash, Hasher};
     let mut seen = std::collections::HashSet::new();
     let mut deduped_geoms = Vec::new();
     let mut deduped_statuses = Vec::new();
 
     for (geom, &status) in geometries.iter().zip(statuses.iter()) {
         let normalized = ops::normalize_linestring(geom);
-        let wkt = ops::linestring_to_wkt(&normalized);
-        if seen.insert(wkt) {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        normalized.0.len().hash(&mut hasher);
+        for c in &normalized.0 {
+            c.x.to_bits().hash(&mut hasher);
+            c.y.to_bits().hash(&mut hasher);
+        }
+        if seen.insert(hasher.finish()) {
             deduped_geoms.push(geom.clone());
             deduped_statuses.push(status);
         }
@@ -336,45 +342,57 @@ fn split_edges_at_points(
     split_points: &[Coord<f64>],
     eps: f64,
 ) -> (Vec<LineString<f64>>, Vec<EdgeStatus>) {
-    let mut result_geoms: Vec<LineString<f64>> = geometries.to_vec();
-    let mut result_statuses: Vec<EdgeStatus> = statuses.to_vec();
+    if split_points.is_empty() {
+        return (geometries.to_vec(), statuses.to_vec());
+    }
+
+    // Build R-tree ONCE and collect all split points per edge
+    let tree = crate::spatial::build_rtree(geometries);
+    let mut edge_split_points: HashMap<usize, Vec<Coord<f64>>> = HashMap::new();
 
     for split_pt in split_points {
-        let tree = crate::spatial::build_rtree(&result_geoms);
         let candidates = crate::spatial::query_envelope(
             &tree,
             [split_pt.x - eps * 10.0, split_pt.y - eps * 10.0],
             [split_pt.x + eps * 10.0, split_pt.y + eps * 10.0],
         );
 
-        let mut to_remove = Vec::new();
-        let mut to_add_geoms = Vec::new();
-        let mut to_add_statuses = Vec::new();
-
         let pt = Point::new(split_pt.x, split_pt.y);
         for &idx in &candidates {
-            let dist = Euclidean.distance(&pt, &result_geoms[idx]);
-            if dist > eps { continue; }
-
-            let parts = snap_n_split(&result_geoms[idx], *split_pt, eps);
-            if parts.len() > 1 {
-                to_remove.push(idx);
-                for part in parts {
-                    to_add_geoms.push(part);
-                    to_add_statuses.push(EdgeStatus::Changed);
-                }
+            let dist = Euclidean.distance(&pt, &geometries[idx]);
+            if dist <= eps {
+                edge_split_points.entry(idx).or_default().push(*split_pt);
             }
         }
+    }
 
-        if !to_remove.is_empty() {
-            to_remove.sort_unstable();
-            to_remove.dedup();
-            for &idx in to_remove.iter().rev() {
-                result_geoms.remove(idx);
-                result_statuses.remove(idx);
+    // Apply all splits at once
+    let mut result_geoms = Vec::with_capacity(geometries.len());
+    let mut result_statuses = Vec::with_capacity(geometries.len());
+
+    for (idx, geom) in geometries.iter().enumerate() {
+        if let Some(pts) = edge_split_points.get(&idx) {
+            // Split this edge at all collected points sequentially
+            let mut parts = vec![geom.clone()];
+            for pt in pts {
+                let mut new_parts = Vec::new();
+                for part in &parts {
+                    let split = snap_n_split(part, *pt, eps);
+                    if split.len() > 1 {
+                        new_parts.extend(split);
+                    } else {
+                        new_parts.push(part.clone());
+                    }
+                }
+                parts = new_parts;
             }
-            result_geoms.extend(to_add_geoms);
-            result_statuses.extend(to_add_statuses);
+            for part in parts {
+                result_geoms.push(part);
+                result_statuses.push(EdgeStatus::Changed);
+            }
+        } else {
+            result_geoms.push(geom.clone());
+            result_statuses.push(statuses[idx]);
         }
     }
 
@@ -614,8 +632,6 @@ pub fn consolidate_nodes(
     for (centroid, cookie) in &cluster_info {
         let candidates = envelope_query_indices(&geom_tree, cookie);
 
-        let cookie_boundary = cookie.exterior().clone();
-
         for idx in candidates {
             let geom = &result_geoms[idx];
 
@@ -623,15 +639,44 @@ pub fn consolidate_nodes(
                 continue;
             }
 
-            // Get intersection with cookie boundary → boundary points
-            let coords = extract_boundary_intersection_points(geom, &cookie_boundary);
-
-            // Python applies difference(cookie) to ALL intersecting edges,
-            // even those with no boundary points (entirely inside cookie).
             // Cut line with cookie: use BooleanOps clip (invert=true → outside)
             let mls = MultiLineString::new(vec![geom.clone()]);
             let diff_mls = cookie.clip(&mls, true);
             let diff_lines: Vec<LineString<f64>> = diff_mls.0;
+
+            // Extract boundary intersection points from clip result endpoints.
+            // Using clip endpoints (not analytical intersection) ensures spider
+            // endpoints exactly match clipped edge endpoints. Python's GEOS
+            // provides this consistency because both intersection(boundary) and
+            // difference(cookie) use the same overlay engine.
+            let orig_endpoints: Vec<Coord<f64>> = {
+                let mut eps = Vec::new();
+                if let Some(&c) = geom.0.first() { eps.push(c); }
+                if let Some(&c) = geom.0.last() {
+                    if eps.is_empty() || (c.x - eps[0].x).abs() > 1e-10
+                        || (c.y - eps[0].y).abs() > 1e-10 {
+                        eps.push(c);
+                    }
+                }
+                eps
+            };
+            let mut boundary_coords: Vec<[f64; 2]> = Vec::new();
+            let mut seen_keys = std::collections::HashSet::new();
+            for part in &diff_lines {
+                let coords = &part.0;
+                if coords.len() < 2 { continue; }
+                for &c in [&coords[0], &coords[coords.len() - 1]] {
+                    let is_orig = orig_endpoints.iter().any(|oe| {
+                        (oe.x - c.x).abs() < 1e-10 && (oe.y - c.y).abs() < 1e-10
+                    });
+                    if !is_orig {
+                        let key = ((c.x * 1e6).round() as i64, (c.y * 1e6).round() as i64);
+                        if seen_keys.insert(key) {
+                            boundary_coords.push([c.x, c.y]);
+                        }
+                    }
+                }
+            }
 
             if diff_lines.is_empty() {
                 // Entire line was inside cookie — empty it
@@ -649,8 +694,8 @@ pub fn consolidate_nodes(
                 }
             }
 
-            // Create spider lines from boundary points to centroid.
-            for coord in &coords {
+            // Create spider lines from boundary points to centroid
+            for coord in &boundary_coords {
                 let spider = LineString::new(vec![
                     Coord { x: coord[0], y: coord[1] },
                     Coord { x: centroid[0], y: centroid[1] },
@@ -702,6 +747,7 @@ fn envelope_query_indices(
     }
 }
 
+#[allow(dead_code)]
 fn extract_boundary_intersection_points(
     line: &LineString<f64>,
     ring: &LineString<f64>,

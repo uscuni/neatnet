@@ -110,6 +110,20 @@ pub fn neatify(
         }
     }
 
+    // Final cleanup: remove degenerate edges (zero-length or near-zero)
+    // that may have been produced by consolidation, topology fixing, or
+    // skeleton generation. Python's GEOS operations implicitly filter these.
+    let mut clean_geoms = Vec::new();
+    let mut clean_statuses = Vec::new();
+    for (geom, &status) in network.geometries.iter().zip(network.statuses.iter()) {
+        if geom.0.len() >= 2 && Euclidean.length(geom) > params.eps {
+            clean_geoms.push(geom.clone());
+            clean_statuses.push(status);
+        }
+    }
+    network.geometries = clean_geoms;
+    network.statuses = clean_statuses;
+
     Ok(())
 }
 
@@ -219,6 +233,12 @@ fn neatify_singletons(
     // Build R-tree once for all singleton lookups
     let tree = crate::spatial::build_rtree(&network.geometries);
 
+    // Pre-buffer all referenced artifacts to avoid recomputing per query
+    let artifact_buffers: Vec<MultiPolygon<f64>> = artifact_indices
+        .iter()
+        .map(|&i| artifact_geoms[i].buffer(params.eps))
+        .collect();
+
     let mut to_drop: Vec<usize> = Vec::new();
     let mut to_add: Vec<LineString<f64>> = Vec::new();
 
@@ -226,8 +246,10 @@ fn neatify_singletons(
         let artifact = &artifact_geoms[art_idx];
         let ces = &ces_info[local_idx];
 
-        // Find edges covered by this artifact
-        let covered_edges = find_covered_edges_with_tree(&network.geometries, &tree, artifact, params.eps);
+        // Find edges covered by this artifact (using pre-computed buffer)
+        let covered_edges = find_covered_edges_buffered(
+            &network.geometries, &tree, artifact, &artifact_buffers[local_idx],
+        );
         if covered_edges.is_empty() {
             continue;
         }
@@ -359,6 +381,12 @@ fn neatify_pairs(
     // Build R-tree once for all pair lookups
     let tree = crate::spatial::build_rtree(&network.geometries);
 
+    // Pre-buffer all referenced artifacts
+    let artifact_buffers: HashMap<usize, MultiPolygon<f64>> = artifact_indices
+        .iter()
+        .map(|&i| (i, artifact_geoms[i].buffer(params.eps)))
+        .collect();
+
     // Non-planar detection: stroke_count > node_count
     // (mirrors Python _identify_non_planar)
     let singleton_geoms: Vec<Polygon<f64>> = artifact_indices
@@ -370,7 +398,9 @@ fn neatify_pairs(
     let mut non_planar: HashSet<usize> = HashSet::new();
     for (local_idx, &art_idx) in artifact_indices.iter().enumerate() {
         let artifact = &artifact_geoms[art_idx];
-        let covered = find_covered_edges_with_tree(&network.geometries, &tree, artifact, params.eps);
+        let covered = find_covered_edges_buffered(
+            &network.geometries, &tree, artifact, &artifact_buffers[&art_idx],
+        );
         let covered_geoms: Vec<LineString<f64>> = covered.iter().map(|&i| network.geometries[i].clone()).collect();
         let (node_coords, _) = nodes::nodes_from_edges(&covered_geoms);
         if ces_info[local_idx].stroke_count > node_coords.len() {
@@ -398,12 +428,12 @@ fn neatify_pairs(
             continue;
         }
 
-        // Find edges covered by each artifact
-        let covered_a = find_covered_edges_with_tree(
-            &network.geometries, &tree, &artifact_geoms[pair[0]], params.eps,
+        // Find edges covered by each artifact (using pre-computed buffers)
+        let covered_a = find_covered_edges_buffered(
+            &network.geometries, &tree, &artifact_geoms[pair[0]], &artifact_buffers[&pair[0]],
         );
-        let covered_b = find_covered_edges_with_tree(
-            &network.geometries, &tree, &artifact_geoms[pair[1]], params.eps,
+        let covered_b = find_covered_edges_buffered(
+            &network.geometries, &tree, &artifact_geoms[pair[1]], &artifact_buffers[&pair[1]],
         );
         let set_a: HashSet<usize> = covered_a.iter().copied().collect();
         let set_b: HashSet<usize> = covered_b.iter().copied().collect();
@@ -1346,8 +1376,12 @@ fn apply_changes(
         let deduped = dedup_geometries(&merged_adds);
         let simp_eps = params.max_segment_length * params.simplification_factor;
         for geom in deduped {
-            new_geoms.push(geom.simplify(simp_eps));
-            new_statuses.push(EdgeStatus::New);
+            let simplified = geom.simplify(simp_eps);
+            // Filter degenerate edges (zero-length or near-zero after simplify)
+            if simplified.0.len() >= 2 && Euclidean.length(&simplified) > params.eps {
+                new_geoms.push(simplified);
+                new_statuses.push(EdgeStatus::New);
+            }
         }
     }
 
@@ -1383,29 +1417,42 @@ fn merge_and_explode(geoms: &[LineString<f64>]) -> Vec<LineString<f64>> {
     merged
 }
 
-/// Deduplicate geometries by normalized WKT.
+/// Deduplicate geometries by normalized coordinate hash.
 fn dedup_geometries(geoms: &[LineString<f64>]) -> Vec<LineString<f64>> {
+    use std::hash::{Hash, Hasher};
     let mut seen = HashSet::new();
     let mut result = Vec::new();
     for geom in geoms {
         let normalized = ops::normalize_linestring(geom);
-        let wkt = ops::linestring_to_wkt(&normalized);
-        if seen.insert(wkt) {
+        // Hash coordinates directly instead of serializing to WKT string
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        normalized.0.len().hash(&mut hasher);
+        for c in &normalized.0 {
+            c.x.to_bits().hash(&mut hasher);
+            c.y.to_bits().hash(&mut hasher);
+        }
+        if seen.insert(hasher.finish()) {
             result.push(geom.clone());
         }
     }
     result
 }
 
-/// Deduplicate a StreetNetwork in-place by normalized WKT.
+/// Deduplicate a StreetNetwork in-place by normalized coordinate hash.
 fn dedup_network(network: &mut StreetNetwork) {
+    use std::hash::{Hash, Hasher};
     let mut seen = HashSet::new();
     let mut new_geoms = Vec::new();
     let mut new_statuses = Vec::new();
     for (geom, &status) in network.geometries.iter().zip(network.statuses.iter()) {
         let normalized = ops::normalize_linestring(geom);
-        let wkt = ops::linestring_to_wkt(&normalized);
-        if seen.insert(wkt) {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        normalized.0.len().hash(&mut hasher);
+        for c in &normalized.0 {
+            c.x.to_bits().hash(&mut hasher);
+            c.y.to_bits().hash(&mut hasher);
+        }
+        if seen.insert(hasher.finish()) {
             new_geoms.push(geom.clone());
             new_statuses.push(status);
         }
@@ -1432,10 +1479,19 @@ fn find_covered_edges_with_tree(
     artifact: &Polygon<f64>,
     eps: f64,
 ) -> Vec<usize> {
-    let candidates = nodes::envelope_query_indices_pub(tree, artifact);
-
-    // Buffer the polygon to include boundary-touching edges
     let artifact_buf: MultiPolygon<f64> = artifact.buffer(eps);
+    find_covered_edges_buffered(geometries, tree, artifact, &artifact_buf)
+}
+
+/// find_covered_edges using a pre-built R-tree and pre-computed buffer.
+/// Avoids recomputing the buffer when the same artifact is queried multiple times.
+fn find_covered_edges_buffered(
+    geometries: &[LineString<f64>],
+    tree: &rstar::RTree<crate::spatial::IndexedEnvelope>,
+    artifact: &Polygon<f64>,
+    artifact_buf: &MultiPolygon<f64>,
+) -> Vec<usize> {
+    let candidates = nodes::envelope_query_indices_pub(tree, artifact);
 
     // Use rayon for parallel relate checks (these are the expensive part).
     // Use .map() to preserve IndexedParallelIterator ordering, then filter.
