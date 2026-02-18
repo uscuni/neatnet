@@ -6,7 +6,6 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use geo::{BooleanOps, Buffer, Centroid, Distance, Euclidean, Length, Simplify, Within};
 use geo_types::{Coord, LineString, MultiLineString, Polygon};
-use rayon::prelude::*;
 
 use crate::ops;
 
@@ -119,24 +118,19 @@ pub fn voronoi_skeleton(
     };
     let buffer_boundary = buffer_geom.exterior().clone();
 
-    // 2. Extract points from segmentized lines (parallel segmentization)
-    let segmentized: Vec<(usize, LineString<f64>)> = lines
-        .par_iter()
-        .enumerate()
-        .map(|(line_idx, line)| (line_idx, segmentize(line, max_segment_length)))
-        .collect();
-
+    // 2. Extract points from segmentized lines
     let mut points: Vec<[f64; 2]> = Vec::new();
     let mut point_line_ids: Vec<usize> = Vec::new();
 
-    for (line_idx, seg_line) in &segmentized {
-        for c in &seg_line.0 {
+    for (line_idx, line) in lines.iter().enumerate() {
+        let segmentized = segmentize(line, max_segment_length);
+        for c in &segmentized.0 {
             points.push([c.x, c.y]);
-            point_line_ids.push(*line_idx);
+            point_line_ids.push(line_idx);
         }
     }
 
-    // Add buffer boundary points (use coarser segmentation for performance --
+    // Add buffer boundary points (use coarser segmentation for performance —
     // the buffer boundary only needs to define the Voronoi cell boundary,
     // not fine details)
     let buffer_line_id = lines.len();
@@ -175,7 +169,7 @@ pub fn voronoi_skeleton(
         _ => working_poly.clone(),
     };
 
-    // 7. Build edgelines (already parallel internally)
+    // 7. Build edgelines
     let mut edgelines = build_edgelines(&ridges, &limit, lines);
     edgelines.retain(|e| e.0.len() >= 2 && Euclidean.length(e) > 0.0);
 
@@ -207,9 +201,9 @@ pub fn voronoi_skeleton(
 
     edgelines.extend(to_add);
 
-    // 10. Simplify (parallel -- each edgeline simplified independently)
+    // 10. Simplify
     edgelines = edgelines
-        .par_iter()
+        .iter()
         .map(|e| e.simplify(max_segment_length))
         .collect();
 
@@ -217,11 +211,11 @@ pub fn voronoi_skeleton(
     edgelines = ops::line_merge(&edgelines);
     edgelines.retain(|e| e.0.len() >= 2 && Euclidean.length(e) > 0.0);
 
-    // 12. Consolidation (matches Python geometry.py consolidation_tolerance)
+    // 12. Consolidate nodes if tolerance is set
     if let Some(ct) = consolidation_tolerance {
         if !edgelines.is_empty() && ct > 0.0 {
             let temp_statuses = vec![crate::types::EdgeStatus::New; edgelines.len()];
-            let (consol, _, _) =
+            let (consol, _) =
                 crate::nodes::consolidate_nodes(&edgelines, &temp_statuses, ct, true);
             edgelines = consol;
             edgelines.retain(|e| e.0.len() >= 2 && Euclidean.length(e) > 0.0);
@@ -263,52 +257,38 @@ pub fn segmentize(geom: &LineString<f64>, max_length: f64) -> LineString<f64> {
 }
 
 /// Snap skeleton edgelines to target geometries.
-///
-/// Each target is processed independently in parallel: for each target, compute
-/// the shortest line from the edgeline boundary to the target, check if it lies
-/// within the polygon, and optionally fall back to secondary targets.
 pub fn snap_to_targets(
     edgelines: &[LineString<f64>],
     poly: &Polygon<f64>,
     snap_to: &[LineString<f64>],
     secondary_snap_to: Option<&[LineString<f64>]>,
 ) -> (Vec<LineString<f64>>, Vec<LineString<f64>>) {
+    let mut to_add = Vec::new();
+    let mut splitters = Vec::new();
+
     if let Some(boundary_line) = union_all_boundary(edgelines) {
-        // Process each snap target in parallel. Each target independently
-        // computes its shortest line and within-check (the expensive parts).
-        let results: Vec<Option<LineString<f64>>> = snap_to
-            .par_iter()
-            .map(|target| {
-                if let Some(sl) = make_shortest_line_ls(&boundary_line, target) {
-                    if is_within(&sl, poly, 1e-4) {
-                        return Some(sl);
-                    }
-                    // Fall back to secondary snap targets
-                    if let Some(secondary) = secondary_snap_to {
-                        for sec_target in secondary {
-                            if let Some(sl2) = make_shortest_line_ls(&boundary_line, sec_target) {
-                                return Some(sl2);
-                            }
+        for target in snap_to {
+            if let Some(sl) = make_shortest_line_ls(&boundary_line, target) {
+                if is_within(&sl, poly, 1e-4) {
+                    splitters.push(sl.clone());
+                    to_add.push(sl);
+                } else if let Some(secondary) = secondary_snap_to {
+                    for sec_target in secondary {
+                        if let Some(sl2) = make_shortest_line_ls(&boundary_line, sec_target) {
+                            splitters.push(sl2.clone());
+                            to_add.push(sl2);
+                            break;
                         }
                     }
                 }
-                None
-            })
-            .collect();
-
-        let mut to_add = Vec::new();
-        let mut splitters = Vec::new();
-        for result in results.into_iter().flatten() {
-            splitters.push(result.clone());
-            to_add.push(result);
+            }
         }
-        (to_add, splitters)
-    } else {
-        (Vec::new(), Vec::new())
     }
+
+    (to_add, splitters)
 }
 
-// --- Internal helpers -------------------------------------------------------
+// ─── Internal helpers ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct CoordKey {
@@ -470,6 +450,8 @@ fn build_edgelines(
     limit: &Polygon<f64>,
     lines: &[LineString<f64>],
 ) -> Vec<LineString<f64>> {
+    use rayon::prelude::*;
+
     let mut ridge_groups: BTreeMap<(usize, usize), Vec<&Ridge>> = BTreeMap::new();
     for ridge in ridges {
         let key = if ridge.line_a < ridge.line_b {
@@ -480,11 +462,16 @@ fn build_edgelines(
         ridge_groups.entry(key).or_default().push(ridge);
     }
 
-    // Collect groups into a Vec for parallel processing
-    let groups: Vec<((usize, usize), Vec<&Ridge>)> = ridge_groups.into_iter().collect();
+    // Collect groups into a Vec for parallel processing.
+    // Sort by key to ensure deterministic ordering (HashMap iteration is non-deterministic).
+    let mut groups: Vec<((usize, usize), Vec<&Ridge>)> = ridge_groups.into_iter().collect();
+    groups.sort_by_key(|((a, b), _)| (*a, *b));
 
-    groups.par_iter()
-        .filter_map(|((line_a, line_b), group)| {
+    // Use .map() instead of .filter_map() to preserve IndexedParallelIterator
+    // ordering guarantee. With filter_map, rayon can reorder results causing
+    // non-deterministic output.
+    let results: Vec<Option<LineString<f64>>> = groups.par_iter()
+        .map(|((line_a, line_b), group)| {
             let mut segments: Vec<LineString<f64>> = Vec::new();
             for ridge in group {
                 let seg = LineString::new(vec![
@@ -525,7 +512,8 @@ fn build_edgelines(
                 Some(edgeline)
             }
         })
-        .collect()
+        .collect();
+    results.into_iter().flatten().collect()
 }
 
 fn clip_edgeline(edgeline: &LineString<f64>, limit: &Polygon<f64>) -> LineString<f64> {

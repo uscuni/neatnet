@@ -5,8 +5,8 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use geo::{BooleanOps, Buffer, Centroid, Distance, Euclidean, Intersects, Length, Relate};
-use geo_types::{Coord, LineString, MultiLineString, MultiPolygon, Point, Polygon};
+use geo::{BooleanOps, Buffer, Centroid, Distance, Euclidean, Intersects, Length, Relate, Simplify};
+use geo_types::{Coord, LineString, MultiPolygon, Point, Polygon};
 
 use crate::artifacts;
 use crate::continuity;
@@ -35,14 +35,13 @@ pub fn neatify(
     exclusion_mask: Option<&[Polygon<f64>]>,
 ) -> Result<(), NeatifyError> {
     // Step 1: Fix topology
-    let (fixed_geoms, fixed_statuses, fix_sources) =
+    let (fixed_geoms, fixed_statuses) =
         nodes::fix_topology(&network.geometries, &network.statuses, params.eps);
     network.geometries = fixed_geoms;
     network.statuses = fixed_statuses;
-    network.remap_attributes(&fix_sources);
 
     // Step 2: Consolidate nodes
-    let (consol_geoms, consol_statuses, consol_sources) = nodes::consolidate_nodes(
+    let (consol_geoms, consol_statuses) = nodes::consolidate_nodes(
         &network.geometries,
         &network.statuses,
         params.max_segment_length * 2.1,
@@ -50,7 +49,6 @@ pub fn neatify(
     );
     network.geometries = consol_geoms;
     network.statuses = consol_statuses;
-    network.remap_attributes(&consol_sources);
 
     // Step 3: Detect artifacts (with iterative expansion)
     let artifacts = artifacts::get_artifacts(
@@ -83,14 +81,11 @@ pub fn neatify(
     for loop_idx in 0..params.n_loops {
         neatify_loop(network, &current_artifacts, params)?;
 
-        // Post-loop topology fix (matches Python simplify.py:934-935, 968-969)
-        let (induced_geoms, induced_statuses, induce_sources) =
+        // Post-loop cleanup: induce nodes + dedup (matches Python)
+        let (induced_geoms, induced_statuses) =
             nodes::induce_nodes(&network.geometries, &network.statuses, params.eps);
         network.geometries = induced_geoms;
         network.statuses = induced_statuses;
-        network.remap_attributes(&induce_sources);
-
-        // Dedup by normalized geometry
         dedup_network(network);
 
         // Re-detect artifacts for subsequent loops
@@ -139,17 +134,22 @@ fn neatify_loop(
     }
 
     if !dangle_indices.is_empty() {
-        let keep: Vec<bool> = (0..network.geometries.len())
-            .map(|i| !dangle_indices.contains(&i))
-            .collect();
-        network.filter_rows(&keep);
+        let mut new_geoms = Vec::new();
+        let mut new_statuses = Vec::new();
+        for (i, geom) in network.geometries.iter().enumerate() {
+            if !dangle_indices.contains(&i) {
+                new_geoms.push(geom.clone());
+                new_statuses.push(network.statuses[i]);
+            }
+        }
+        network.geometries = new_geoms;
+        network.statuses = new_statuses;
     }
 
-    let (cleaned, statuses, rin_sources) =
+    let (cleaned, statuses) =
         nodes::remove_interstitial_nodes(&network.geometries, &network.statuses);
     network.geometries = cleaned;
     network.statuses = statuses;
-    network.remap_attributes(&rin_sources);
 
     // 2. Build contiguity graph on artifacts → classify as singles/pairs/clusters
     let adjacency = artifacts::build_contiguity_graph(artifact_geoms, true);
@@ -177,7 +177,7 @@ fn neatify_loop(
 
     // 3. Simplify singletons
     if !singles.is_empty() {
-        neatify_singletons(network, artifact_geoms, &singles, params, None)?;
+        neatify_singletons(network, artifact_geoms, &singles, params)?;
     }
 
     // 4. Simplify pairs
@@ -199,25 +199,14 @@ fn neatify_loop(
 /// 1. Run COINS and CES classification
 /// 2. Link nodes to artifacts
 /// 3. Dispatch to appropriate handler (n1_g1_identical, nx_gx_identical, nx_gx)
-///
-/// If `reuse_coins` is `Some`, skip the COINS computation and use the provided
-/// result. This matches Python's `compute_coins=False` path.
 fn neatify_singletons(
     network: &mut StreetNetwork,
     artifact_geoms: &[Polygon<f64>],
     artifact_indices: &[usize],
     params: &NeatifyParams,
-    reuse_coins: Option<&continuity::CoinsResult>,
 ) -> Result<(), NeatifyError> {
-    // Run COINS analysis on the full network (or reuse existing)
-    let owned_coins;
-    let coins_result = match reuse_coins {
-        Some(cr) => cr,
-        None => {
-            owned_coins = continuity::coins(&network.geometries, params.angle_threshold);
-            &owned_coins
-        }
-    };
+    // Run COINS analysis on the full network
+    let coins_result = continuity::coins(&network.geometries, params.angle_threshold);
 
     // Get CES info for singletons
     let singleton_geoms: Vec<Polygon<f64>> = artifact_indices
@@ -300,198 +289,58 @@ fn neatify_singletons(
     Ok(())
 }
 
-/// Classify the shared edge of a pair artifact using the CES schema.
+/// Classify the shared edge from one artifact's perspective using COINS groups.
 ///
-/// Mirrors Python `get_type()` (simplify.py:624-658).
+/// Mirrors Python `get_type()` (simplify.py:624-657).
+/// Returns 'C' (continuing), 'E' (end), or 'S' (standalone/roundabout).
 fn get_ces_type(
-    covered_edges: &[usize],
+    covered_indices: &[usize],
     shared_idx: usize,
-    coins_result: &continuity::CoinsResult,
+    coins: &continuity::CoinsResult,
 ) -> char {
-    // Roundabout special case: all one group and all edges of that group are inside
-    let groups: HashSet<usize> = covered_edges.iter().map(|&i| coins_result.group[i]).collect();
-    if groups.len() == 1 {
-        let group_id = *groups.iter().next().unwrap();
-        if covered_edges.len() == coins_result.stroke_count[covered_edges[0]] {
-            return 'S';
-        }
-        let _ = group_id; // used in len check above
+    if covered_indices.is_empty() {
+        return 'S';
     }
 
-    // Find end edges and their groups
-    let end_edges: HashSet<usize> = covered_edges
+    // Roundabout special case: all edges in one group, and all group members present
+    let groups: HashSet<usize> = covered_indices.iter().map(|&i| coins.group[i]).collect();
+    if groups.len() == 1 {
+        let first_count = coins.stroke_count[covered_indices[0]];
+        if covered_indices.len() == first_count {
+            return 'S';
+        }
+    }
+
+    // Find end groups (groups containing any end edge)
+    let end_groups: HashSet<usize> = covered_indices
         .iter()
-        .filter(|&&i| coins_result.is_end[i])
-        .copied()
+        .filter(|&&i| coins.is_end[i])
+        .map(|&i| coins.group[i])
         .collect();
-    let end_groups: HashSet<usize> = end_edges.iter().map(|&i| coins_result.group[i]).collect();
 
-    // Main groups = covered groups that are NOT end groups
-    let main_groups: HashSet<usize> = groups.difference(&end_groups).copied().collect();
+    // Main edges: those NOT in end groups
+    let shared_group = coins.group[shared_idx];
+    let shared_is_main = !end_groups.contains(&shared_group);
 
-    // Is shared edge in a main (C) group?
-    let shared_group = coins_result.group[shared_idx];
-    if main_groups.contains(&shared_group) {
+    if shared_is_main {
         return 'C';
     }
 
-    // Check if ALL edges of the shared's group are inside the artifact
-    let shared_total = coins_result.stroke_count[shared_idx];
-    let shared_inside_count = covered_edges
+    // Check if all edges of shared's group are within covered_indices
+    let shared_count_in_covered = covered_indices
         .iter()
-        .filter(|&&i| coins_result.group[i] == shared_group)
+        .filter(|&&i| coins.group[i] == shared_group)
         .count();
-    if shared_inside_count == shared_total {
+    if coins.stroke_count[shared_idx] == shared_count_in_covered {
         return 'S';
     }
 
     'E'
 }
 
-/// Determine the solution for a pair of planar artifacts.
-///
-/// Mirrors Python `get_solution()` (simplify.py:660-713).
-#[derive(Debug)]
-enum PairSolution {
-    /// Non-planar: no shared edges or empty covers
-    NonPlanar,
-    /// Skeleton: >1 shared edges or asymmetric CES
-    #[allow(dead_code)]
-    Skeleton(Vec<usize>),
-    /// Drop the interline shared edge
-    DropInterline(usize),
-    /// Process each artifact as singleton separately
-    Iterate(usize),
-}
-
-fn get_pair_solution(
-    pair: &[usize],
-    artifact_geoms: &[Polygon<f64>],
-    geometries: &[LineString<f64>],
-    tree: &rstar::RTree<crate::spatial::IndexedEnvelope>,
-    coins_result: &continuity::CoinsResult,
-    eps: f64,
-) -> PairSolution {
-    if pair.len() != 2 {
-        return PairSolution::NonPlanar;
-    }
-
-    let covered_a = find_covered_edges_with_tree(geometries, tree, &artifact_geoms[pair[0]], eps);
-    let covered_b = find_covered_edges_with_tree(geometries, tree, &artifact_geoms[pair[1]], eps);
-    let set_a: HashSet<usize> = covered_a.iter().copied().collect();
-    let set_b: HashSet<usize> = covered_b.iter().copied().collect();
-
-    // Find shared edges (contained within the union of both artifacts)
-    // Python: streets.sindex.query(cluster_geom, predicate="contains")
-    let shared: Vec<usize> = set_a.intersection(&set_b).copied().collect();
-
-    if shared.is_empty() || covered_a.is_empty() || covered_b.is_empty() {
-        return PairSolution::NonPlanar;
-    }
-
-    if shared.len() > 1 {
-        return PairSolution::Skeleton(shared);
-    }
-
-    let shared_idx = shared[0];
-
-    // One-sided coverage check: if only 1 edge on either side isn't covered
-    // by the other artifact, it's a drop_interline
-    let not_in_b_count = covered_a.iter().filter(|i| !set_b.contains(i)).count();
-    let not_in_a_count = covered_b.iter().filter(|i| !set_a.contains(i)).count();
-    if not_in_b_count == 1 || not_in_a_count == 1 {
-        return PairSolution::DropInterline(shared_idx);
-    }
-
-    // Classify shared edge from perspective of each artifact
-    let seen_by_a = get_ces_type(&covered_a, shared_idx, coins_result);
-    let seen_by_b = get_ces_type(&covered_b, shared_idx, coins_result);
-
-    if seen_by_a == 'C' && seen_by_b == 'C' {
-        PairSolution::Iterate(shared_idx)
-    } else if seen_by_a == seen_by_b {
-        PairSolution::DropInterline(shared_idx)
-    } else {
-        PairSolution::Skeleton(vec![shared_idx])
-    }
-}
-
-/// Compute the number of network nodes touching each artifact.
-///
-/// Mirrors Python `_link_nodes_artifacts("pairs", ...)` which buffers
-/// each artifact by 0.1 and counts intersecting network nodes.
-fn compute_node_count_per_artifact(
-    artifact_geoms: &[Polygon<f64>],
-    artifact_indices: &[usize],
-    geometries: &[LineString<f64>],
-) -> HashMap<usize, usize> {
-    let (node_coords, _) = nodes::nodes_from_edges(geometries);
-    let node_points: Vec<Point<f64>> = node_coords
-        .iter()
-        .map(|c| Point::new(c[0], c[1]))
-        .collect();
-
-    let mut counts = HashMap::new();
-    for &ai in artifact_indices {
-        let artifact = &artifact_geoms[ai];
-        let buf: geo_types::MultiPolygon<f64> = artifact.buffer(0.1);
-        let count = node_points
-            .iter()
-            .filter(|pt| buf.0.iter().any(|p| p.intersects(*pt)))
-            .count();
-        counts.insert(ai, count);
-    }
-    counts
-}
-
-/// Identify non-planar artifacts.
-///
-/// Mirrors Python `_identify_non_planar()` (simplify.py:126-141).
-/// An artifact is non-planar if:
-/// - stroke_count > node_count, OR
-/// - the artifact boundary overlaps any street geometry
-fn identify_non_planar(
-    artifact_geoms: &[Polygon<f64>],
-    artifact_indices: &[usize],
-    geometries: &[LineString<f64>],
-    node_counts: &HashMap<usize, usize>,
-    ces_info: &HashMap<usize, continuity::CesInfo>,
-) -> HashSet<usize> {
-    let tree = crate::spatial::build_rtree(geometries);
-    let mut non_planar = HashSet::new();
-
-    for &ai in artifact_indices {
-        let stroke_count = ces_info.get(&ai).map_or(0, |c| c.stroke_count);
-        let node_count = node_counts.get(&ai).copied().unwrap_or(0);
-
-        if stroke_count > node_count {
-            non_planar.insert(ai);
-            continue;
-        }
-
-        // Check if artifact boundary overlaps any street geometry
-        let boundary = artifact_geoms[ai].exterior().clone();
-        let candidates = nodes::envelope_query_indices_pub(&tree, &artifact_geoms[ai]);
-        for idx in candidates {
-            let im = boundary.relate(&geometries[idx]);
-            // "overlaps" in DE-9IM for line/line: dim(interior ∩ interior) = 1
-            // and both have parts outside each other
-            if im.get(geo::coordinate_position::CoordPos::Inside, geo::coordinate_position::CoordPos::Inside)
-                == geo::dimensions::Dimensions::OneDimensional
-            {
-                non_planar.insert(ai);
-                break;
-            }
-        }
-    }
-
-    non_planar
-}
-
 /// Simplify pairs of face artifacts.
 ///
-/// Ports Python `neatify_pairs()` with full CES classification,
-/// non-planar detection, and get_solution dispatch.
+/// Mirrors Python `neatify_pairs()` with full `get_solution()` dispatch.
 fn neatify_pairs(
     network: &mut StreetNetwork,
     artifact_geoms: &[Polygon<f64>],
@@ -499,179 +348,157 @@ fn neatify_pairs(
     comp_labels: &[usize],
     params: &NeatifyParams,
 ) -> Result<(), NeatifyError> {
-    // 1. Group artifacts by component label into pairs
+    // Group artifacts by component label into pairs
     let mut pair_groups: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     for &i in artifact_indices {
         pair_groups.entry(comp_labels[i]).or_default().push(i);
     }
 
-    // 2. Run COINS on network
     let coins_result = continuity::coins(&network.geometries, params.angle_threshold);
-
-    // 3. Get CES info per artifact
-    let mut ces_info_map: HashMap<usize, continuity::CesInfo> = HashMap::new();
-    for &ai in artifact_indices {
-        let art_slice = &[artifact_geoms[ai].clone()];
-        let info = continuity::get_stroke_info(art_slice, &network.geometries, &coins_result);
-        if !info.is_empty() {
-            ces_info_map.insert(ai, info.into_iter().next().unwrap());
-        }
-    }
-
-    // 4. Compute node_count per artifact
-    let node_counts = compute_node_count_per_artifact(
-        artifact_geoms,
-        artifact_indices,
-        &network.geometries,
-    );
-
-    // 5. Identify non-planar artifacts
-    let non_planar_set = identify_non_planar(
-        artifact_geoms,
-        artifact_indices,
-        &network.geometries,
-        &node_counts,
-        &ces_info_map,
-    );
 
     // Build R-tree once for all pair lookups
     let tree = crate::spatial::build_rtree(&network.geometries);
 
-    // 6. Classify each pair
+    // Non-planar detection: stroke_count > node_count
+    // (mirrors Python _identify_non_planar)
+    let singleton_geoms: Vec<Polygon<f64>> = artifact_indices
+        .iter()
+        .map(|&i| artifact_geoms[i].clone())
+        .collect();
+    let ces_info =
+        continuity::get_stroke_info(&singleton_geoms, &network.geometries, &coins_result);
+    let mut non_planar: HashSet<usize> = HashSet::new();
+    for (local_idx, &art_idx) in artifact_indices.iter().enumerate() {
+        let artifact = &artifact_geoms[art_idx];
+        let covered = find_covered_edges_with_tree(&network.geometries, &tree, artifact, params.eps);
+        let covered_geoms: Vec<LineString<f64>> = covered.iter().map(|&i| network.geometries[i].clone()).collect();
+        let (node_coords, _) = nodes::nodes_from_edges(&covered_geoms);
+        if ces_info[local_idx].stroke_count > node_coords.len() {
+            non_planar.insert(art_idx);
+        }
+    }
+
+    // Determine solution for each pair
     let mut drop_interline_pairs: Vec<(Vec<usize>, usize)> = Vec::new(); // (pair, shared_idx)
-    let mut iterate_pairs: Vec<(Vec<usize>, usize)> = Vec::new(); // (pair, shared_idx)
+    let mut iterate_pairs: Vec<Vec<usize>> = Vec::new();
     let mut skeleton_pairs: Vec<Vec<usize>> = Vec::new();
-    let mut non_planar_clusters: Vec<Vec<usize>> = Vec::new();
 
     for (_label, pair) in &pair_groups {
         if pair.len() != 2 {
             continue;
         }
 
-        // Check if any member is non-planar
-        let any_non_planar = pair.iter().any(|&ai| non_planar_set.contains(&ai));
-        if any_non_planar {
-            non_planar_clusters.push(pair.clone());
+        // Skip non-planar pairs (either artifact is non-planar)
+        let np_count = pair.iter().filter(|&&i| non_planar.contains(&i)).count();
+        if np_count > 0 {
+            // Non-planar cluster of 2: send to skeleton
+            if np_count == 2 {
+                skeleton_pairs.push(pair.clone());
+            }
             continue;
         }
 
-        // Get solution for this planar pair
-        match get_pair_solution(
-            pair,
-            artifact_geoms,
-            &network.geometries,
-            &tree,
-            &coins_result,
-            params.eps,
-        ) {
-            PairSolution::NonPlanar => {
-                non_planar_clusters.push(pair.clone());
-            }
-            PairSolution::Skeleton(_) => {
-                skeleton_pairs.push(pair.clone());
-            }
-            PairSolution::DropInterline(shared_idx) => {
-                drop_interline_pairs.push((pair.clone(), shared_idx));
-            }
-            PairSolution::Iterate(shared_idx) => {
-                iterate_pairs.push((pair.clone(), shared_idx));
-            }
+        // Find edges covered by each artifact
+        let covered_a = find_covered_edges_with_tree(
+            &network.geometries, &tree, &artifact_geoms[pair[0]], params.eps,
+        );
+        let covered_b = find_covered_edges_with_tree(
+            &network.geometries, &tree, &artifact_geoms[pair[1]], params.eps,
+        );
+        let set_a: HashSet<usize> = covered_a.iter().copied().collect();
+        let set_b: HashSet<usize> = covered_b.iter().copied().collect();
+        let shared: Vec<usize> = set_a.intersection(&set_b).copied().collect();
+
+        // Non-planar: empty shared or empty covers
+        if shared.is_empty() || covered_a.is_empty() || covered_b.is_empty() {
+            continue;
+        }
+
+        if shared.len() > 1 {
+            // Multiple shared edges → skeleton
+            skeleton_pairs.push(pair.clone());
+            continue;
+        }
+
+        let shared_idx = shared[0];
+
+        // Coverage asymmetry check (mirrors Python):
+        // Count edges touching B that are NOT covered by A (and vice versa)
+        let b_not_in_a = covered_b.iter().filter(|i| !set_a.contains(i)).count();
+        let a_not_in_b = covered_a.iter().filter(|i| !set_b.contains(i)).count();
+        if b_not_in_a == 1 || a_not_in_b == 1 {
+            drop_interline_pairs.push((pair.clone(), shared_idx));
+            continue;
+        }
+
+        // CES classification of shared edge from each artifact's perspective
+        let seen_by_a = get_ces_type(&covered_a, shared_idx, &coins_result);
+        let seen_by_b = get_ces_type(&covered_b, shared_idx, &coins_result);
+
+        if seen_by_a == 'C' && seen_by_b == 'C' {
+            iterate_pairs.push(pair.clone());
+        } else if seen_by_a == seen_by_b {
+            drop_interline_pairs.push((pair.clone(), shared_idx));
+        } else {
+            skeleton_pairs.push(pair.clone());
         }
     }
 
-    // 7. Drop interline edges for drop_interline pairs
-    let edges_to_drop: Vec<usize> = drop_interline_pairs
-        .iter()
-        .map(|(_, shared_idx)| *shared_idx)
-        .collect();
-    if !edges_to_drop.is_empty() {
-        let drop_set: HashSet<usize> = edges_to_drop.iter().copied().collect();
-        let keep: Vec<bool> = (0..network.geometries.len())
-            .map(|i| !drop_set.contains(&i))
+    // Drop shared edges for drop_interline pairs before singleton dispatch
+    if !drop_interline_pairs.is_empty() {
+        let drop_indices: HashSet<usize> = drop_interline_pairs
+            .iter()
+            .map(|(_, shared_idx)| *shared_idx)
             .collect();
-        network.filter_rows(&keep);
+        let mut new_geoms = Vec::new();
+        let mut new_statuses = Vec::new();
+        // Build index mapping: old → new
+        let mut idx_map: Vec<Option<usize>> = vec![None; network.geometries.len()];
+        let mut new_idx = 0;
+        for (i, geom) in network.geometries.iter().enumerate() {
+            if !drop_indices.contains(&i) {
+                idx_map[i] = Some(new_idx);
+                new_geoms.push(geom.clone());
+                new_statuses.push(network.statuses[i]);
+                new_idx += 1;
+            }
+        }
+        network.geometries = new_geoms;
+        network.statuses = new_statuses;
 
-        // Clean topology after dropping
-        let (cleaned, statuses, rin_sources) =
+        // Clean topology after drops
+        let (cleaned, statuses) =
             nodes::remove_interstitial_nodes(&network.geometries, &network.statuses);
         network.geometries = cleaned;
         network.statuses = statuses;
-        network.remap_attributes(&rin_sources);
     }
 
-    // Recompute COINS after drops for subsequent dispatches
-    let coins_after_drop = continuity::coins(&network.geometries, params.angle_threshold);
+    // Process drop_interline: merge pair → process as singleton
+    // Process iterate: first pass then second pass
+    if !drop_interline_pairs.is_empty() || !iterate_pairs.is_empty() {
+        let mut merged_indices: Vec<usize> = Vec::new();
+        for (pair, _) in &drop_interline_pairs {
+            merged_indices.extend(pair);
+        }
+        // First pass of iterate pairs
+        for pair in &iterate_pairs {
+            merged_indices.push(pair[0]);
+        }
+        if !merged_indices.is_empty() {
+            neatify_singletons(network, artifact_geoms, &merged_indices, params)?;
+        }
 
-    // 8. Dispatch merged pairs + first instance of iterate → singletons (reuse COINS)
-    let mut first_pass_indices: Vec<usize> = Vec::new();
-    // Merged (dissolved) pairs for drop_interline
-    for (pair, _) in &drop_interline_pairs {
-        first_pass_indices.extend(pair);
-    }
-    // First instance of iterate pairs: artifact with higher node_count
-    for (pair, _) in &iterate_pairs {
-        let nc0 = node_counts.get(&pair[0]).copied().unwrap_or(0);
-        let nc1 = node_counts.get(&pair[1]).copied().unwrap_or(0);
-        if nc0 >= nc1 {
-            first_pass_indices.push(pair[0]);
-        } else {
-            first_pass_indices.push(pair[1]);
+        // Second pass for iterate pairs
+        let second_indices: Vec<usize> = iterate_pairs.iter().map(|p| p[1]).collect();
+        if !second_indices.is_empty() {
+            neatify_singletons(network, artifact_geoms, &second_indices, params)?;
         }
     }
 
-    // Also add planar members of non-planar clusters (Python: _planar_clusters)
-    for cluster in &non_planar_clusters {
-        for &ai in cluster {
-            if !non_planar_set.contains(&ai) {
-                first_pass_indices.push(ai);
-            }
-        }
-    }
-
-    if !first_pass_indices.is_empty() {
-        neatify_singletons(
-            network,
-            artifact_geoms,
-            &first_pass_indices,
-            params,
-            Some(&coins_after_drop),
-        )?;
-    }
-
-    // 9. Dispatch second instance of iterate → singletons (fresh COINS)
-    let mut second_pass_indices: Vec<usize> = Vec::new();
-    for (pair, _) in &iterate_pairs {
-        let nc0 = node_counts.get(&pair[0]).copied().unwrap_or(0);
-        let nc1 = node_counts.get(&pair[1]).copied().unwrap_or(0);
-        if nc0 >= nc1 {
-            second_pass_indices.push(pair[1]);
-        } else {
-            second_pass_indices.push(pair[0]);
-        }
-    }
-    if !second_pass_indices.is_empty() {
-        neatify_singletons(network, artifact_geoms, &second_pass_indices, params, None)?;
-    }
-
-    // 10. Dispatch skeleton pairs + size-2 non-planar clusters → clusters
-    let mut for_skeleton_indices: Vec<usize> = Vec::new();
-    for pair in &skeleton_pairs {
-        for_skeleton_indices.extend(pair);
-    }
-    // Non-planar clusters of size 2 → cluster
-    for cluster in &non_planar_clusters {
-        if cluster.len() == 2 {
-            for_skeleton_indices.extend(cluster);
-        }
-    }
-    if !for_skeleton_indices.is_empty() {
-        neatify_clusters(
-            network,
-            artifact_geoms,
-            &for_skeleton_indices,
-            comp_labels,
-            params,
-        )?;
+    // Process skeleton pairs via cluster approach
+    if !skeleton_pairs.is_empty() {
+        let skeleton_indices: Vec<usize> = skeleton_pairs.iter().flatten().copied().collect();
+        neatify_clusters(network, artifact_geoms, &skeleton_indices, comp_labels, params)?;
     }
 
     Ok(())
@@ -724,45 +551,31 @@ fn neatify_clusters(
             continue;
         }
 
-        // For large clusters, use boundary-segment decomposition at entry points
-        // (matching Python's nx_gx_cluster approach).
-        // For small clusters, use full boundary edges (simpler, more robust).
-        let use_decomposition = covered.len() > 20;
-
-        let (skeleton_edges, cleaned) = if use_decomposition {
-            cluster_skeleton_decomposed(
-                &network.geometries,
-                &merged_poly,
-                params,
-            )
+        // Use boundary edges approach for all clusters (matching Python's nx_gx_cluster)
+        let boundary_edges =
+            find_boundary_edges_with_tree(&network.geometries, &tree, &merged_poly, params.eps);
+        let (skeleton_edges, cleaned) = if boundary_edges.is_empty() {
+            (vec![], vec![])
         } else {
-            // Original approach: full boundary edges
-            let boundary_edges =
-                find_boundary_edges_with_tree(&network.geometries, &tree, &merged_poly, params.eps);
-            if boundary_edges.is_empty() {
-                (vec![], vec![])
-            } else {
-                let boundary_geoms: Vec<LineString<f64>> = boundary_edges
-                    .iter()
-                    .map(|&i| network.geometries[i].clone())
-                    .collect();
-                let (skel, _) = geometry::voronoi_skeleton(
-                    &boundary_geoms,
-                    Some(&merged_poly),
-                    None,
-                    params.max_segment_length,
-                    None,
-                    None,
-                    params.clip_limit,
-                    Some(params.consolidation_tolerance),
-                );
-                let cl = remove_dangles(&skel, &merged_poly, params.eps, Some(params.min_dangle_length));
-                (skel, cl)
-            }
+            let boundary_geoms: Vec<LineString<f64>> = boundary_edges
+                .iter()
+                .map(|&i| network.geometries[i].clone())
+                .collect();
+            let (skel, _) = geometry::voronoi_skeleton(
+                &boundary_geoms,
+                Some(&merged_poly),
+                None,
+                params.max_segment_length,
+                None,
+                None,
+                params.clip_limit,
+                Some(params.consolidation_tolerance),
+            );
+            let cl = remove_dangles(&skel, &merged_poly, params.eps);
+            (skel, cl)
         };
 
-        // Only replace if skeleton doesn't increase edge count significantly
-        if !skeleton_edges.is_empty() && cleaned.len() <= covered.len() + 3 {
+        if !skeleton_edges.is_empty() {
             to_drop.extend(&covered);
             to_add.extend(cleaned);
         }
@@ -806,7 +619,7 @@ fn process_n1_g1_identical(
     );
 
     to_drop.extend(covered_edges);
-    let cleaned = remove_dangles(&edgelines, artifact, params.eps, Some(params.min_dangle_length));
+    let cleaned = remove_dangles(&edgelines, artifact, params.eps);
     to_add.extend(cleaned);
 }
 
@@ -889,7 +702,7 @@ fn process_nx_gx_identical(
             params.clip_limit,
             Some(params.consolidation_tolerance),
         );
-        let cleaned = remove_dangles(&edgelines, artifact, params.eps, Some(params.min_dangle_length));
+        let cleaned = remove_dangles(&edgelines, artifact, params.eps);
         to_add.extend(cleaned);
     }
 }
@@ -986,7 +799,7 @@ fn process_nx_gx(
             params.clip_limit,
             Some(params.consolidation_tolerance),
         );
-        let cleaned = remove_dangles(&edgelines, artifact, params.eps, Some(params.min_dangle_length));
+        let cleaned = remove_dangles(&edgelines, artifact, params.eps);
         to_add.extend(cleaned);
         return;
     }
@@ -1118,7 +931,7 @@ fn process_nx_gx(
             reconnect_c_groups(&conts_groups, &new_connections, artifact, params.eps);
 
         // Remove dangles
-        let cleaned = remove_dangles(&new_connections, artifact, params.eps, Some(params.min_dangle_length));
+        let cleaned = remove_dangles(&new_connections, artifact, params.eps);
         to_add.extend(cleaned);
         return;
     }
@@ -1149,7 +962,7 @@ fn process_nx_gx(
             params.clip_limit,
             Some(params.consolidation_tolerance),
         );
-        let cleaned = remove_dangles(&edgelines, artifact, params.eps, Some(params.min_dangle_length));
+        let cleaned = remove_dangles(&edgelines, artifact, params.eps);
         to_add.extend(cleaned);
     } else {
         // Multiple remaining nodes: skeleton with C as secondary snap
@@ -1168,7 +981,7 @@ fn process_nx_gx(
             params.clip_limit,
             Some(params.consolidation_tolerance),
         );
-        let cleaned = remove_dangles(&edgelines, artifact, params.eps, Some(params.min_dangle_length));
+        let cleaned = remove_dangles(&edgelines, artifact, params.eps);
         to_add.extend(cleaned);
     }
 }
@@ -1265,149 +1078,6 @@ fn make_shortest_to_edges(point: &[f64; 2], edges: &[LineString<f64>]) -> Option
 /// Convert a coordinate to a hash key for deduplication.
 fn coord_key(c: &[f64; 2]) -> (i64, i64) {
     ((c[0] * 1e8) as i64, (c[1] * 1e8) as i64)
-}
-
-// ─── Cluster skeleton helpers ────────────────────────────────────────────
-
-/// Compute skeleton for a large cluster using boundary-segment decomposition.
-///
-/// 1. Clip all edges to the cluster boundary
-/// 2. Find crossing edges and entry points (nodes_to_keep)
-/// 3. Break boundary at entry points → groups
-/// 4. Dissolve groups → skeleton input
-///
-/// Returns (skeleton_edges, cleaned_edges).
-fn cluster_skeleton_decomposed(
-    geometries: &[LineString<f64>],
-    merged: &Polygon<f64>,
-    params: &NeatifyParams,
-) -> (Vec<LineString<f64>>, Vec<LineString<f64>>) {
-    let boundary_ls = merged.exterior().clone();
-    let boundary_buf: MultiPolygon<f64> = boundary_ls.buffer(params.eps);
-    if boundary_buf.0.is_empty() {
-        return (vec![], vec![]);
-    }
-
-    // Use R-tree to only consider edges near this cluster (not all 13K edges)
-    let tree = crate::spatial::build_rtree(geometries);
-    let candidates = nodes::envelope_query_indices_pub(&tree, merged);
-
-    // 1. Clip candidate edges to cluster boundary → boundary segments
-    let mut boundary_segments: Vec<LineString<f64>> = Vec::new();
-    for &idx in &candidates {
-        let mls = MultiLineString(vec![geometries[idx].clone()]);
-        for poly in &boundary_buf.0 {
-            let clipped = poly.clip(&mls, false);
-            for ls in clipped.0 {
-                boundary_segments.push(ls);
-            }
-        }
-    }
-    boundary_segments.retain(|g| Euclidean.length(g) > 100.0 * params.eps);
-
-    if boundary_segments.is_empty() {
-        return (vec![], vec![]);
-    }
-
-    // 2. Find crossing edges (edges that cross the cluster boundary)
-    // Compute exterior buffer ONCE outside the loop
-    let exterior_buf: MultiPolygon<f64> = boundary_ls.buffer(params.eps);
-    let mut crossing_lines: Vec<LineString<f64>> = Vec::new();
-    for &idx in &candidates {
-        let geom = &geometries[idx];
-        let intersects_boundary = exterior_buf.0.iter().any(|p| p.intersects(geom));
-        let fully_inside = merged.relate(geom).is_contains();
-        if intersects_boundary && !fully_inside {
-            crossing_lines.push(geom.clone());
-        }
-    }
-
-    // 3. Find nodes_to_keep: boundary endpoints touching crossing edges
-    let mut nodes_to_keep_coords: Vec<[f64; 2]> = Vec::new();
-    if !crossing_lines.is_empty() {
-        // Build R-tree of crossing line envelopes for fast distance checks
-        for seg in &boundary_segments {
-            let coords = &seg.0;
-            if coords.len() < 2 {
-                continue;
-            }
-            for &pt_idx in &[0, coords.len() - 1] {
-                let c = coords[pt_idx];
-                let pt = Point::new(c.x, c.y);
-                let near_crossing = crossing_lines.iter().any(|cl| {
-                    Euclidean.distance(&pt, cl) < params.eps * 10.0
-                });
-                if near_crossing {
-                    nodes_to_keep_coords.push([c.x, c.y]);
-                }
-            }
-        }
-    }
-
-    // 4. Subtract nodes_to_keep from boundary segments to break into groups
-    let skel_input = if !nodes_to_keep_coords.is_empty() {
-        // Buffer all node points and union in one batch via MultiPolygon
-        let mut all_node_polys: Vec<Polygon<f64>> = Vec::new();
-        for c in &nodes_to_keep_coords {
-            let pt_buf: MultiPolygon<f64> = Point::new(c[0], c[1]).buffer(params.eps);
-            all_node_polys.extend(pt_buf.0);
-        }
-        let nodes_buf = if all_node_polys.len() <= 1 {
-            MultiPolygon(all_node_polys)
-        } else {
-            // Single union call instead of sequential O(n) unions
-            let mut acc = MultiPolygon(vec![all_node_polys[0].clone()]);
-            // Union in balanced batches: merge pairs, then pairs of pairs, etc.
-            let rest = &all_node_polys[1..];
-            for chunk in rest.chunks(8) {
-                let chunk_mp = MultiPolygon(chunk.to_vec());
-                acc = acc.union(&chunk_mp);
-            }
-            acc
-        };
-
-        if !nodes_buf.0.is_empty() {
-            let mut split_segs: Vec<LineString<f64>> = Vec::new();
-            for seg in &boundary_segments {
-                let mls = MultiLineString(vec![seg.clone()]);
-                for poly in &nodes_buf.0 {
-                    let diff = poly.clip(&mls, true);
-                    for ls in diff.0 {
-                        split_segs.push(ls);
-                    }
-                }
-            }
-            split_segs.retain(|g| Euclidean.length(g) > 100.0 * params.eps);
-            if split_segs.is_empty() {
-                boundary_segments
-            } else {
-                dissolve_by_components(&split_segs)
-            }
-        } else {
-            boundary_segments
-        }
-    } else {
-        boundary_segments
-    };
-
-    if skel_input.is_empty() || skel_input.len() < 2 {
-        return (vec![], vec![]);
-    }
-
-    // 5. Skeleton with tiny clip_limit and no snap targets
-    let no_snap: Vec<LineString<f64>> = vec![];
-    let (skeleton_edges, _) = geometry::voronoi_skeleton(
-        &skel_input,
-        Some(merged),
-        Some(&no_snap),
-        params.max_segment_length,
-        None,
-        None,
-        params.eps,
-        Some(params.consolidation_tolerance),
-    );
-    let cleaned = remove_dangles(&skeleton_edges, merged, params.eps, Some(params.min_dangle_length));
-    (skeleton_edges, cleaned)
 }
 
 // ─── Multi-C branch helpers ──────────────────────────────────────────────
@@ -1663,35 +1333,37 @@ fn apply_changes(
         return;
     }
 
-    // Drop marked edges (with attribute propagation)
-    if !to_drop.is_empty() {
-        let drop_set: HashSet<usize> = to_drop.iter().copied().collect();
-        let keep: Vec<bool> = (0..network.geometries.len())
-            .map(|i| !drop_set.contains(&i))
-            .collect();
-        network.filter_rows(&keep);
+    let drop_set: HashSet<usize> = to_drop.iter().copied().collect();
+
+    let mut new_geoms = Vec::new();
+    let mut new_statuses = Vec::new();
+
+    for (i, geom) in network.geometries.iter().enumerate() {
+        if !drop_set.contains(&i) {
+            new_geoms.push(geom.clone());
+            new_statuses.push(network.statuses[i]);
+        }
     }
 
     // Post-process additions: line_merge, explode, dedup, simplify
     if !to_add.is_empty() {
-        use geo::Simplify;
         let merged_adds = merge_and_explode(to_add);
         let deduped = dedup_geometries(&merged_adds);
-        let simplify_eps = params.max_segment_length * params.simplification_factor;
-        let n_new = deduped.len();
+        let simp_eps = params.max_segment_length * params.simplification_factor;
         for geom in deduped {
-            network.geometries.push(geom.simplify(simplify_eps));
-            network.statuses.push(EdgeStatus::New);
+            new_geoms.push(geom.simplify(simp_eps));
+            new_statuses.push(EdgeStatus::New);
         }
-        network.append_null_rows(n_new);
     }
 
+    network.geometries = new_geoms;
+    network.statuses = new_statuses;
+
     // Clean topology after changes
-    let (cleaned, statuses, rin_sources) =
+    let (cleaned, statuses) =
         nodes::remove_interstitial_nodes(&network.geometries, &network.statuses);
     network.geometries = cleaned;
     network.statuses = statuses;
-    network.remap_attributes(&rin_sources);
 }
 
 /// Check if a CES classification represents an "identical" case
@@ -1716,24 +1388,6 @@ fn merge_and_explode(geoms: &[LineString<f64>]) -> Vec<LineString<f64>> {
     merged
 }
 
-/// Deduplicate a network's geometries/statuses by normalized WKT.
-///
-/// Mirrors the dedup pattern in Python (and in nodes::fix_topology).
-fn dedup_network(network: &mut StreetNetwork) {
-    let mut seen = HashSet::new();
-    let mut keep_mask = vec![false; network.geometries.len()];
-    for (i, geom) in network.geometries.iter().enumerate() {
-        let normalized = ops::normalize_linestring(geom);
-        let wkt = ops::linestring_to_wkt(&normalized);
-        if seen.insert(wkt) {
-            keep_mask[i] = true;
-        }
-    }
-    if keep_mask.iter().any(|&k| !k) {
-        network.filter_rows(&keep_mask);
-    }
-}
-
 /// Deduplicate geometries by normalized WKT.
 fn dedup_geometries(geoms: &[LineString<f64>]) -> Vec<LineString<f64>> {
     let mut seen = HashSet::new();
@@ -1746,6 +1400,23 @@ fn dedup_geometries(geoms: &[LineString<f64>]) -> Vec<LineString<f64>> {
         }
     }
     result
+}
+
+/// Deduplicate a StreetNetwork in-place by normalized WKT.
+fn dedup_network(network: &mut StreetNetwork) {
+    let mut seen = HashSet::new();
+    let mut new_geoms = Vec::new();
+    let mut new_statuses = Vec::new();
+    for (geom, &status) in network.geometries.iter().zip(network.statuses.iter()) {
+        let normalized = ops::normalize_linestring(geom);
+        let wkt = ops::linestring_to_wkt(&normalized);
+        if seen.insert(wkt) {
+            new_geoms.push(geom.clone());
+            new_statuses.push(status);
+        }
+    }
+    network.geometries = new_geoms;
+    network.statuses = new_statuses;
 }
 
 /// Find edge indices whose geometry is covered by the artifact polygon.
@@ -1771,14 +1442,20 @@ fn find_covered_edges_with_tree(
     // Buffer the polygon to include boundary-touching edges
     let artifact_buf: MultiPolygon<f64> = artifact.buffer(eps);
 
-    // Use rayon for parallel relate checks (these are the expensive part)
+    // Use rayon for parallel relate checks (these are the expensive part).
+    // Use .map() to preserve IndexedParallelIterator ordering, then filter.
     use rayon::prelude::*;
-    candidates
+    let covered: Vec<bool> = candidates
         .par_iter()
-        .filter(|&&i| {
+        .map(|&i| {
             artifact_buf.0.iter().any(|p| p.relate(&geometries[i]).is_covers())
         })
-        .copied()
+        .collect();
+    candidates
+        .into_iter()
+        .zip(covered)
+        .filter(|&(_, is_covered)| is_covered)
+        .map(|(i, _)| i)
         .collect()
 }
 
@@ -1805,17 +1482,14 @@ fn find_boundary_edges_with_tree(
     let artifact_buf: MultiPolygon<f64> = artifact.buffer(eps);
     let boundary_buf: MultiPolygon<f64> = artifact.exterior().clone().buffer(eps);
 
-    // Use rayon for parallel relate/intersects checks (these are the expensive part)
-    use rayon::prelude::*;
     candidates
-        .par_iter()
-        .filter(|&&i| {
+        .into_iter()
+        .filter(|&i| {
             let geom = &geometries[i];
             let is_covered = artifact_buf.0.iter().any(|p| p.relate(geom).is_covers());
             let touches_boundary = boundary_buf.0.iter().any(|p| geom.intersects(p));
             !is_covered && touches_boundary
         })
-        .copied()
         .collect()
 }
 
@@ -1838,20 +1512,13 @@ fn find_nodes_near_polygon(
 
 /// Remove dangling edges from skeleton output.
 ///
-/// After line_merge + explode, remove edges whose endpoint doesn't connect
-/// to any other edge (within snap tolerance) and doesn't touch the artifact
-/// boundary (where the skeleton connects to the network).
+/// After line_merge, find endpoints that have no connection to any other
+/// geometry or the artifact boundary, and remove those edges.
+/// Uses endpoint-to-geometry distance (not just endpoint-to-endpoint) to
+/// handle T-junctions that Rust's line_merge doesn't split precisely.
 ///
-/// If `min_dangle_length` is `Some(mdl)`, edges longer than `mdl` are kept
-/// even if they appear to be dangles (they're significant enough to matter).
-///
-/// Mirrors Python `remove_dangles()`.
-fn remove_dangles(
-    connections: &[LineString<f64>],
-    artifact: &Polygon<f64>,
-    _eps: f64,
-    min_dangle_length: Option<f64>,
-) -> Vec<LineString<f64>> {
+/// Mirrors Python `remove_dangles()` (artifacts.py:672-708).
+fn remove_dangles(connections: &[LineString<f64>], artifact: &Polygon<f64>, eps: f64) -> Vec<LineString<f64>> {
     if connections.len() <= 1 {
         return connections.to_vec();
     }
@@ -1862,73 +1529,55 @@ fn remove_dangles(
         return merged;
     }
 
-    // Get artifact boundary
     let boundary = artifact.exterior().clone();
+    // Python uses eps=1e-4 with GEOS line_merge (perfect junctions).
+    // Rust's line_merge is less precise, so use a generous tolerance.
+    // Check endpoint-to-full-geometry distance to catch T-junctions where
+    // an endpoint lands near the middle of another edge.
+    let snap_tol = eps.max(1.0);
 
-    // For each connection, check if each endpoint either:
-    // 1. Touches another connection (within snap tolerance), or
-    // 2. Is on the artifact boundary (connects to the network)
-    //
-    // Use distance to the GEOMETRY of other connections (not just endpoints),
-    // since line_merge may have created longer chains where junction points
-    // are interior vertices, not endpoints.
-    // Use generous snap tolerance for projected CRS (meters).
-    // The voronoi skeleton output may have imprecise junction points.
-    let snap_tol = 5.0;
+    let mut dangle_edges: HashSet<usize> = HashSet::new();
 
-    let mut keep = vec![true; merged.len()];
-
-    for i in 0..merged.len() {
-        let coords = &merged[i].0;
+    for (i, line) in merged.iter().enumerate() {
+        let coords = &line.0;
         if coords.len() < 2 {
             continue;
         }
 
-        // Check both endpoints
-        for &pt_idx in &[0, coords.len() - 1] {
-            let c = coords[pt_idx];
-            let pt = Point::new(c.x, c.y);
-
+        for endpoint in [coords[0], coords[coords.len() - 1]] {
+            let pt = Point::new(endpoint.x, endpoint.y);
             let mut connected = false;
 
-            // Check distance to artifact boundary
-            let dist_to_boundary = Euclidean.distance(&pt, &boundary);
-            if dist_to_boundary < snap_tol {
+            // Check endpoint distance to other geometries (full geometry, not just endpoints)
+            for (j, other) in merged.iter().enumerate() {
+                if i == j {
+                    continue;
+                }
+                if Euclidean.distance(&pt, other) < snap_tol {
+                    connected = true;
+                    break;
+                }
+            }
+
+            // Check against artifact boundary
+            if !connected && Euclidean.distance(&pt, &boundary) < snap_tol {
                 connected = true;
             }
 
             if !connected {
-                // Check distance to any other connection's geometry
-                for j in 0..merged.len() {
-                    if i == j {
-                        continue;
-                    }
-                    let dist = Euclidean.distance(&pt, &merged[j]);
-                    if dist < snap_tol {
-                        connected = true;
-                        break;
-                    }
-                }
-            }
-
-            if !connected {
-                // If min_dangle_length is set and edge is long enough, keep it
-                if let Some(mdl) = min_dangle_length {
-                    if Euclidean.length(&merged[i]) >= mdl {
-                        // Edge is long enough to matter — keep it
-                        continue;
-                    }
-                }
-                keep[i] = false;
-                break;
+                dangle_edges.insert(i);
             }
         }
+    }
+
+    if dangle_edges.is_empty() {
+        return merged;
     }
 
     merged
         .into_iter()
         .enumerate()
-        .filter(|(i, _)| keep[*i])
+        .filter(|(i, _)| !dangle_edges.contains(i))
         .map(|(_, g)| g)
         .collect()
 }
@@ -2100,7 +1749,7 @@ mod tests {
     fn test_coord_key() {
         let c1 = [1.23456789, 4.56789012];
         let c2 = [1.23456789, 4.56789012];
-        let _c3 = [1.234567891, 4.56789012]; // differs at 10th decimal
+        let c3 = [1.234567891, 4.56789012]; // differs at 10th decimal
         assert_eq!(coord_key(&c1), coord_key(&c2));
         // c3 might or might not match depending on floating point precision
         // but should be stable for same input

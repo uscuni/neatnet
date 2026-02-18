@@ -484,6 +484,7 @@ pub fn component_labels_from_adjacency(adjacency: &[Vec<usize>]) -> Vec<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use geo_types::Coord;
 
     #[test]
     fn test_isoareal_quotient() {

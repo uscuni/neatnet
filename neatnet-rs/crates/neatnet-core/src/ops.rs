@@ -7,7 +7,7 @@
 //! - `nearest_points` – closest point pair between two geometries
 //! - `explode_multi` – flatten Multi*/Collection into simple geometries
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use geo_types::{Coord, LineString, MultiLineString, Polygon};
 
@@ -43,7 +43,7 @@ fn coord_from_key(k: CoordKey) -> Coord<f64> {
 pub fn polygonize(lines: &[LineString<f64>]) -> Vec<Polygon<f64>> {
     // 1. Build directed graph: each undirected edge (u,v) → directed u→v and v→u
     //    Nodes are identified by CoordKey.
-    let mut adj: HashMap<CoordKey, Vec<CoordKey>> = HashMap::new();
+    let mut adj: BTreeMap<CoordKey, Vec<CoordKey>> = BTreeMap::new();
 
     for line in lines {
         let coords = &line.0;
@@ -79,7 +79,7 @@ pub fn polygonize(lines: &[LineString<f64>]) -> Vec<Polygon<f64>> {
     // 3. Build "next" map: next(u→v) = at v, from incoming u, take next CW outgoing edge
     //    In a planar graph with edges sorted CCW, the "next" half-edge after u→v
     //    is the one that comes *after* the reverse edge v→u in v's sorted adjacency list.
-    let mut next_map: HashMap<(CoordKey, CoordKey), (CoordKey, CoordKey)> = HashMap::new();
+    let mut next_map: BTreeMap<(CoordKey, CoordKey), (CoordKey, CoordKey)> = BTreeMap::new();
 
     for (&v, neighbors) in &adj {
         let n = neighbors.len();
@@ -205,12 +205,14 @@ pub fn line_merge(lines: &[LineString<f64>]) -> Vec<LineString<f64>> {
     let mut used = vec![false; lines.len()];
     let mut result: Vec<LineString<f64>> = Vec::new();
 
-    // Start from degree-1 or degree-3+ nodes first, then handle loops
-    let start_nodes: Vec<CoordKey> = node_to_lines
+    // Start from degree-1 or degree-3+ nodes first, then handle loops.
+    // Sort for deterministic ordering (HashMap iteration is non-deterministic).
+    let mut start_nodes: Vec<CoordKey> = node_to_lines
         .iter()
         .filter(|(_, v)| v.len() != 2)
         .map(|(&k, _)| k)
         .collect();
+    start_nodes.sort();
 
     for start_node in &start_nodes {
         let line_refs = &node_to_lines[start_node];
@@ -367,7 +369,44 @@ pub fn normalize_linestring(line: &LineString<f64>) -> LineString<f64> {
     let first = coords[0];
     let last = coords[coords.len() - 1];
 
-    // Lexicographic comparison: compare x first, then y
+    // Closed ring: rotate so smallest coordinate is first, then pick canonical
+    // direction by comparing neighbors. Matches Shapely normalize behavior.
+    let is_closed = coords.len() >= 4 && first == last;
+    if is_closed {
+        let ring_coords = &coords[..coords.len() - 1]; // exclude duplicate closing coord
+        let n = ring_coords.len();
+        let min_idx = ring_coords
+            .iter()
+            .enumerate()
+            .min_by(|(_, a), (_, b)| {
+                (a.x, a.y).partial_cmp(&(b.x, b.y)).unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .map(|(i, _)| i)
+            .unwrap_or(0);
+
+        // Rotate ring to start at min_idx
+        let mut rotated = Vec::with_capacity(coords.len());
+        for i in 0..n {
+            rotated.push(ring_coords[(min_idx + i) % n]);
+        }
+        rotated.push(rotated[0]); // close the ring
+
+        // Normalize direction: compare the second coord with the second-to-last
+        // (neighbors of the start in forward vs reverse direction).
+        // Pick the direction where the second coord is lexicographically smaller.
+        if n >= 3 {
+            let fwd = rotated[1];       // second coord (forward direction)
+            let rev = rotated[n - 1];   // second-to-last (reverse direction)
+            if (rev.x, rev.y) < (fwd.x, fwd.y) {
+                // Reverse: keep first, reverse the middle, keep closing coord
+                rotated[1..n].reverse();
+            }
+        }
+
+        return LineString::new(rotated);
+    }
+
+    // Open linestring: reverse if last < first lexicographically
     let should_reverse = (last.x, last.y) < (first.x, first.y);
 
     if should_reverse {

@@ -10,7 +10,6 @@ use std::collections::HashMap;
 
 use geo::{Euclidean, Length};
 use geo_types::LineString;
-use rayon::prelude::*;
 
 /// Result of COINS analysis for a collection of edges.
 #[derive(Debug, Clone)]
@@ -50,7 +49,7 @@ pub fn coins(geometries: &[LineString<f64>], angle_threshold: f64) -> CoinsResul
     let segments = extract_segments(geometries);
     let n_segs = segments.len();
 
-    // 2. Build endpoint -> segment adjacency.
+    // 2. Build endpoint → segment adjacency.
     let mut point_to_segs: HashMap<CoordKey, Vec<usize>> = HashMap::new();
     for (idx, seg) in segments.iter().enumerate() {
         point_to_segs
@@ -63,114 +62,87 @@ pub fn coins(geometries: &[LineString<f64>], angle_threshold: f64) -> CoinsResul
             .push(idx);
     }
 
-    // Build neighbor lists — read-only lookups into point_to_segs, parallelized.
-    let (p1_neighbors, p2_neighbors): (Vec<Vec<usize>>, Vec<Vec<usize>>) = (0..n_segs)
-        .into_par_iter()
-        .map(|idx| {
-            let seg = &segments[idx];
-            let p1n = match point_to_segs.get(&coord_key(seg.start)) {
-                Some(others) => others.iter().copied().filter(|j| *j != idx).collect(),
-                None => vec![],
-            };
-            let p2n = match point_to_segs.get(&coord_key(seg.end)) {
-                Some(others) => others.iter().copied().filter(|j| *j != idx).collect(),
-                None => vec![],
-            };
-            (p1n, p2n)
-        })
-        .unzip();
+    let mut p1_neighbors: Vec<Vec<usize>> = vec![vec![]; n_segs];
+    let mut p2_neighbors: Vec<Vec<usize>> = vec![vec![]; n_segs];
 
-    // 3. Compute best link at each endpoint — fully parallel per edge.
-    //    Each edge independently evaluates angles with its neighbors.
-    //    No shared mutable state: we compute angles fresh (cheap arithmetic).
-    let (best_p1, best_p2): (Vec<Option<(usize, f64)>>, Vec<Option<(usize, f64)>>) = (0..n_segs)
-        .into_par_iter()
-        .map(|edge| {
-            let seg = &segments[edge];
+    for (idx, seg) in segments.iter().enumerate() {
+        let sk = coord_key(seg.start);
+        if let Some(others) = point_to_segs.get(&sk) {
+            p1_neighbors[idx] = others.iter().copied().filter(|&j| j != idx).collect();
+        }
+        let ek = coord_key(seg.end);
+        if let Some(others) = point_to_segs.get(&ek) {
+            p2_neighbors[idx] = others.iter().copied().filter(|&j| j != idx).collect();
+        }
+    }
 
-            // Best link at p1 (start endpoint)
-            let p1_key = coord_key(seg.start);
-            let bp1 = p1_neighbors[edge]
-                .iter()
-                .map(|link| {
-                    let angle = compute_angle(seg, &segments[*link], &p1_key);
-                    (*link, angle)
-                })
-                .fold(None::<(usize, f64)>, |best, (link, angle)| match best {
-                    None => Some((link, angle)),
-                    Some((prev_link, prev_angle)) => {
-                        if angle > prev_angle
-                            || (angle == prev_angle && link > prev_link)
-                        {
-                            Some((link, angle))
-                        } else {
-                            Some((prev_link, prev_angle))
-                        }
-                    }
-                });
+    // 3. Compute angle pairs and find best link at each endpoint.
+    let mut angle_pairs: HashMap<(usize, usize), f64> = HashMap::new();
+    let mut best_p1: Vec<Option<(usize, f64)>> = vec![None; n_segs];
+    let mut best_p2: Vec<Option<(usize, f64)>> = vec![None; n_segs];
 
-            // Best link at p2 (end endpoint)
-            let p2_key = coord_key(seg.end);
-            let bp2 = p2_neighbors[edge]
-                .iter()
-                .map(|link| {
-                    let angle = compute_angle(seg, &segments[*link], &p2_key);
-                    (*link, angle)
-                })
-                .fold(None::<(usize, f64)>, |best, (link, angle)| match best {
-                    None => Some((link, angle)),
-                    Some((prev_link, prev_angle)) => {
-                        if angle > prev_angle
-                            || (angle == prev_angle && link > prev_link)
-                        {
-                            Some((link, angle))
-                        } else {
-                            Some((prev_link, prev_angle))
-                        }
-                    }
-                });
+    for edge in 0..n_segs {
+        // Best link at p1
+        let mut p1_best_angle = 0.0_f64;
+        let mut p1_best_idx: Option<usize> = None;
+        let p1_key = coord_key(segments[edge].start);
 
-            (bp1, bp2)
-        })
-        .unzip();
+        for &link in &p1_neighbors[edge] {
+            let angle = compute_angle(&segments[edge], &segments[link], &p1_key);
+            angle_pairs.insert((edge, link), angle);
+            if angle > p1_best_angle || (angle == p1_best_angle && p1_best_idx.map_or(true, |prev| link > prev)) {
+                p1_best_angle = angle;
+                p1_best_idx = Some(link);
+            }
+        }
+        if let Some(idx) = p1_best_idx {
+            best_p1[edge] = Some((idx, p1_best_angle));
+        }
 
-    // 4. Cross-check links: confirm reciprocity and angle threshold — parallel.
-    let (p1_final, p2_final): (Vec<Option<usize>>, Vec<Option<usize>>) = (0..n_segs)
-        .into_par_iter()
-        .map(|edge| {
-            let pf1 = match best_p1[edge] {
-                Some((bp1, _)) => {
-                    let reciprocal = best_p1[bp1].map_or(false, |(b, _)| b == edge)
-                        || best_p2[bp1].map_or(false, |(b, _)| b == edge);
-                    let p1_key = coord_key(segments[edge].start);
-                    let angle = compute_angle(&segments[edge], &segments[bp1], &p1_key);
-                    if reciprocal && angle > angle_threshold {
-                        Some(bp1)
-                    } else {
-                        None
-                    }
-                }
-                None => None,
-            };
-            let pf2 = match best_p2[edge] {
-                Some((bp2, _)) => {
-                    let reciprocal = best_p1[bp2].map_or(false, |(b, _)| b == edge)
-                        || best_p2[bp2].map_or(false, |(b, _)| b == edge);
-                    let p2_key = coord_key(segments[edge].end);
-                    let angle = compute_angle(&segments[edge], &segments[bp2], &p2_key);
-                    if reciprocal && angle > angle_threshold {
-                        Some(bp2)
-                    } else {
-                        None
-                    }
-                }
-                None => None,
-            };
-            (pf1, pf2)
-        })
-        .unzip();
+        // Best link at p2
+        let mut p2_best_angle = 0.0_f64;
+        let mut p2_best_idx: Option<usize> = None;
+        let p2_key = coord_key(segments[edge].end);
 
-    // 5. Merge by chain-walking (sequential — inherently serial graph traversal).
+        for &link in &p2_neighbors[edge] {
+            let angle = *angle_pairs
+                .get(&(edge, link))
+                .unwrap_or(&compute_angle(&segments[edge], &segments[link], &p2_key));
+            angle_pairs.entry((edge, link)).or_insert(angle);
+            if angle > p2_best_angle || (angle == p2_best_angle && p2_best_idx.map_or(true, |prev| link > prev)) {
+                p2_best_angle = angle;
+                p2_best_idx = Some(link);
+            }
+        }
+        if let Some(idx) = p2_best_idx {
+            best_p2[edge] = Some((idx, p2_best_angle));
+        }
+    }
+
+    // 4. Cross-check links: confirm reciprocity and angle threshold.
+    let mut p1_final: Vec<Option<usize>> = vec![None; n_segs];
+    let mut p2_final: Vec<Option<usize>> = vec![None; n_segs];
+
+    for edge in 0..n_segs {
+        if let Some((bp1, _)) = best_p1[edge] {
+            let reciprocal = best_p1[bp1].map_or(false, |(b, _)| b == edge)
+                || best_p2[bp1].map_or(false, |(b, _)| b == edge);
+            let angle = angle_pairs.get(&(edge, bp1)).copied().unwrap_or(0.0);
+            if reciprocal && angle > angle_threshold {
+                p1_final[edge] = Some(bp1);
+            }
+        }
+        if let Some((bp2, _)) = best_p2[edge] {
+            let reciprocal = best_p1[bp2].map_or(false, |(b, _)| b == edge)
+                || best_p2[bp2].map_or(false, |(b, _)| b == edge);
+            let angle = angle_pairs.get(&(edge, bp2)).copied().unwrap_or(0.0);
+            if reciprocal && angle > angle_threshold {
+                p2_final[edge] = Some(bp2);
+            }
+        }
+    }
+
+    // 5. Merge by chain-walking.
     let mut seg_to_group: Vec<Option<usize>> = vec![None; n_segs];
     let mut next_group = 0usize;
 
@@ -185,8 +157,8 @@ pub fn coins(geometries: &[LineString<f64>], angle_threshold: f64) -> CoinsResul
         let mut current = start;
         loop {
             let next = p1_final[current]
-                .filter(|p| !visited[*p])
-                .or_else(|| p2_final[current].filter(|p| !visited[*p]));
+                .filter(|&p| !visited[p])
+                .or_else(|| p2_final[current].filter(|&p| !visited[p]));
             match next {
                 Some(n) => {
                     visited[n] = true;
@@ -200,8 +172,8 @@ pub fn coins(geometries: &[LineString<f64>], angle_threshold: f64) -> CoinsResul
         current = start;
         loop {
             let next = p2_final[current]
-                .filter(|p| !visited[*p])
-                .or_else(|| p1_final[current].filter(|p| !visited[*p]));
+                .filter(|&p| !visited[p])
+                .or_else(|| p1_final[current].filter(|&p| !visited[p]));
             match next {
                 Some(n) => {
                     visited[n] = true;
@@ -227,11 +199,11 @@ pub fn coins(geometries: &[LineString<f64>], angle_threshold: f64) -> CoinsResul
         let gid = seg_to_group[start_seg].unwrap_or(0);
         if !seen_groups.contains_key(&vec![gid]) {
             let seg_members: Vec<usize> = (0..n_segs)
-                .filter(|s| seg_to_group[*s] == Some(gid))
+                .filter(|&s| seg_to_group[s] == Some(gid))
                 .collect();
             let edge_members: Vec<usize> = seg_members
                 .iter()
-                .map(|s| segments[*s].edge_idx)
+                .map(|&s| segments[s].edge_idx)
                 .collect::<std::collections::BTreeSet<_>>()
                 .into_iter()
                 .collect();
@@ -247,16 +219,12 @@ pub fn coins(geometries: &[LineString<f64>], angle_threshold: f64) -> CoinsResul
         }
     }
 
-    // 7. Compute per-group aggregates — parallel length computation.
-    let edge_lengths: Vec<f64> = geometries
-        .par_iter()
-        .map(|g| Euclidean.length(g))
-        .collect();
-
+    // 7. Compute per-group aggregates.
     let mut group_lengths: HashMap<usize, f64> = HashMap::new();
     let mut group_counts: HashMap<usize, usize> = HashMap::new();
     for (edge_idx, &group) in edge_groups.iter().enumerate() {
-        *group_lengths.entry(group).or_default() += edge_lengths[edge_idx];
+        let len = Euclidean.length(&geometries[edge_idx]);
+        *group_lengths.entry(group).or_default() += len;
         *group_counts.entry(group).or_default() += 1;
     }
 
