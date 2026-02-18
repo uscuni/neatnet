@@ -539,31 +539,35 @@ fn neatify_clusters(
             merged = merged.union(&MultiPolygon(vec![artifact_geoms[i].clone()]));
         }
 
-        // Extract as single polygon (take the largest)
-        let merged_poly = match largest_polygon(&merged) {
-            Some(p) => p,
-            None => continue,
-        };
-
-        // Find edges fully within the merged polygon (to drop)
-        let covered = find_covered_edges_with_tree(&network.geometries, &tree, &merged_poly, params.eps);
-        if covered.is_empty() {
+        if merged.0.is_empty() {
             continue;
         }
 
-        // Use boundary edges approach for all clusters (matching Python's nx_gx_cluster)
-        let boundary_edges =
-            find_boundary_edges_with_tree(&network.geometries, &tree, &merged_poly, params.eps);
-        let (skeleton_edges, cleaned) = if boundary_edges.is_empty() {
-            (vec![], vec![])
-        } else {
+        // Process each polygon part of the merged geometry (Python's union_all
+        // returns a MultiPolygon and processes all parts together)
+        let mut all_covered: Vec<usize> = Vec::new();
+        let mut all_cleaned: Vec<LineString<f64>> = Vec::new();
+
+        for merged_poly in &merged.0 {
+            let covered = find_covered_edges_with_tree(&network.geometries, &tree, merged_poly, params.eps);
+            if covered.is_empty() {
+                continue;
+            }
+
+            let boundary_edges =
+                find_boundary_edges_with_tree(&network.geometries, &tree, merged_poly, params.eps);
+            if boundary_edges.is_empty() {
+                all_covered.extend(&covered);
+                continue;
+            }
+
             let boundary_geoms: Vec<LineString<f64>> = boundary_edges
                 .iter()
                 .map(|&i| network.geometries[i].clone())
                 .collect();
             let (skel, _) = geometry::voronoi_skeleton(
                 &boundary_geoms,
-                Some(&merged_poly),
+                Some(merged_poly),
                 None,
                 params.max_segment_length,
                 None,
@@ -571,13 +575,16 @@ fn neatify_clusters(
                 params.clip_limit,
                 Some(params.consolidation_tolerance),
             );
-            let cl = remove_dangles(&skel, &merged_poly, params.eps);
-            (skel, cl)
-        };
+            // Python's nx_gx_cluster does NOT remove dangles for multi-connection
+            // clusters — it adds all skeleton edges directly. Only single-connection
+            // cases get special dangle handling.
+            all_covered.extend(&covered);
+            all_cleaned.extend(skel);
+        }
 
-        if !skeleton_edges.is_empty() {
-            to_drop.extend(&covered);
-            to_add.extend(cleaned);
+        if !all_covered.is_empty() {
+            to_drop.extend(&all_covered);
+            to_add.extend(all_cleaned);
         }
     }
 
@@ -1302,18 +1309,6 @@ fn reconnect_c_groups(
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
-
-/// Extract the largest polygon from a MultiPolygon.
-fn largest_polygon(mp: &MultiPolygon<f64>) -> Option<Polygon<f64>> {
-    use geo::Area;
-    mp.0.iter()
-        .max_by(|a, b| {
-            a.unsigned_area()
-                .partial_cmp(&b.unsigned_area())
-                .unwrap_or(std::cmp::Ordering::Equal)
-        })
-        .cloned()
-}
 
 /// Apply accumulated drops and additions to the network.
 ///

@@ -67,19 +67,28 @@ pub fn get_components(geometries: &[LineString<f64>]) -> Vec<usize> {
     let n = geometries.len();
     if n == 0 { return vec![]; }
 
-    let mut node_to_edges: HashMap<NodeKey, Vec<usize>> = HashMap::new();
-    for (edge_idx, geom) in geometries.iter().enumerate() {
-        let coords = &geom.0;
-        if coords.len() < 2 { continue; }
-        let c0 = coords[0];
-        node_to_edges.entry(node_key(c0.x, c0.y)).or_default().push(edge_idx);
-        let cn = coords[coords.len() - 1];
-        node_to_edges.entry(node_key(cn.x, cn.y)).or_default().push(edge_idx);
-    }
+    // Use exact f64 bit comparison for node matching (matches Python's
+    // numpy unique + STRtree exact coordinate comparison)
+    type ExactKey = (u64, u64);
+    fn exact_key(x: f64, y: f64) -> ExactKey { (x.to_bits(), y.to_bits()) }
 
     let is_closed: Vec<bool> = geometries.iter().map(|g| {
         g.0.len() >= 4 && g.0[0] == g.0[g.0.len() - 1]
     }).collect();
+
+    // Python's get_components uses shapely.boundary() which returns empty for
+    // closed rings. So closed rings don't participate in node degree counting.
+    // We must exclude them from the node map too.
+    let mut node_to_edges: HashMap<ExactKey, Vec<usize>> = HashMap::new();
+    for (edge_idx, geom) in geometries.iter().enumerate() {
+        if is_closed[edge_idx] { continue; }
+        let coords = &geom.0;
+        if coords.len() < 2 { continue; }
+        let c0 = coords[0];
+        node_to_edges.entry(exact_key(c0.x, c0.y)).or_default().push(edge_idx);
+        let cn = coords[coords.len() - 1];
+        node_to_edges.entry(exact_key(cn.x, cn.y)).or_default().push(edge_idx);
+    }
 
     let mut graph = UnGraph::<(), ()>::new_undirected();
     let graph_nodes: Vec<_> = (0..n).map(|_| graph.add_node(())).collect();
@@ -88,7 +97,7 @@ pub fn get_components(geometries: &[LineString<f64>]) -> Vec<usize> {
         if edge_indices.len() != 2 { continue; }
         let e0 = edge_indices[0];
         let e1 = edge_indices[1];
-        if is_closed[e0] || is_closed[e1] { continue; }
+        // No need to check is_closed here since closed rings were excluded above
         graph.add_edge(graph_nodes[e0], graph_nodes[e1], ());
     }
 
