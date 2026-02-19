@@ -78,7 +78,6 @@ pub fn get_components(geometries: &[LineString<f64>]) -> Vec<usize> {
 
     // Python's get_components uses shapely.boundary() which returns empty for
     // closed rings. So closed rings don't participate in node degree counting.
-    // We must exclude them from the node map too.
     let mut node_to_edges: HashMap<ExactKey, Vec<usize>> = HashMap::new();
     for (edge_idx, geom) in geometries.iter().enumerate() {
         if is_closed[edge_idx] { continue; }
@@ -97,7 +96,6 @@ pub fn get_components(geometries: &[LineString<f64>]) -> Vec<usize> {
         if edge_indices.len() != 2 { continue; }
         let e0 = edge_indices[0];
         let e1 = edge_indices[1];
-        // No need to check is_closed here since closed rings were excluded above
         graph.add_edge(graph_nodes[e0], graph_nodes[e1], ());
     }
 
@@ -627,23 +625,23 @@ pub fn consolidate_nodes(
 
             // Get intersection with cookie boundary → boundary points
             let coords = extract_boundary_intersection_points(geom, &cookie_boundary);
-            if coords.is_empty() { continue; }
 
-            // Cut line with cookie: use BooleanOps clip
+            // Python applies difference(cookie) to ALL intersecting edges,
+            // even those with no boundary points (entirely inside cookie).
+            // Cut line with cookie: use BooleanOps clip (invert=true → outside)
             let mls = MultiLineString::new(vec![geom.clone()]);
             let diff_mls = cookie.clip(&mls, true);
-            // diff_mls is the part outside the cookie
-
             let diff_lines: Vec<LineString<f64>> = diff_mls.0;
+
             if diff_lines.is_empty() {
-                // Entire line was inside cookie
+                // Entire line was inside cookie — empty it
                 result_geoms[idx] = LineString::new(vec![]);
                 result_statuses[idx] = EdgeStatus::Changed;
             } else if diff_lines.len() == 1 {
                 result_geoms[idx] = diff_lines.into_iter().next().unwrap();
                 result_statuses[idx] = EdgeStatus::Changed;
             } else {
-                // Multiple parts: keep as separate geometries later
+                // Multiple parts: keep first, add rest as new edges
                 result_geoms[idx] = diff_lines[0].clone();
                 result_statuses[idx] = EdgeStatus::Changed;
                 for part in &diff_lines[1..] {
@@ -651,7 +649,7 @@ pub fn consolidate_nodes(
                 }
             }
 
-            // Create spider lines from boundary points to centroid
+            // Create spider lines from boundary points to centroid.
             for coord in &coords {
                 let spider = LineString::new(vec![
                     Coord { x: coord[0], y: coord[1] },
@@ -678,7 +676,8 @@ pub fn consolidate_nodes(
         }
     }
 
-    remove_interstitial_nodes(&final_geoms, &final_statuses)
+    let (out_geoms, out_statuses) = remove_interstitial_nodes(&final_geoms, &final_statuses);
+    (out_geoms, out_statuses)
 }
 
 /// Query R-tree for line indices near a polygon's bounding box.
@@ -703,7 +702,6 @@ fn envelope_query_indices(
     }
 }
 
-/// Extract points where a line intersects a ring (polygon exterior).
 fn extract_boundary_intersection_points(
     line: &LineString<f64>,
     ring: &LineString<f64>,
@@ -842,13 +840,15 @@ mod tests {
 
     #[test]
     fn test_consolidate_nodes_far_apart() {
+        // g1's endpoints (0,0) and (1,0) are within tolerance 2.0, so they
+        // form a cluster. g1 is entirely inside the cookie and gets emptied.
+        // Only g2 survives.
         let g1 = make_line(&[[0.0, 0.0], [1.0, 0.0]]);
         let g2 = make_line(&[[100.0, 0.0], [200.0, 0.0]]);
         let statuses = vec![EdgeStatus::Original, EdgeStatus::Original];
-        let (result_geoms, result_statuses) =
+        let (result_geoms, _result_statuses) =
             consolidate_nodes(&[g1, g2], &statuses, 2.0, false);
-        assert_eq!(result_geoms.len(), 2);
-        assert!(result_statuses.iter().all(|s| *s == EdgeStatus::Original));
+        assert_eq!(result_geoms.len(), 1);
     }
 
     #[test]
