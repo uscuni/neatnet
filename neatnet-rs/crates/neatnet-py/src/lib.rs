@@ -1,20 +1,22 @@
 //! PyO3 Python bindings for neatnet-rs.
 //!
-//! Exposes the Rust neatify pipeline to Python via GeoArrow for
-//! zero-copy geometry transfer and Arrow for attribute columns.
+//! Exposes the Rust neatify pipeline to Python via Arrow tables for
+//! zero-copy geometry transfer.
 
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, StringArray};
+use arrow::array::{ArrayRef, BooleanArray, Float64Array, Int64Array, StringArray};
+use arrow::compute::concat_batches;
+use arrow::datatypes::{DataType, Field, Schema};
+use arrow::record_batch::RecordBatch;
 use geoarrow::array::{
-    AsGeoArrowArray, GeoArrowArray, GeoArrowArrayAccessor, LineStringBuilder,
+    from_arrow_array, AsGeoArrowArray, GeoArrowArray, GeoArrowArrayAccessor, LineStringBuilder,
 };
 use geoarrow::datatypes::{Dimension, LineStringType, Metadata};
 use geo_traits::to_geo::ToGeoLineString;
 use geo_types::LineString;
 use pyo3::prelude::*;
-use pyo3_arrow::PyArray;
-use pyo3_geoarrow::PyGeoArray;
+use pyo3_arrow::PyTable;
 
 /// The neatnet_rs Python module.
 #[pymodule]
@@ -35,14 +37,32 @@ fn version() -> &'static str {
 }
 
 // ---------------------------------------------------------------------------
-// Conversion helpers
+// Arrow table helpers
 // ---------------------------------------------------------------------------
 
-/// Convert a PyGeoArray (LineString) to Vec<geo_types::LineString<f64>>.
-fn geoarrow_to_geo(input: &PyGeoArray) -> PyResult<Vec<LineString<f64>>> {
-    let geo_array = input.inner();
+/// Extract LineString geometries and CRS metadata from an Arrow table.
+fn table_to_linestrings(
+    table: PyTable,
+) -> PyResult<(Vec<LineString<f64>>, RecordBatch, Arc<Schema>, Arc<Metadata>)> {
+    let (batches, schema) = table.into_inner();
 
-    let ls_array = geo_array.as_line_string_opt().ok_or_else(|| {
+    let geom_idx = schema
+        .fields()
+        .iter()
+        .position(|f| f.name() == "geometry")
+        .ok_or_else(|| {
+            pyo3::exceptions::PyValueError::new_err("No 'geometry' column found in table")
+        })?;
+
+    let batch = concat_batches(&schema, &batches)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+
+    let ga = from_arrow_array(batch.column(geom_idx).as_ref(), schema.field(geom_idx))
+        .map_err(|e| pyo3::exceptions::PyTypeError::new_err(e.to_string()))?;
+
+    let metadata = ga.data_type().metadata().clone();
+
+    let ls_array = ga.as_line_string_opt().ok_or_else(|| {
         pyo3::exceptions::PyTypeError::new_err("Expected a GeoArrow LineString array")
     })?;
 
@@ -58,33 +78,15 @@ fn geoarrow_to_geo(input: &PyGeoArray) -> PyResult<Vec<LineString<f64>>> {
                 "Array access error at index {i}: {e}"
             ))
         })?;
-        let gt_ls: geo_types::LineString<f64> = scalar.to_line_string();
-        geoms.push(gt_ls);
+        geoms.push(scalar.to_line_string());
     }
 
-    Ok(geoms)
+    Ok((geoms, batch, schema, metadata))
 }
 
-/// Convert Vec<geo_types::LineString<f64>> to a PyGeoArray (LineString).
-fn geo_to_geoarrow(geoms: &[LineString<f64>]) -> PyResult<PyGeoArray> {
-    let ls_type = LineStringType::new(Dimension::XY, Arc::new(Metadata::default()));
-    let builder = LineStringBuilder::from_line_strings(geoms, ls_type);
-    let ls_array = builder.finish();
-    let geo_array: Arc<dyn GeoArrowArray> = Arc::new(ls_array);
-    Ok(PyGeoArray::new(geo_array))
-}
-
-/// Convert Vec<EdgeStatus> to a PyArrow StringArray via PyCapsule FFI.
-fn statuses_to_arrow(
-    py: Python<'_>,
-    statuses: &[neatnet_core::EdgeStatus],
-) -> PyResult<Py<PyAny>> {
-    let str_array: StringArray = statuses.iter().map(|s| Some(s.as_str())).collect();
-    let array_ref: ArrayRef = Arc::new(str_array);
-    let field = arrow::datatypes::Field::new("status", arrow::datatypes::DataType::Utf8, false);
-    let py_array = PyArray::new(array_ref, Arc::new(field));
-    py_array.to_pyarrow(py).map(|bound| bound.unbind())
-}
+// ---------------------------------------------------------------------------
+// WKT helpers
+// ---------------------------------------------------------------------------
 
 /// Parse a WKT string to a geo_types::LineString<f64>.
 fn wkt_to_linestring(wkt_str: &str) -> Option<LineString<f64>> {
@@ -123,38 +125,16 @@ fn wkt_to_polygon(wkt_str: &str) -> Option<geo_types::Polygon<f64>> {
 }
 
 // ---------------------------------------------------------------------------
-// GeoArrow-based functions (primary API)
+// Arrow-table-based functions (primary API)
 // ---------------------------------------------------------------------------
 
 /// Simplify a street network.
 ///
-/// Accepts a GeoArrow LineString array and returns simplified geometries
-/// plus an Arrow StringArray of edge statuses.
-///
-/// Parameters
-/// ----------
-/// geometries : GeoArrow LineString array
-///     Input street network geometries (via Arrow PyCapsule Interface).
-///     Must use native GeoArrow encoding (not WKB). From geopandas, use:
-///     ``gdf.geometry.to_arrow(geometry_encoding="geoarrow")``
-/// max_segment_length : float, default 1.0
-/// min_dangle_length : float, default 20.0
-/// clip_limit : float, default 2.0
-/// simplification_factor : float, default 2.0
-/// consolidation_tolerance : float, default 10.0
-/// artifact_threshold : float or None, default None
-/// artifact_threshold_fallback : float, default 7.0
-/// angle_threshold : float, default 120.0
-/// eps : float, default 1e-4
-/// n_loops : int, default 2
-///
-/// Returns
-/// -------
-/// tuple[GeoArrow LineString array, Arrow StringArray]
-///     (simplified_geometries, status_array)
+/// Accepts an Arrow table (from ``GeoDataFrame.to_arrow()``) and returns a
+/// new Arrow table with geometry and status columns.
 #[pyfunction]
 #[pyo3(signature = (
-    geometries,
+    table,
     max_segment_length=1.0,
     min_dangle_length=20.0,
     clip_limit=2.0,
@@ -166,9 +146,9 @@ fn wkt_to_polygon(wkt_str: &str) -> Option<geo_types::Polygon<f64>> {
     eps=1e-4,
     n_loops=2,
 ))]
-fn neatify(
-    py: Python<'_>,
-    geometries: PyGeoArray,
+fn neatify<'py>(
+    py: Python<'py>,
+    table: PyTable,
     max_segment_length: f64,
     min_dangle_length: f64,
     clip_limit: f64,
@@ -179,8 +159,8 @@ fn neatify(
     angle_threshold: f64,
     eps: f64,
     n_loops: usize,
-) -> PyResult<(PyGeoArray, Py<PyAny>)> {
-    let geo_geoms = geoarrow_to_geo(&geometries)?;
+) -> PyResult<Bound<'py, PyAny>> {
+    let (geo_geoms, _batch, _schema, metadata) = table_to_linestrings(table)?;
     let statuses = vec![neatnet_core::EdgeStatus::Original; geo_geoms.len()];
 
     let mut network = neatnet_core::StreetNetwork {
@@ -207,44 +187,80 @@ fn neatify(
     neatnet_core::neatify(&mut network, &params, None)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
-    let result_geom = geo_to_geoarrow(&network.geometries)?;
-    let result_status = statuses_to_arrow(py, &network.statuses)?;
+    // Build output geometry column with input CRS metadata
+    let ls_type = LineStringType::new(Dimension::XY, metadata);
+    let builder = LineStringBuilder::from_line_strings(&network.geometries, ls_type);
+    let ls_arr = builder.finish();
+    let geom_ref: ArrayRef = ls_arr.to_array_ref();
+    let geom_field = ls_arr.data_type().to_field("geometry", true);
 
-    Ok((result_geom, result_status))
+    // Build status column
+    let status_array: StringArray = network.statuses.iter().map(|s| Some(s.as_str())).collect();
+    let status_ref: ArrayRef = Arc::new(status_array);
+    let status_field = Field::new("status", DataType::Utf8, false);
+
+    let result_schema = Arc::new(Schema::new(vec![geom_field, status_field]));
+    let result_batch = RecordBatch::try_new(result_schema.clone(), vec![geom_ref, status_ref])
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+
+    PyTable::try_new(vec![result_batch], result_schema)?.into_pyarrow(py)
 }
 
-/// Run COINS continuity analysis on a GeoArrow LineString array.
+/// Run COINS continuity analysis on an Arrow table.
 ///
-/// Parameters
-/// ----------
-/// geometries : GeoArrow LineString array
-///     Input geometries (via Arrow PyCapsule Interface).
-///     Must use native GeoArrow encoding (not WKB).
-/// angle_threshold : float, default 120.0
-///
-/// Returns
-/// -------
-/// dict
-///     Dictionary with keys 'group', 'is_end', 'stroke_length', 'stroke_count'.
+/// Returns the original table augmented with group, is_end,
+/// stroke_length, and stroke_count columns.
 #[pyfunction]
-#[pyo3(signature = (geometries, angle_threshold=120.0))]
-fn coins(
-    py: Python<'_>,
-    geometries: PyGeoArray,
+#[pyo3(signature = (table, angle_threshold=120.0))]
+fn coins<'py>(
+    py: Python<'py>,
+    table: PyTable,
     angle_threshold: f64,
-) -> PyResult<Py<pyo3::types::PyDict>> {
-    let geo_geoms = geoarrow_to_geo(&geometries)?;
+) -> PyResult<Bound<'py, PyAny>> {
+    let (geo_geoms, batch, schema, _metadata) = table_to_linestrings(table)?;
     let result = neatnet_core::continuity::coins(&geo_geoms, angle_threshold);
 
-    let dict = pyo3::types::PyDict::new(py);
-    dict.set_item("group", &result.group)?;
-    dict.set_item("is_end", &result.is_end)?;
-    dict.set_item("stroke_length", &result.stroke_length)?;
-    dict.set_item("stroke_count", &result.stroke_count)?;
-    dict.set_item("n_segments", result.n_segments)?;
-    dict.set_item("n_p1_confirmed", result.n_p1_confirmed)?;
-    dict.set_item("n_p2_confirmed", result.n_p2_confirmed)?;
-    Ok(dict.into())
+    // Build COINS columns
+    let group_array: ArrayRef = Arc::new(Int64Array::from(
+        result.group.into_iter().map(|v| v as i64).collect::<Vec<_>>(),
+    ));
+    let is_end_array: ArrayRef = Arc::new(BooleanArray::from(result.is_end));
+    let stroke_length_array: ArrayRef = Arc::new(Float64Array::from(result.stroke_length));
+    let stroke_count_array: ArrayRef = Arc::new(Int64Array::from(
+        result
+            .stroke_count
+            .into_iter()
+            .map(|v| v as i64)
+            .collect::<Vec<_>>(),
+    ));
+
+    // Append COINS columns to existing table columns
+    let mut fields: Vec<Arc<Field>> = schema.fields().iter().cloned().collect();
+    let mut columns: Vec<ArrayRef> = batch.columns().to_vec();
+
+    fields.push(Arc::new(Field::new("group", DataType::Int64, false)));
+    fields.push(Arc::new(Field::new("is_end", DataType::Boolean, false)));
+    fields.push(Arc::new(Field::new(
+        "stroke_length",
+        DataType::Float64,
+        false,
+    )));
+    fields.push(Arc::new(Field::new(
+        "stroke_count",
+        DataType::Int64,
+        false,
+    )));
+
+    columns.push(group_array);
+    columns.push(is_end_array);
+    columns.push(stroke_length_array);
+    columns.push(stroke_count_array);
+
+    let new_schema = Arc::new(Schema::new(fields));
+    let result_batch = RecordBatch::try_new(new_schema.clone(), columns)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+
+    PyTable::try_new(vec![result_batch], new_schema)?.into_pyarrow(py)
 }
 
 // ---------------------------------------------------------------------------

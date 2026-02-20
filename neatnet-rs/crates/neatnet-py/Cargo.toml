@@ -14,7 +14,6 @@ crate-type = ["cdylib"]
 neatnet-core = { path = "../neatnet-core" }
 pyo3 = { workspace = true }
 pyo3-arrow = { workspace = true }
-pyo3-geoarrow = { workspace = true }
 geoarrow = { workspace = true }
 arrow = { workspace = true }
 geo-types = { workspace = true }

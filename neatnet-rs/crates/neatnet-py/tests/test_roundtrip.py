@@ -67,49 +67,56 @@ def test_wkt_vs_python_total_length(input_wkts, input_gdf):
     )
 
 
-# -- GeoArrow interface tests --
+# -- GeoDataFrame interface tests --
 
 
-def test_geoarrow_neatify_runs(input_gdf):
-    """GeoArrow neatify produces output without errors."""
-    ga = input_gdf.geometry.to_arrow(geometry_encoding="geoarrow")
-    result_geom, result_status = neatnet_rs.neatify(ga, consolidation_tolerance=10.0)
-    status_list = result_status.to_pylist()
-    assert len(status_list) > 0
-    assert all(s in ("original", "changed", "new") for s in status_list)
+def test_gdf_neatify_runs(input_gdf):
+    """GeoDataFrame neatify produces output without errors."""
+    result = neatnet_rs.neatify(input_gdf, consolidation_tolerance=10.0)
+    assert isinstance(result, gpd.GeoDataFrame)
+    assert len(result) > 0
+    assert "status" in result.columns
+    assert all(s in ("original", "changed", "new") for s in result["status"])
 
 
-def test_geoarrow_vs_python_edge_count(input_gdf):
-    """GeoArrow Rust edge count is within 10% of Python."""
-    ga = input_gdf.geometry.to_arrow(geometry_encoding="geoarrow")
-    result_geom, result_status = neatnet_rs.neatify(ga, consolidation_tolerance=10.0)
-    rust_count = len(result_status.to_pylist())
+def test_gdf_vs_python_edge_count(input_gdf):
+    """GeoDataFrame Rust edge count is within tolerance of Python."""
+    result = neatnet_rs.neatify(input_gdf, consolidation_tolerance=10.0)
+    rust_count = len(result)
 
     py_result = neatnet.neatify(input_gdf)
     py_count = len(py_result)
 
     ratio = rust_count / py_count
-    print(f"Rust GeoArrow: {rust_count} edges, Python: {py_count} edges, ratio: {ratio:.3f}")
+    print(f"Rust GDF: {rust_count} edges, Python: {py_count} edges, ratio: {ratio:.3f}")
     # Wider tolerance: geo crate boolean ops differ from GEOS
     assert 0.80 <= ratio <= 1.40, (
         f"Edge count ratio {ratio:.3f} outside tolerance"
     )
 
 
-def test_geoarrow_coins():
-    """GeoArrow COINS produces correct groupings."""
+def test_gdf_coins():
+    """GeoDataFrame COINS produces correct groupings."""
     geoms = [
         LineString([(0, 0), (100, 0)]),
         LineString([(100, 0), (200, 0)]),
         LineString([(100, 0), (100, 100)]),
     ]
     gdf = gpd.GeoDataFrame(geometry=geoms)
-    ga = gdf.geometry.to_arrow(geometry_encoding="geoarrow")
 
-    result = neatnet_rs.coins(ga, angle_threshold=120.0)
-    assert result["group"][0] == result["group"][1], "Collinear lines should share a group"
-    assert result["group"][2] != result["group"][0], "Perpendicular line should be separate"
-    assert len(set(result["group"])) == 2
+    result = neatnet_rs.coins(gdf, angle_threshold=120.0)
+    assert isinstance(result, gpd.GeoDataFrame)
+    assert "group" in result.columns
+    assert "stroke_length" in result.columns
+    assert "stroke_count" in result.columns
+    assert "is_end" in result.columns
+    assert result["group"].iloc[0] == result["group"].iloc[1], (
+        "Collinear lines should share a group"
+    )
+    assert result["group"].iloc[2] != result["group"].iloc[0], (
+        "Perpendicular line should be separate"
+    )
+    assert result["group"].nunique() == 2
 
 
 # -- WKT-only function tests --

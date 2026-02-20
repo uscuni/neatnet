@@ -24,10 +24,9 @@ sprs = "0.11"
 # Arrow
 arrow = { version = "57", features = ["ffi"] }
 
-# Python bindings (pinned to pyo3 0.27 for pyo3-geoarrow 0.7 compat)
+# Python bindings
 pyo3 = { version = "0.27", features = ["extension-module"] }
 pyo3-arrow = "0.15"
-pyo3-geoarrow = "0.7"
 geoarrow = "0.7"
 
 # Utilities
