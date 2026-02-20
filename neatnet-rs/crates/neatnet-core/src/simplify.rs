@@ -5,7 +5,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use geo::{BooleanOps, Buffer, Centroid, Distance, Euclidean, Intersects, Length, Relate, Simplify};
+use geo::{Area, BooleanOps, Buffer, Centroid, Distance, Euclidean, Intersects, Length, Relate, Simplify};
 use geo_types::{Coord, LineString, MultiPolygon, Point, Polygon};
 
 use crate::artifacts;
@@ -511,28 +511,45 @@ fn neatify_pairs(
         network.statuses = statuses;
     }
 
-    // Process drop_interline: merge pair → process as singleton
-    // Process iterate: first pass then second pass
-    // Also include planar members from mixed non-planar pairs (mirrors Python _planar_clusters)
-    if !drop_interline_pairs.is_empty() || !iterate_pairs.is_empty() || !planar_from_np_clusters.is_empty() {
-        let mut merged_indices: Vec<usize> = Vec::new();
-        for (pair, _) in &drop_interline_pairs {
-            merged_indices.extend(pair);
+    // Dissolve drop_interline pairs into single polygons (mirrors Python
+    // `artifacts_w_info.query(sol_drop).dissolve("comp", as_index=False)`)
+    // and build an extended artifact_geoms that includes the merged polygons.
+    let mut extended_geoms: Vec<Polygon<f64>> = artifact_geoms.to_vec();
+    let mut dissolved_indices: Vec<usize> = Vec::new();
+    for (pair, _) in &drop_interline_pairs {
+        let a = &artifact_geoms[pair[0]];
+        let b = &artifact_geoms[pair[1]];
+        let merged = MultiPolygon(vec![a.clone()]).union(&MultiPolygon(vec![b.clone()]));
+        // Use the largest polygon from the union result
+        if let Some(largest) = merged.0.into_iter().max_by(|x, y| {
+            x.unsigned_area()
+                .partial_cmp(&y.unsigned_area())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }) {
+            let idx = extended_geoms.len();
+            extended_geoms.push(largest);
+            dissolved_indices.push(idx);
         }
+    }
+
+    // Process drop_interline (dissolved) + iterate (first pass) + planar from
+    // mixed non-planar pairs as singletons
+    if !dissolved_indices.is_empty() || !iterate_pairs.is_empty() || !planar_from_np_clusters.is_empty() {
+        let mut first_indices: Vec<usize> = dissolved_indices;
         // First pass of iterate pairs
         for pair in &iterate_pairs {
-            merged_indices.push(pair[0]);
+            first_indices.push(pair[0]);
         }
         // Planar artifacts from mixed non-planar pairs
-        merged_indices.extend(&planar_from_np_clusters);
-        if !merged_indices.is_empty() {
-            neatify_singletons(network, artifact_geoms, &merged_indices, params)?;
+        first_indices.extend(&planar_from_np_clusters);
+        if !first_indices.is_empty() {
+            neatify_singletons(network, &extended_geoms, &first_indices, params)?;
         }
 
         // Second pass for iterate pairs
         let second_indices: Vec<usize> = iterate_pairs.iter().map(|p| p[1]).collect();
         if !second_indices.is_empty() {
-            neatify_singletons(network, artifact_geoms, &second_indices, params)?;
+            neatify_singletons(network, &extended_geoms, &second_indices, params)?;
         }
     }
 
