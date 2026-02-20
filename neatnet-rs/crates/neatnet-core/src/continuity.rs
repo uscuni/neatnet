@@ -8,8 +8,8 @@
 
 use std::collections::HashMap;
 
-use geo::{Euclidean, Length};
-use geo_types::LineString;
+use geo::{Contains, Euclidean, Length, Relate};
+use geo_types::{LineString, Point, Polygon};
 
 /// Result of COINS analysis for a collection of edges.
 #[derive(Debug, Clone)]
@@ -270,7 +270,6 @@ pub fn get_stroke_info(
     street_geoms: &[LineString<f64>],
     coins_result: &CoinsResult,
 ) -> Vec<CesInfo> {
-    use geo::Relate;
     let tree = crate::spatial::build_rtree(street_geoms);
 
     let mut result = Vec::with_capacity(artifact_geoms.len());
@@ -279,9 +278,8 @@ pub fn get_stroke_info(
         let candidates = envelope_query_indices_poly(&tree, artifact);
         let mut covered_edges: Vec<usize> = Vec::new();
         for idx in candidates {
-            // Check if edge is covered by the artifact
-            let de9im = artifact.relate(&street_geoms[idx]);
-            if de9im.is_covers() {
+            // Check if edge is covered by the artifact (fast path avoids full relate)
+            if line_covered_by_polygon_fast(&street_geoms[idx], artifact) {
                 covered_edges.push(idx);
             }
         }
@@ -355,6 +353,23 @@ fn envelope_query_indices_poly(
         ),
         None => vec![],
     }
+}
+
+/// Fast containment check: avoids full `Relate` when all vertices + midpoints are inside.
+fn line_covered_by_polygon_fast(line: &LineString<f64>, poly: &Polygon<f64>) -> bool {
+    for coord in &line.0 {
+        let pt = Point::new(coord.x, coord.y);
+        if !poly.contains(&pt) {
+            return poly.relate(line).is_covers();
+        }
+    }
+    for w in line.0.windows(2) {
+        let mid = Point::new((w[0].x + w[1].x) / 2.0, (w[0].y + w[1].y) / 2.0);
+        if !poly.contains(&mid) {
+            return poly.relate(line).is_covers();
+        }
+    }
+    true
 }
 
 // ─── Internal helpers ───────────────────────────────────────────────────────

@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use geo::{BooleanOps, Buffer, Centroid, Distance, Euclidean, Length, Simplify, Within};
+use geo::{BooleanOps, BoundingRect, Buffer, Centroid, Distance, Euclidean, Length, Simplify, Within};
 use geo_types::{Coord, LineString, MultiLineString, Polygon};
 
 use crate::ops;
@@ -211,9 +211,9 @@ pub fn voronoi_skeleton(
     edgelines = ops::line_merge(&edgelines);
     edgelines.retain(|e| e.0.len() >= 2 && Euclidean.length(e) > 0.0);
 
-    // 12. Consolidate nodes if tolerance is set
+    // 12. Consolidate nodes if tolerance is set (skip for tiny input)
     if let Some(ct) = consolidation_tolerance {
-        if !edgelines.is_empty() && ct > 0.0 {
+        if edgelines.len() >= 3 && ct > 0.0 {
             let temp_statuses = vec![crate::types::EdgeStatus::New; edgelines.len()];
             let (consol, _) =
                 crate::nodes::consolidate_nodes(&edgelines, &temp_statuses, ct, true);
@@ -517,8 +517,41 @@ fn build_edgelines(
 }
 
 fn clip_edgeline(edgeline: &LineString<f64>, limit: &Polygon<f64>) -> LineString<f64> {
-    if edgeline.is_within(limit) {
-        return edgeline.clone();
+    // Fast bbox rejection: if edgeline bbox is disjoint from limit bbox, no intersection
+    if let (Some(line_rect), Some(limit_rect)) = (edgeline.bounding_rect(), limit.bounding_rect()) {
+        if line_rect.min().x > limit_rect.max().x
+            || line_rect.max().x < limit_rect.min().x
+            || line_rect.min().y > limit_rect.max().y
+            || line_rect.max().y < limit_rect.min().y
+        {
+            return LineString::new(vec![]);
+        }
+    }
+
+    // Fast vertex-only containment: if all vertices + midpoints are inside, skip expensive clip
+    {
+        use geo::Contains;
+        let mut all_inside = true;
+        for coord in &edgeline.0 {
+            let pt = geo_types::Point::new(coord.x, coord.y);
+            if !limit.contains(&pt) {
+                all_inside = false;
+                break;
+            }
+        }
+        if all_inside {
+            // Also check midpoints to catch lines that exit and re-enter
+            for w in edgeline.0.windows(2) {
+                let mid = geo_types::Point::new((w[0].x + w[1].x) / 2.0, (w[0].y + w[1].y) / 2.0);
+                if !limit.contains(&mid) {
+                    all_inside = false;
+                    break;
+                }
+            }
+        }
+        if all_inside {
+            return edgeline.clone();
+        }
     }
 
     // Clip line to polygon using BooleanOps::clip

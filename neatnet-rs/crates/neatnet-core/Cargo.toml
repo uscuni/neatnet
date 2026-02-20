@@ -22,5 +22,17 @@ ordered-float = { workspace = true }
 rayon = { workspace = true }
 hashbrown = { workspace = true }
 
+# Optional deps for CLI binary
+geoarrow = { workspace = true, optional = true }
+parquet = { workspace = true, optional = true }
+geo-traits = { workspace = true, optional = true }
+
+[features]
+cli = ["dep:geoarrow", "dep:parquet", "dep:geo-traits"]
+
+[[bin]]
+name = "profile_neatify"
+required-features = ["cli"]
+
 [dev-dependencies]
 approx = "0.5"

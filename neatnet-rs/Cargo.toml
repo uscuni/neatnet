@@ -23,11 +23,15 @@ sprs = "0.11"
 
 # Arrow
 arrow = { version = "57", features = ["ffi"] }
+parquet = { version = "57", features = ["arrow"] }
 
 # Python bindings
 pyo3 = { version = "0.27", features = ["extension-module"] }
 pyo3-arrow = "0.15"
 geoarrow = "0.7"
+
+# Traits
+geo-traits = "0.3"
 
 # Utilities
 thiserror = "2"

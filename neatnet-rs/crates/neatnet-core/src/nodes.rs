@@ -482,6 +482,17 @@ pub fn consolidate_nodes(
     tolerance: f64,
     preserve_ends: bool,
 ) -> (Vec<LineString<f64>>, Vec<EdgeStatus>) {
+    consolidate_nodes_with_tree(geometries, statuses, tolerance, preserve_ends, None)
+}
+
+/// Consolidate nearby nodes, optionally reusing a pre-built R-tree for the spider phase.
+pub fn consolidate_nodes_with_tree(
+    geometries: &[LineString<f64>],
+    statuses: &[EdgeStatus],
+    tolerance: f64,
+    preserve_ends: bool,
+    geom_tree: Option<&RTree<crate::spatial::IndexedEnvelope>>,
+) -> (Vec<LineString<f64>>, Vec<EdgeStatus>) {
     let (node_coords, degrees) = nodes_from_edges(geometries);
 
     if node_coords.len() < 2 {
@@ -558,31 +569,94 @@ pub fn consolidate_nodes(
     }
 
     // Hierarchical clustering per proximity component
+    const SMALL_COMPONENT_THRESHOLD: usize = 16;
     let mut cluster_info: Vec<([f64; 2], Polygon<f64>)> = Vec::new();
 
+    // Scratch buffers reused across iterations (Item 3)
+    let mut scratch_comp_indices: Vec<usize> = Vec::new();
+    let mut scratch_condensed: Vec<f32> = Vec::new();
+    let mut scratch_uf_parent: Vec<usize> = Vec::new();
+    let mut scratch_labels: Vec<usize> = Vec::new();
+    let mut label_groups: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+
     for component in &proximity_components {
-        let comp_node_indices: Vec<usize> =
-            component.iter().map(|&ci| candidate_indices[ci]).collect();
-        let n = comp_node_indices.len();
+        scratch_comp_indices.clear();
+        scratch_comp_indices.extend(component.iter().map(|&ci| candidate_indices[ci]));
+        let n = scratch_comp_indices.len();
         if n < 2 { continue; }
 
-        let mut condensed = Vec::with_capacity(n * (n - 1) / 2);
-        for i in 0..n {
-            for j in (i + 1)..n {
-                let ci = comp_node_indices[i];
-                let cj = comp_node_indices[j];
-                let dx = node_coords[ci][0] - node_coords[cj][0];
-                let dy = node_coords[ci][1] - node_coords[cj][1];
-                condensed.push((dx * dx + dy * dy).sqrt() as f32);
+        label_groups.clear();
+
+        if n <= SMALL_COMPONENT_THRESHOLD {
+            // Union-find for small components (Item 2): avoids kodama overhead
+            scratch_uf_parent.clear();
+            scratch_uf_parent.extend(0..n);
+
+            for i in 0..n {
+                for j in (i + 1)..n {
+                    let ci = scratch_comp_indices[i];
+                    let cj = scratch_comp_indices[j];
+                    let dx = node_coords[ci][0] - node_coords[cj][0];
+                    let dy = node_coords[ci][1] - node_coords[cj][1];
+                    if (dx * dx + dy * dy).sqrt() <= tolerance {
+                        // Union
+                        let mut ra = i;
+                        while scratch_uf_parent[ra] != ra {
+                            scratch_uf_parent[ra] = scratch_uf_parent[scratch_uf_parent[ra]];
+                            ra = scratch_uf_parent[ra];
+                        }
+                        let mut rb = j;
+                        while scratch_uf_parent[rb] != rb {
+                            scratch_uf_parent[rb] = scratch_uf_parent[scratch_uf_parent[rb]];
+                            rb = scratch_uf_parent[rb];
+                        }
+                        if ra != rb {
+                            scratch_uf_parent[ra] = rb;
+                        }
+                    }
+                }
             }
-        }
 
-        let dendrogram = kodama::linkage(&mut condensed, n, kodama::Method::Average);
-        let labels = fcluster(&dendrogram, tolerance as f32, n);
+            // Convert roots to labels
+            let mut root_to_label: HashMap<usize, usize> = HashMap::new();
+            let mut next_label = 0usize;
+            for i in 0..n {
+                let mut r = i;
+                while scratch_uf_parent[r] != r {
+                    scratch_uf_parent[r] = scratch_uf_parent[scratch_uf_parent[r]];
+                    r = scratch_uf_parent[r];
+                }
+                let label = *root_to_label.entry(r).or_insert_with(|| {
+                    let l = next_label;
+                    next_label += 1;
+                    l
+                });
+                label_groups.entry(label).or_default().push(scratch_comp_indices[i]);
+            }
+        } else {
+            // Kodama average-linkage for large components
+            scratch_condensed.clear();
+            let cap = n * (n - 1) / 2;
+            if scratch_condensed.capacity() < cap {
+                scratch_condensed.reserve(cap - scratch_condensed.capacity());
+            }
+            for i in 0..n {
+                for j in (i + 1)..n {
+                    let ci = scratch_comp_indices[i];
+                    let cj = scratch_comp_indices[j];
+                    let dx = node_coords[ci][0] - node_coords[cj][0];
+                    let dy = node_coords[ci][1] - node_coords[cj][1];
+                    scratch_condensed.push((dx * dx + dy * dy).sqrt() as f32);
+                }
+            }
 
-        let mut label_groups: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
-        for (i, &label) in labels.iter().enumerate() {
-            label_groups.entry(label).or_default().push(comp_node_indices[i]);
+            let dendrogram = kodama::linkage(&mut scratch_condensed, n, kodama::Method::Average);
+            scratch_labels.clear();
+            scratch_labels.extend(fcluster(&dendrogram, tolerance as f32, n));
+
+            for (i, &label) in scratch_labels.iter().enumerate() {
+                label_groups.entry(label).or_default().push(scratch_comp_indices[i]);
+            }
         }
 
         for group in label_groups.values() {
@@ -622,18 +696,39 @@ pub fn consolidate_nodes(
         return (geometries.to_vec(), statuses.to_vec());
     }
 
-    // Apply spider geometry
-    let geom_tree = crate::spatial::build_rtree(geometries);
+    // Apply spider geometry — reuse caller's tree if provided
+    let owned_tree;
+    let effective_tree = match geom_tree {
+        Some(t) => t,
+        None => {
+            owned_tree = crate::spatial::build_rtree(geometries);
+            &owned_tree
+        }
+    };
 
     let mut result_geoms: Vec<LineString<f64>> = geometries.to_vec();
     let mut result_statuses: Vec<EdgeStatus> = statuses.to_vec();
     let mut new_spiders: Vec<LineString<f64>> = Vec::new();
 
     for (centroid, cookie) in &cluster_info {
-        let candidates = envelope_query_indices(&geom_tree, cookie);
+        let candidates = envelope_query_indices(effective_tree, cookie);
+
+        // Pre-compute cookie bbox for fast rejection
+        let cookie_bbox = cookie.bounding_rect();
 
         for idx in candidates {
             let geom = &result_geoms[idx];
+
+            // Fast bbox disjoint check before expensive intersects
+            if let (Some(geom_rect), Some(cookie_rect)) = (geom.bounding_rect(), &cookie_bbox) {
+                if geom_rect.min().x > cookie_rect.max().x
+                    || geom_rect.max().x < cookie_rect.min().x
+                    || geom_rect.min().y > cookie_rect.max().y
+                    || geom_rect.max().y < cookie_rect.min().y
+                {
+                    continue;
+                }
+            }
 
             if !geom.intersects(cookie) {
                 continue;

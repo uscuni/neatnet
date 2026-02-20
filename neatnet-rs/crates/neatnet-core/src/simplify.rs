@@ -5,7 +5,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use geo::{Area, BooleanOps, Buffer, Centroid, Distance, Euclidean, Intersects, Length, Relate, Simplify};
+use geo::{Area, BooleanOps, BoundingRect, Buffer, Centroid, Contains, Distance, Euclidean, Intersects, Length, Relate, Simplify};
 use geo_types::{Coord, LineString, MultiPolygon, Point, Polygon};
 
 use crate::artifacts;
@@ -40,12 +40,14 @@ pub fn neatify(
     network.geometries = fixed_geoms;
     network.statuses = fixed_statuses;
 
-    // Step 2: Consolidate nodes
-    let (consol_geoms, consol_statuses) = nodes::consolidate_nodes(
+    // Step 2: Consolidate nodes (pass pre-built tree to avoid redundant build)
+    let edge_tree = crate::spatial::build_rtree(&network.geometries);
+    let (consol_geoms, consol_statuses) = nodes::consolidate_nodes_with_tree(
         &network.geometries,
         &network.statuses,
         params.max_segment_length * 2.1,
         false,
+        Some(&edge_tree),
     );
     network.geometries = consol_geoms;
     network.statuses = consol_statuses;
@@ -140,8 +142,19 @@ fn neatify_loop(
     let mut dangle_indices = HashSet::new();
     for artifact in artifact_geoms {
         let candidates = nodes::envelope_query_indices_pub(&tree, artifact);
+        let art_bbox = artifact.bounding_rect();
         for idx in candidates {
-            if artifact.relate(&network.geometries[idx]).is_contains() {
+            // Fast bbox disjoint check before expensive relate
+            if let (Some(lr), Some(ar)) = (network.geometries[idx].bounding_rect(), &art_bbox) {
+                if lr.min().x > ar.max().x
+                    || lr.max().x < ar.min().x
+                    || lr.min().y > ar.max().y
+                    || lr.max().y < ar.min().y
+                {
+                    continue;
+                }
+            }
+            if line_covered_by_polygon_fast(&network.geometries[idx], artifact) {
                 dangle_indices.insert(idx);
             }
         }
@@ -1535,13 +1548,41 @@ fn find_covered_edges_buffered(
 ) -> Vec<usize> {
     let candidates = nodes::envelope_query_indices_pub(tree, artifact);
 
+    // Pre-compute union bbox of all polygons in artifact_buf for fast rejection
+    let buf_bbox = {
+        use geo::BoundingRect;
+        let mut min_x = f64::INFINITY;
+        let mut min_y = f64::INFINITY;
+        let mut max_x = f64::NEG_INFINITY;
+        let mut max_y = f64::NEG_INFINITY;
+        for p in &artifact_buf.0 {
+            if let Some(r) = p.bounding_rect() {
+                min_x = min_x.min(r.min().x);
+                min_y = min_y.min(r.min().y);
+                max_x = max_x.max(r.max().x);
+                max_y = max_y.max(r.max().y);
+            }
+        }
+        (min_x, min_y, max_x, max_y)
+    };
+
     // Use rayon for parallel relate checks (these are the expensive part).
     // Use .map() to preserve IndexedParallelIterator ordering, then filter.
     use rayon::prelude::*;
     let covered: Vec<bool> = candidates
         .par_iter()
         .map(|&i| {
-            artifact_buf.0.iter().any(|p| p.relate(&geometries[i]).is_covers())
+            // Fast bbox disjoint check before expensive relate
+            if let Some(lr) = geometries[i].bounding_rect() {
+                if lr.min().x > buf_bbox.2
+                    || lr.max().x < buf_bbox.0
+                    || lr.min().y > buf_bbox.3
+                    || lr.max().y < buf_bbox.1
+                {
+                    return false;
+                }
+            }
+            artifact_buf.0.iter().any(|p| line_covered_by_polygon_fast(&geometries[i], p))
         })
         .collect();
     candidates
@@ -1575,11 +1616,39 @@ fn find_boundary_edges_with_tree(
     let artifact_buf: MultiPolygon<f64> = artifact.buffer(eps);
     let boundary_buf: MultiPolygon<f64> = artifact.exterior().clone().buffer(eps);
 
+    // Pre-compute union bbox of artifact_buf for fast rejection
+    let buf_bbox = {
+        use geo::BoundingRect;
+        let mut min_x = f64::INFINITY;
+        let mut min_y = f64::INFINITY;
+        let mut max_x = f64::NEG_INFINITY;
+        let mut max_y = f64::NEG_INFINITY;
+        for p in &artifact_buf.0 {
+            if let Some(r) = p.bounding_rect() {
+                min_x = min_x.min(r.min().x);
+                min_y = min_y.min(r.min().y);
+                max_x = max_x.max(r.max().x);
+                max_y = max_y.max(r.max().y);
+            }
+        }
+        (min_x, min_y, max_x, max_y)
+    };
+
     candidates
         .into_iter()
         .filter(|&i| {
             let geom = &geometries[i];
-            let is_covered = artifact_buf.0.iter().any(|p| p.relate(geom).is_covers());
+            // Fast bbox disjoint check
+            if let Some(lr) = geom.bounding_rect() {
+                if lr.min().x > buf_bbox.2
+                    || lr.max().x < buf_bbox.0
+                    || lr.min().y > buf_bbox.3
+                    || lr.max().y < buf_bbox.1
+                {
+                    return false;
+                }
+            }
+            let is_covered = artifact_buf.0.iter().any(|p| line_covered_by_polygon_fast(geom, p));
             let touches_boundary = boundary_buf.0.iter().any(|p| geom.intersects(p));
             !is_covered && touches_boundary
         })
@@ -1689,6 +1758,26 @@ fn node_coords_to_lines(coords: &[[f64; 2]]) -> Vec<LineString<f64>> {
             ])
         })
         .collect()
+}
+
+/// Fast containment check: avoids full `Relate` when all vertices + midpoints are inside.
+///
+/// If every vertex and segment midpoint of `line` is inside `poly`, the line is covered.
+/// Falls back to full `poly.relate(line).is_covers()` when any test point is outside.
+fn line_covered_by_polygon_fast(line: &LineString<f64>, poly: &Polygon<f64>) -> bool {
+    for coord in &line.0 {
+        let pt = Point::new(coord.x, coord.y);
+        if !poly.contains(&pt) {
+            return poly.relate(line).is_covers();
+        }
+    }
+    for w in line.0.windows(2) {
+        let mid = Point::new((w[0].x + w[1].x) / 2.0, (w[0].y + w[1].y) / 2.0);
+        if !poly.contains(&mid) {
+            return poly.relate(line).is_covers();
+        }
+    }
+    true
 }
 
 /// Error type for the neatify pipeline.
