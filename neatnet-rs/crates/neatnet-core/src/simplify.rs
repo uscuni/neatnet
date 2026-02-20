@@ -191,7 +191,7 @@ fn neatify_loop(
 
     // 3. Simplify singletons
     if !singles.is_empty() {
-        neatify_singletons(network, artifact_geoms, &singles, params)?;
+        neatify_singletons(network, artifact_geoms, &singles, params, None)?;
     }
 
     // 4. Simplify pairs
@@ -213,14 +213,26 @@ fn neatify_loop(
 /// 1. Run COINS and CES classification
 /// 2. Link nodes to artifacts
 /// 3. Dispatch to appropriate handler (n1_g1_identical, nx_gx_identical, nx_gx)
+///
+/// When `precomputed_coins` is `Some`, the provided COINS result is reused
+/// instead of recomputing from scratch. This mirrors the Python
+/// `compute_coins=False` optimisation used in the pairs stage.
 fn neatify_singletons(
     network: &mut StreetNetwork,
     artifact_geoms: &[Polygon<f64>],
     artifact_indices: &[usize],
     params: &NeatifyParams,
+    precomputed_coins: Option<&continuity::CoinsResult>,
 ) -> Result<(), NeatifyError> {
-    // Run COINS analysis on the full network
-    let coins_result = continuity::coins(&network.geometries, params.angle_threshold);
+    // Reuse caller-provided COINS result, or compute fresh
+    let owned_coins;
+    let coins_result = match precomputed_coins {
+        Some(c) => c,
+        None => {
+            owned_coins = continuity::coins(&network.geometries, params.angle_threshold);
+            &owned_coins
+        }
+    };
 
     // Get CES info for singletons
     let singleton_geoms: Vec<Polygon<f64>> = artifact_indices
@@ -228,7 +240,7 @@ fn neatify_singletons(
         .map(|&i| artifact_geoms[i].clone())
         .collect();
     let ces_info =
-        continuity::get_stroke_info(&singleton_geoms, &network.geometries, &coins_result);
+        continuity::get_stroke_info(&singleton_geoms, &network.geometries, coins_result);
 
     // Build R-tree once for all singleton lookups
     let tree = crate::spatial::build_rtree(&network.geometries);
@@ -299,7 +311,7 @@ fn neatify_singletons(
                 artifact,
                 &node_coords,
                 &network.geometries,
-                &coins_result,
+                coins_result,
                 params,
                 &mut to_drop,
                 &mut to_add,
@@ -543,13 +555,14 @@ fn neatify_pairs(
         // Planar artifacts from mixed non-planar pairs
         first_indices.extend(&planar_from_np_clusters);
         if !first_indices.is_empty() {
-            neatify_singletons(network, &extended_geoms, &first_indices, params)?;
+            // Reuse COINS already computed at pairs level (mirrors Python compute_coins=False)
+            neatify_singletons(network, &extended_geoms, &first_indices, params, Some(&coins_result))?;
         }
 
-        // Second pass for iterate pairs
+        // Second pass for iterate pairs – network was modified, recompute COINS
         let second_indices: Vec<usize> = iterate_pairs.iter().map(|p| p[1]).collect();
         if !second_indices.is_empty() {
-            neatify_singletons(network, &extended_geoms, &second_indices, params)?;
+            neatify_singletons(network, &extended_geoms, &second_indices, params, None)?;
         }
     }
 
