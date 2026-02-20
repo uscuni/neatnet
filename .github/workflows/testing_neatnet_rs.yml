@@ -1,0 +1,64 @@
+---
+name: CI neatnet-rs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  rust-tests:
+    name: Rust tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: neatnet-rs
+
+      - name: Run tests
+        run: cargo test --workspace
+        working-directory: neatnet-rs
+
+  python-tests:
+    name: Python roundtrip tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: ci/py313_latest.yaml
+          micromamba-version: "latest"
+
+      - name: Install neatnet (Python)
+        run: pip install -e . --no-deps
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build and install neatnet-rs
+        uses: PyO3/maturin-action@v1
+        with:
+          command: develop
+          args: --release
+          working-directory: neatnet-rs/crates/neatnet-py
+
+      - name: Run Python tests
+        run: pytest tests/ -v --color yes
+        working-directory: neatnet-rs/crates/neatnet-py
