@@ -27,8 +27,7 @@ fn load_wkt(path: &str) -> Vec<LineString<f64>> {
 }
 
 fn load_parquet(path: &str) -> Vec<LineString<f64>> {
-    use geoarrow::array::{from_arrow_array, AsGeoArrowArray, GeoArrowArray, GeoArrowArrayAccessor};
-    use geo_traits::to_geo::ToGeoLineString;
+    use arrow::array::{Array, AsArray};
 
     let file = fs::File::open(path).expect("Failed to open Parquet file");
     let builder =
@@ -49,23 +48,74 @@ fn load_parquet(path: &str) -> Vec<LineString<f64>> {
             .unwrap_or(0);
 
         let array_ref = batch.column(geom_col_idx);
-        let field = schema.field(geom_col_idx);
 
-        let ga = from_arrow_array(array_ref.as_ref(), field)
-            .expect("Failed to parse geoarrow geometry");
-
-        if let Some(ls_array) = ga.as_line_string_opt() {
-            for i in 0..ls_array.len() {
-                if !ls_array.is_null(i) {
-                    if let Ok(scalar) = ls_array.value(i) {
-                        geometries.push(scalar.to_line_string());
-                    }
-                }
+        // The geometry column is WKB-encoded binary (geoarrow.wkb extension type).
+        // Parse WKB directly from the binary array.
+        let binary_array = array_ref.as_binary::<i32>();
+        for i in 0..binary_array.len() {
+            if binary_array.is_null(i) {
+                continue;
+            }
+            let wkb = binary_array.value(i);
+            if let Some(ls) = parse_wkb_linestring(wkb) {
+                geometries.push(ls);
             }
         }
     }
 
     geometries
+}
+
+/// Parse a WKB-encoded LineString into a geo_types::LineString.
+fn parse_wkb_linestring(wkb: &[u8]) -> Option<LineString<f64>> {
+    use geo_types::Coord;
+
+    if wkb.len() < 9 {
+        return None;
+    }
+    let le = wkb[0] == 1;
+
+    let geom_type = if le {
+        u32::from_le_bytes([wkb[1], wkb[2], wkb[3], wkb[4]])
+    } else {
+        u32::from_be_bytes([wkb[1], wkb[2], wkb[3], wkb[4]])
+    };
+
+    // WKB type 2 = LineString
+    if geom_type != 2 {
+        return None;
+    }
+
+    let n_points = if le {
+        u32::from_le_bytes([wkb[5], wkb[6], wkb[7], wkb[8]]) as usize
+    } else {
+        u32::from_be_bytes([wkb[5], wkb[6], wkb[7], wkb[8]]) as usize
+    };
+
+    let expected_len = 9 + n_points * 16;
+    if wkb.len() < expected_len {
+        return None;
+    }
+
+    let mut coords = Vec::with_capacity(n_points);
+    let mut offset = 9;
+    for _ in 0..n_points {
+        let x = if le {
+            f64::from_le_bytes(wkb[offset..offset + 8].try_into().ok()?)
+        } else {
+            f64::from_be_bytes(wkb[offset..offset + 8].try_into().ok()?)
+        };
+        offset += 8;
+        let y = if le {
+            f64::from_le_bytes(wkb[offset..offset + 8].try_into().ok()?)
+        } else {
+            f64::from_be_bytes(wkb[offset..offset + 8].try_into().ok()?)
+        };
+        offset += 8;
+        coords.push(Coord { x, y });
+    }
+
+    Some(LineString::new(coords))
 }
 
 fn main() {
