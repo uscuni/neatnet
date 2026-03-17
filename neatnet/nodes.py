@@ -73,7 +73,7 @@ def split(
     """
     split_points = gpd.GeoSeries(split_points, crs=crs)
     for split in split_points.drop_duplicates():
-        _, ix = cleaned_streets.sindex.nearest(split, max_distance=eps)
+        ix = cleaned_streets.sindex.query(split, predicate="dwithin", distance=eps)
         row = cleaned_streets.iloc[ix]
         edge = row.geometry
         if edge.shape[0] == 1:
