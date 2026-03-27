@@ -4,6 +4,7 @@ import re
 import geopandas
 import momepy
 import numpy
+import pandas
 import pytest
 import shapely
 from pandas.testing import assert_frame_equal, assert_series_equal
@@ -43,6 +44,20 @@ AC_EXCLUSION_MASK = geopandas.GeoSeries(
 )
 
 
+def _normalize_nullable_scalars(frame):
+    """Normalize backend-specific null scalars before dataframe comparison."""
+    normalized = frame.copy()
+
+    for col in normalized.columns:
+        series = normalized[col]
+        if pandas.api.types.is_object_dtype(
+            series.dtype
+        ) or pandas.api.types.is_string_dtype(series.dtype):
+            normalized[col] = series.astype(object).where(series.notna(), None)
+
+    return normalized
+
+
 @pytest.mark.parametrize(
     "scenario,tol,known_length",
     [
@@ -71,8 +86,8 @@ def test_neatify_small(scenario, tol, known_length):
     assert observed.shape == known.shape
     assert_series_equal(known["_status"], observed["_status"])
     assert_frame_equal(
-        known.drop(columns=["_status", "geometry"]),
-        observed.drop(columns=["_status", "geometry"]),
+        _normalize_nullable_scalars(known.drop(columns=["_status", "geometry"])),
+        _normalize_nullable_scalars(observed.drop(columns=["_status", "geometry"])),
     )
 
     pytest.geom_test(
@@ -115,8 +130,8 @@ def test_neatify_full_fua(aoi, tol, known_length):
     if pytest.ubuntu and pytest.env_type == "dev":
         assert_series_equal(known["_status"], observed["_status"])
         assert_frame_equal(
-            known.drop(columns=["_status", "geometry"]),
-            observed.drop(columns=["_status", "geometry"]),
+            _normalize_nullable_scalars(known.drop(columns=["_status", "geometry"])),
+            _normalize_nullable_scalars(observed.drop(columns=["_status", "geometry"])),
             check_dtype=False,
         )
         pytest.geom_test(known, observed, tolerance=tol, aoi=aoi, save_dir=artifact_dir)
@@ -143,8 +158,8 @@ def test_neatify_wuhan(aoi="wuhan_8989", tol=0.3, known_length=4_702_861):
     if pytest.ubuntu and pytest.env_type.endswith("dev"):
         assert_series_equal(known["_status"], observed["_status"])
         assert_frame_equal(
-            known.drop(columns=["_status", "geometry"]),
-            observed.drop(columns=["_status", "geometry"]),
+            _normalize_nullable_scalars(known.drop(columns=["_status", "geometry"])),
+            _normalize_nullable_scalars(observed.drop(columns=["_status", "geometry"])),
             check_dtype=False,
         )
         pytest.geom_test(known, observed, tolerance=tol, aoi=aoi, save_dir=artifact_dir)
