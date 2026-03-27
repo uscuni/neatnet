@@ -137,14 +137,6 @@ def _status(x: pd.Series) -> str:
     return "changed"
 
 
-def _first_non_null(x: pd.Series):
-    """Return first observation that is not missing, unless all are."""
-    non_null = x[~x.isna()]
-    if non_null.empty:
-        return x.iloc[0]
-    return non_null.iloc[0]
-
-
 def isolate_bowtie_nodes(edgelines: list | np.ndarray | gpd.GeoSeries) -> gpd.GeoSeries:
     r"""
     Bowties are a rare edgecase whereby a component has:
