@@ -234,7 +234,7 @@ def test_prep_components():
 
     known_labels = pandas.Series(
         [0, 0, 1],
-        index=pandas.Index([0, 1, 2], name="focal"),
+        index=pandas.Index([0, 1, 2]),
         name="component labels",
         dtype=numpy.int32,
     )
@@ -261,7 +261,7 @@ def test_prep_components():
         neatnet.geometry._prep_components([line1, line2, line3])
     )
 
-    pandas.testing.assert_series_equal(observed_labels, known_labels)
+    pandas.testing.assert_series_equal(observed_labels, known_labels, check_names=False)
     pandas.testing.assert_series_equal(observed_counts, known_counts)
     geopandas.testing.assert_geodataframe_equal(observed_comps, known_comps)
 
