@@ -105,7 +105,7 @@ jobs:
         if: matrix.os == 'windows-latest' && (success() || failure())
 
       - name: archive observed simplified networks
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ci_artifacts-${{ matrix.os }}-${{ matrix.environment-file }}
           path: ci_artifacts.zip
