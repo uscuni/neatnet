@@ -1316,3 +1316,112 @@ def test_fill_attrs():
     )
 
     assert_frame_equal(known, observed)
+
+
+# ----- inject_points -----
+
+
+_inj_line_h = shapely.LineString([(0, 0), (100, 0)])
+_inj_line_v = shapely.LineString([(50, 0), (50, 100)])
+
+
+def _inj_network():
+    return geopandas.GeoDataFrame(
+        {"road": ["H", "V"]},
+        geometry=[_inj_line_h, _inj_line_v],
+        crs="EPSG:3035",
+    )
+
+
+@pytest.mark.parametrize(
+    ("point", "snap_radius", "expected_h_segments"),
+    [
+        (shapely.Point(40, 0), 1, 2),
+        (shapely.Point(40, 1), 5, 2),
+    ],
+)
+def test_inject_points_projects_to_target_line(point, snap_radius, expected_h_segments):
+    """Nearby points split the target line at the projected location."""
+    streets = _inj_network()
+    points = geopandas.GeoDataFrame(geometry=[point], crs="EPSG:3035")
+    augmented = neatnet.inject_points(streets, points, snap_radius=snap_radius)
+    assert (augmented["road"] == "H").sum() == expected_h_segments
+    assert (augmented["road"] == "V").sum() == 1
+    h_rows = augmented[augmented["road"] == "H"]
+    for geom in h_rows.geometry:
+        for _, y in geom.coords:
+            assert y == 0.0, "y coordinate drifted, the split should stay on the line"
+
+
+def test_inject_points_snap_radius_rejects_far_points():
+    """Points beyond snap_radius do not change the topology."""
+    streets = _inj_network()
+    points = geopandas.GeoDataFrame(
+        geometry=[shapely.Point(40, 50)],
+        crs="EPSG:3035",
+    )
+    augmented = neatnet.inject_points(streets, points, snap_radius=5)
+    geopandas.testing.assert_geodataframe_equal(
+        augmented.sort_values("road").reset_index(drop=True),
+        streets.sort_values("road").reset_index(drop=True),
+    )
+
+
+def test_inject_points_none_snap_radius_keeps_all():
+    """snap_radius=None splits regardless of distance."""
+    streets = _inj_network()
+    # Point is below line H at distance 100; projection (40, 0) is interior of H.
+    # snap_radius=None must accept it; snap_radius=10 would reject.
+    points = geopandas.GeoDataFrame(
+        geometry=[shapely.Point(40, -100)],
+        crs="EPSG:3035",
+    )
+    augmented = neatnet.inject_points(streets, points, snap_radius=None)
+    assert len(augmented) > len(streets)
+
+
+def test_inject_points_reprojects_points_to_streets_crs():
+    """Points in a different CRS are reprojected to match streets."""
+    streets_3035 = _inj_network()
+    point_in_4326 = geopandas.GeoSeries(
+        [shapely.Point(40, 0)], crs="EPSG:3035"
+    ).to_crs("EPSG:4326").iloc[0]
+    points_4326 = geopandas.GeoDataFrame(
+        geometry=[point_in_4326], crs="EPSG:4326"
+    )
+    augmented = neatnet.inject_points(streets_3035, points_4326, snap_radius=10)
+    assert (augmented["road"] == "H").sum() == 2
+
+
+def test_inject_points_requires_crs():
+    """Missing CRS on either input raises ValueError."""
+    streets = _inj_network()
+    points = geopandas.GeoDataFrame(geometry=[shapely.Point(40, 0)])
+    with pytest.raises(ValueError, match="CRS"):
+        neatnet.inject_points(streets, points)
+
+
+def test_inject_points_empty_points_returns_unchanged():
+    """Empty input points returns streets unchanged."""
+    streets = _inj_network()
+    empty_points = geopandas.GeoDataFrame(geometry=[], crs="EPSG:3035")
+    augmented = neatnet.inject_points(streets, empty_points, snap_radius=5)
+    assert len(augmented) == len(streets)
+
+
+def test_inject_points_multiple_pois_on_one_line():
+    """Two POIs on the same LineString split it into three segments."""
+    streets = geopandas.GeoDataFrame(
+        {"road": ["canal"]},
+        geometry=[shapely.LineString([(0, 0), (100, 0)])],
+        crs="EPSG:3035",
+    )
+    pois = geopandas.GeoDataFrame(
+        geometry=[shapely.Point(30, 1), shapely.Point(70, 1)],
+        crs="EPSG:3035",
+    )
+    augmented = neatnet.inject_points(streets, pois, snap_radius=5)
+    assert len(augmented) == 3
+
+
+
