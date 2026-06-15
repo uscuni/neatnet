@@ -1422,6 +1422,3 @@ def test_inject_points_multiple_pois_on_one_line():
     )
     augmented = neatnet.inject_points(streets, pois, snap_radius=5)
     assert len(augmented) == 3
-
-
-

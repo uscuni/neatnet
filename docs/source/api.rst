@@ -41,6 +41,7 @@ A subset of functions dealing with network nodes:
    consolidate_nodes
    remove_interstitial_nodes
    induce_nodes
+   inject_points
 
 Face artifact detection
 -----------------------
