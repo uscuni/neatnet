@@ -8,6 +8,7 @@ from .nodes import (
     consolidate_nodes,
     fix_topology,
     induce_nodes,
+    inject_points,
     remove_interstitial_nodes,
     split,
 )
