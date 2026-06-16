@@ -359,16 +359,15 @@ def inject_points(
     For every input point within ``snap_radius`` of any LineString in
     ``streets``, the point is projected onto the nearest LineString and the
     target line is split at that projected location. Points outside the
-    radius are ignored. When the CRS differs, ``points`` is reprojected to
-    match ``streets`` before processing.
+    radius are ignored.
 
     Parameters
     ----------
     streets : geopandas.GeoDataFrame
         LineString network. CRS must be set.
     points : geopandas.GeoDataFrame
-        Point features to project onto ``streets``. CRS must be set; will
-        be reprojected to match ``streets`` if different.
+        Point features to project onto ``streets``. Must share the same CRS
+        as ``streets``.
     snap_radius : float | None = None
         Maximum projection distance, in ``streets`` CRS units. Points
         beyond this distance from any LineString are dropped from the
@@ -390,16 +389,20 @@ def inject_points(
     if streets.crs is None or points.crs is None:
         raise ValueError("Both streets and points must have a CRS set.")
     if points.crs != streets.crs:
-        points = points.to_crs(streets.crs)
+        raise ValueError(
+            "The input `streets` and `points` data are in "
+            "different coordinate reference systems. Reproject and rerun."
+        )
 
     line_geoms = streets.geometry.values
     point_geoms = points.geometry.values
     if len(point_geoms) == 0 or len(line_geoms) == 0:
         return streets.copy()
 
-    # Nearest line per input point (sindex-accelerated)
-    input_idx, line_idx = streets.sindex.nearest(point_geoms, return_all=False)
-    distances = shapely.distance(line_geoms[line_idx], point_geoms[input_idx])
+    # Nearest line per input point, with distance (sindex-accelerated)
+    (input_idx, line_idx), distances = streets.sindex.nearest(
+        point_geoms, return_all=False, return_distance=True
+    )
 
     if snap_radius is not None:
         keep = distances <= snap_radius

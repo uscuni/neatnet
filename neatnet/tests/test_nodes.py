@@ -1380,17 +1380,17 @@ def test_inject_points_none_snap_radius_keeps_all():
     assert len(augmented) > len(streets)
 
 
-def test_inject_points_reprojects_points_to_streets_crs():
-    """Points in a different CRS are reprojected to match streets."""
+def test_inject_points_crs_mismatch_raises():
+    """Mismatched CRS raises rather than implicitly reprojecting."""
     streets_3035 = _inj_network()
-    point_in_4326 = geopandas.GeoSeries(
-        [shapely.Point(40, 0)], crs="EPSG:3035"
-    ).to_crs("EPSG:4326").iloc[0]
-    points_4326 = geopandas.GeoDataFrame(
-        geometry=[point_in_4326], crs="EPSG:4326"
+    point_in_4326 = (
+        geopandas.GeoSeries([shapely.Point(40, 0)], crs="EPSG:3035")
+        .to_crs("EPSG:4326")
+        .iloc[0]
     )
-    augmented = neatnet.inject_points(streets_3035, points_4326, snap_radius=10)
-    assert (augmented["road"] == "H").sum() == 2
+    points_4326 = geopandas.GeoDataFrame(geometry=[point_in_4326], crs="EPSG:4326")
+    with pytest.raises(ValueError, match="coordinate reference system"):
+        neatnet.inject_points(streets_3035, points_4326, snap_radius=10)
 
 
 def test_inject_points_requires_crs():
