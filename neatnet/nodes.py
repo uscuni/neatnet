@@ -354,37 +354,59 @@ def inject_points(
     snap_radius: float | None = None,
     eps: float = 1e-4,
 ) -> gpd.GeoDataFrame:
-    """Project external points onto the nearest LineString and split there.
+    """Project external points onto the nearest line and split it at the foot.
 
-    For every input point within ``snap_radius`` of any LineString in
-    ``streets``, the point is projected onto the nearest LineString and the
-    target line is split at that projected location. Points outside the
-    radius are ignored.
+    Each input point within ``snap_radius`` of the network is projected onto
+    its *nearest* LineString in ``streets`` -- at the foot of the
+    perpendicular, via linear referencing -- and that line is split at the
+    projected location. The new node therefore lands exactly *on* the original
+    geometry, so the line's shape (and hence its length and any along-line
+    referencing) is left unchanged. Points farther than ``snap_radius`` from
+    every line are ignored; no node is injected for them.
+
+    This makes ``inject_points`` the geometry-preserving way to turn near-line
+    features (e.g. a structure surveyed a few metres off the digitised
+    centreline) into exact topological nodes. It differs from :func:`split`,
+    which snaps the *line* onto the raw point (via ``shapely.snap``) and so
+    bends the geometry toward an off-line point; the two coincide only when the
+    point already lies on the line.
 
     Parameters
     ----------
     streets : geopandas.GeoDataFrame
         LineString network. CRS must be set.
     points : geopandas.GeoDataFrame
-        Point features to project onto ``streets``. Must share the same CRS
-        as ``streets``.
+        Point features to project onto ``streets``. Must share the same CRS as
+        ``streets`` (a mismatch raises rather than reprojecting implicitly).
+        Only the geometries are used; point attributes are not carried over.
     snap_radius : float | None = None
-        Maximum projection distance, in ``streets`` CRS units. Points
-        beyond this distance from any LineString are dropped from the
-        result. ``None`` keeps every point regardless of distance.
+        Maximum projection distance, in ``streets`` CRS units. Points beyond
+        this distance from every line are ignored (no node injected). Choose a
+        value that reflects genuine on-network membership. ``None`` (the
+        default) injects *every* point, however far off-network it lies.
     eps : float = 1e-4
         Tolerance epsilon passed to :func:`split` for the actual snap.
 
     Returns
     -------
     geopandas.GeoDataFrame
-        ``streets`` with the relevant LineStrings split at projection
-        locations.
+        ``streets`` with the relevant LineStrings split at the projected
+        locations. Point attributes are not propagated.
+
+    Notes
+    -----
+    The projection clamps to a line's endpoints: a point beyond the end of its
+    nearest line projects onto that endpoint, which -- if it is an existing
+    node -- injects no new node. Because the projection is the foot of the
+    perpendicular, ``inject_points`` is not a substitute for a connector
+    (spur) edge: it does not link a genuinely off-network point -- one whose
+    true location is not meant to lie on the network -- back to the line. For
+    that case, add an explicit connector edge to the projected node instead.
 
     See Also
     --------
+    split : split-at-points primitive; snaps the line to the point (kink).
     induce_nodes : symmetric case where the new node comes from a LineString endpoint.
-    split : underlying split-at-points primitive.
     """
     if streets.crs is None or points.crs is None:
         raise ValueError("Both streets and points must have a CRS set.")
