@@ -53,7 +53,15 @@ def split(
     *,
     eps: float = 1e-4,
 ) -> gpd.GeoSeries | gpd.GeoDataFrame:
-    """Split lines on new nodes.
+    """Split lines at the given points, snapping each line through the point.
+
+    Each point is snapped onto the nearest line within ``eps`` (via
+    ``shapely.snap``) and that line is split there. Because the snap moves the
+    line onto the point, a point that does not already lie on the line forces
+    the line to pass through it, introducing a vertex (a kink) at the point.
+    Use :func:`inject_points` instead when points lie off the line and you want
+    to keep the original linework, splitting it at the projected foot rather
+    than bending it toward the point.
 
     Parameters
     ----------
@@ -64,12 +72,17 @@ def split(
     crs : str | pyproj.CRS
         Anything accepted by ``pyproj.CRS``.
     eps : float = 1e-4
-        Tolerance epsilon for point snapping.
+        Tolerance epsilon for point snapping. Points within ``eps`` of a line
+        are snapped onto it; the line is moved to pass through them.
 
     Returns
     -------
     geopandas.GeoSeries | geopandas.GeoDataFrame
         Resultant split line geometries.
+
+    See Also
+    --------
+    inject_points : project off-line points onto the nearest line (no kink) and split.
     """
     split_points = gpd.GeoSeries(split_points, crs=crs)
     for split in split_points.drop_duplicates():
@@ -366,10 +379,11 @@ def inject_points(
 
     This makes ``inject_points`` the geometry-preserving way to turn near-line
     features (e.g. a structure surveyed a few metres off the digitised
-    centreline) into exact topological nodes. It differs from :func:`split`,
-    which snaps the *line* onto the raw point (via ``shapely.snap``) and so
-    bends the geometry toward an off-line point; the two coincide only when the
-    point already lies on the line.
+    centreline) into exact topological nodes: the original linework is kept,
+    just subdivided. It differs from :func:`split`, which snaps the *line* onto
+    the raw point (via ``shapely.snap``) and so bends the geometry toward an
+    off-line point. The two coincide only when the point already lies on the
+    line.
 
     Parameters
     ----------
