@@ -55,8 +55,8 @@ def split(
 ) -> gpd.GeoSeries | gpd.GeoDataFrame:
     """Split lines at the given points, snapping each line through the point.
 
-    Each point is snapped onto the nearest line within ``eps`` (via
-    ``shapely.snap``) and that line is split there. Because the snap moves the
+    Each line within ``eps`` of a point is snapped onto that point (via
+    ``shapely.snap``) and split there. Because the snap moves the
     line onto the point, a point that does not already lie on the line forces
     the line to pass through it, introducing a vertex (a kink) at the point.
     Use :func:`inject_points` instead when points lie off the line and you want
@@ -72,8 +72,8 @@ def split(
     crs : str | pyproj.CRS
         Anything accepted by ``pyproj.CRS``.
     eps : float = 1e-4
-        Tolerance epsilon for point snapping. Points within ``eps`` of a line
-        are snapped onto it; the line is moved to pass through them.
+        Snapping tolerance. A line within ``eps`` of a point is snapped onto
+        it, i.e. moved to pass through the point.
 
     Returns
     -------
@@ -135,7 +135,7 @@ def split(
 
 
 def _snap_n_split(e: shapely.LineString, s: shapely.Point, tol: float) -> np.ndarray:
-    """Snap point to edge and return lines to split."""
+    """Snap edge to point and return the split parts."""
     snapped = shapely.snap(e, s, tolerance=tol)
     _lines_split = shapely.get_parts(shapely.ops.split(snapped, s))
     return _lines_split[~shapely.is_empty(_lines_split)]
@@ -364,23 +364,24 @@ def inject_points(
     streets: gpd.GeoDataFrame,
     points: gpd.GeoDataFrame,
     *,
-    snap_radius: float | None = None,
+    radius: float | None = None,
     eps: float = 1e-4,
 ) -> gpd.GeoDataFrame:
     """Project external points onto the nearest line and split it at the foot.
 
-    Each input point within ``snap_radius`` of the network is projected onto
+    Each input point within ``radius`` of the network is projected onto
     its *nearest* LineString in ``streets`` -- at the foot of the
     perpendicular, via linear referencing -- and that line is split at the
-    projected location. The new node therefore lands exactly *on* the original
-    geometry, so the line's shape (and hence its length and any along-line
-    referencing) is left unchanged. Points farther than ``snap_radius`` from
+    projected location. The new node lands on the original geometry up to
+    floating-point precision -- the interpolated vertex may deviate from the
+    mathematical segment by rounding error -- so the line's shape is preserved
+    rather than bent toward the point. Points farther than ``radius`` from
     every line are ignored; no node is injected for them.
 
     This makes ``inject_points`` the geometry-preserving way to turn near-line
     features (e.g. a structure surveyed a few metres off the digitised
-    centreline) into exact topological nodes: the original linework is kept,
-    just subdivided. It differs from :func:`split`, which snaps the *line* onto
+    centreline) into topological nodes: the original linework is kept, just
+    subdivided. It differs from :func:`split`, which snaps the *line* onto
     the raw point (via ``shapely.snap``) and so bends the geometry toward an
     off-line point. The two coincide only when the point already lies on the
     line.
@@ -393,11 +394,12 @@ def inject_points(
         Point features to project onto ``streets``. Must share the same CRS as
         ``streets`` (a mismatch raises rather than reprojecting implicitly).
         Only the geometries are used; point attributes are not carried over.
-    snap_radius : float | None = None
+    radius : float | None = None
         Maximum projection distance, in ``streets`` CRS units. Points beyond
         this distance from every line are ignored (no node injected). Choose a
-        value that reflects genuine on-network membership. ``None`` (the
-        default) injects *every* point, however far off-network it lies.
+        value that reflects genuine on-network membership. ``0`` keeps only
+        points that already lie on a line; ``None`` (the default) injects
+        *every* point, however far off-network it lies.
     eps : float = 1e-4
         Tolerance epsilon passed to :func:`split` for the actual snap.
 
@@ -435,15 +437,20 @@ def inject_points(
     if len(point_geoms) == 0 or len(line_geoms) == 0:
         return streets.copy()
 
-    # Nearest line per input point, with distance (sindex-accelerated)
-    (input_idx, line_idx), distances = streets.sindex.nearest(
-        point_geoms, return_all=False, return_distance=True
-    )
-
-    if snap_radius is not None:
-        keep = distances <= snap_radius
-        input_idx = input_idx[keep]
-        line_idx = line_idx[keep]
+    if radius == 0:
+        # geopandas rejects ``max_distance=0``: filter to on-line points
+        (input_idx, line_idx), distances = streets.sindex.nearest(
+            point_geoms, return_all=False, return_distance=True
+        )
+        on_line = distances == 0
+        input_idx = input_idx[on_line]
+        line_idx = line_idx[on_line]
+    else:
+        # ``max_distance`` both prunes the tree search and drops points
+        # with no line within ``radius``
+        input_idx, line_idx = streets.sindex.nearest(
+            point_geoms, return_all=False, max_distance=radius
+        )
 
     if len(input_idx) == 0:
         return streets.copy()
