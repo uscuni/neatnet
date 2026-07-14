@@ -438,9 +438,10 @@ def inject_points(
         return streets.copy()
 
     if radius == 0:
-        # geopandas rejects ``max_distance=0``: filter to on-line points
+        # geopandas rejects ``max_distance=0``: bound the tree search with a
+        # tiny positive distance instead, then filter to on-line points
         (input_idx, line_idx), distances = streets.sindex.nearest(
-            point_geoms, return_all=False, return_distance=True
+            point_geoms, return_all=False, return_distance=True, max_distance=1e-9
         )
         on_line = distances == 0
         input_idx = input_idx[on_line]
