@@ -53,7 +53,15 @@ def split(
     *,
     eps: float = 1e-4,
 ) -> gpd.GeoSeries | gpd.GeoDataFrame:
-    """Split lines on new nodes.
+    """Split lines at the given points, snapping each line through the point.
+
+    Each line within ``eps`` of a point is snapped onto that point (via
+    ``shapely.snap``) and split there. Because the snap moves the
+    line onto the point, a point that does not already lie on the line forces
+    the line to pass through it, introducing a vertex (a kink) at the point.
+    Use :func:`inject_points` instead when points lie off the line and you want
+    to keep the original linework, splitting it at the projected foot rather
+    than bending it toward the point.
 
     Parameters
     ----------
@@ -64,12 +72,17 @@ def split(
     crs : str | pyproj.CRS
         Anything accepted by ``pyproj.CRS``.
     eps : float = 1e-4
-        Tolerance epsilon for point snapping.
+        Snapping tolerance. A line within ``eps`` of a point is snapped onto
+        it, i.e. moved to pass through the point.
 
     Returns
     -------
     geopandas.GeoSeries | geopandas.GeoDataFrame
         Resultant split line geometries.
+
+    See Also
+    --------
+    inject_points : project off-line points onto the nearest line (no kink) and split.
     """
     split_points = gpd.GeoSeries(split_points, crs=crs)
     for split in split_points.drop_duplicates():
@@ -122,7 +135,7 @@ def split(
 
 
 def _snap_n_split(e: shapely.LineString, s: shapely.Point, tol: float) -> np.ndarray:
-    """Snap point to edge and return lines to split."""
+    """Snap edge to point and return the split parts."""
     snapped = shapely.snap(e, s, tolerance=tol)
     _lines_split = shapely.get_parts(shapely.ops.split(snapped, s))
     return _lines_split[~shapely.is_empty(_lines_split)]
@@ -323,6 +336,10 @@ def induce_nodes(streets: gpd.GeoDataFrame, *, eps: float = 1e-4) -> gpd.GeoData
     -------
     geopandas.GeoDataFrame
         Updated ``streets`` with (potentially) added nodes.
+
+    See Also
+    --------
+    inject_points : add nodes from external Point features (POIs).
     """
 
     sindex_kws = {"predicate": "dwithin", "distance": 1e-4}
@@ -341,6 +358,112 @@ def induce_nodes(streets: gpd.GeoDataFrame, *, eps: float = 1e-4) -> gpd.GeoData
     )
 
     return split(nodes_to_induce.geometry, streets, streets.crs, eps=eps)
+
+
+def inject_points(
+    streets: gpd.GeoDataFrame,
+    points: gpd.GeoDataFrame,
+    *,
+    radius: float | None = None,
+    eps: float = 1e-4,
+) -> gpd.GeoDataFrame:
+    """Project external points onto the nearest line and split it at the foot.
+
+    Each input point within ``radius`` of the network is projected onto
+    its *nearest* LineString in ``streets`` -- at the foot of the
+    perpendicular, via linear referencing -- and that line is split at the
+    projected location. The new node lands on the original geometry up to
+    floating-point precision -- the interpolated vertex may deviate from the
+    mathematical segment by rounding error -- so the line's shape is preserved
+    rather than bent toward the point. Points farther than ``radius`` from
+    every line are ignored; no node is injected for them.
+
+    This makes ``inject_points`` the geometry-preserving way to turn near-line
+    features (e.g. a structure surveyed a few metres off the digitised
+    centreline) into topological nodes: the original linework is kept, just
+    subdivided. It differs from :func:`split`, which snaps the *line* onto
+    the raw point (via ``shapely.snap``) and so bends the geometry toward an
+    off-line point. The two coincide only when the point already lies on the
+    line.
+
+    Parameters
+    ----------
+    streets : geopandas.GeoDataFrame
+        LineString network. CRS must be set.
+    points : geopandas.GeoDataFrame
+        Point features to project onto ``streets``. Must share the same CRS as
+        ``streets`` (a mismatch raises rather than reprojecting implicitly).
+        Only the geometries are used; point attributes are not carried over.
+    radius : float | None = None
+        Maximum projection distance, in ``streets`` CRS units. Points beyond
+        this distance from every line are ignored (no node injected). Choose a
+        value that reflects genuine on-network membership. ``0`` keeps only
+        points that already lie on a line; ``None`` (the default) injects
+        *every* point, however far off-network it lies.
+    eps : float = 1e-4
+        Tolerance epsilon passed to :func:`split` for the actual snap.
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        ``streets`` with the relevant LineStrings split at the projected
+        locations. Point attributes are not propagated.
+
+    Notes
+    -----
+    The projection clamps to a line's endpoints: a point beyond the end of its
+    nearest line projects onto that endpoint, which -- if it is an existing
+    node -- injects no new node. Because the projection is the foot of the
+    perpendicular, ``inject_points`` is not a substitute for a connector
+    (spur) edge: it does not link a genuinely off-network point -- one whose
+    true location is not meant to lie on the network -- back to the line. For
+    that case, add an explicit connector edge to the projected node instead.
+
+    See Also
+    --------
+    split : split-at-points primitive; snaps the line to the point (kink).
+    induce_nodes : symmetric case where the new node comes from a LineString endpoint.
+    """
+    if streets.crs is None or points.crs is None:
+        raise ValueError("Both streets and points must have a CRS set.")
+    if points.crs != streets.crs:
+        raise ValueError(
+            "The input `streets` and `points` data are in "
+            "different coordinate reference systems. Reproject and rerun."
+        )
+
+    line_geoms = streets.geometry.values
+    point_geoms = points.geometry.values
+    if len(point_geoms) == 0 or len(line_geoms) == 0:
+        return streets.copy()
+
+    if radius == 0:
+        # geopandas rejects ``max_distance=0``: bound the tree search with a
+        # tiny positive distance instead, then filter to on-line points
+        (input_idx, line_idx), distances = streets.sindex.nearest(
+            point_geoms, return_all=False, return_distance=True, max_distance=1e-9
+        )
+        on_line = distances == 0
+        input_idx = input_idx[on_line]
+        line_idx = line_idx[on_line]
+    else:
+        # ``max_distance`` both prunes the tree search and drops points
+        # with no line within ``radius``
+        input_idx, line_idx = streets.sindex.nearest(
+            point_geoms, return_all=False, max_distance=radius
+        )
+
+    if len(input_idx) == 0:
+        return streets.copy()
+
+    # Project each accepted point onto its nearest LineString (foot of perpendicular)
+    accepted_lines = line_geoms[line_idx]
+    accepted_points = point_geoms[input_idx]
+    proj_dists = shapely.line_locate_point(accepted_lines, accepted_points)
+    projected = shapely.line_interpolate_point(accepted_lines, proj_dists)
+
+    projected_series = gpd.GeoSeries(projected, crs=streets.crs)
+    return split(projected_series, streets, streets.crs, eps=eps)
 
 
 def _identify_degree_mismatch(
