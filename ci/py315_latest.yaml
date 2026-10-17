@@ -1,0 +1,33 @@
+---
+name: py315_neatnet-latest
+channels:
+  - conda-forge
+dependencies:
+  - python=3.15
+  - esda
+  - geopandas
+  - libpysal
+  - momepy
+  - networkx
+  - numpy
+  - osmnx
+  - pandas
+  - pyarrow
+  - pyogrio
+  - scipy
+  - shapely
+  # testing
+  - matplotlib
+  - pre-commit
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  # docs
+  - ipykernel
+  - myst-nb
+  - numpydoc
+  - sphinx
+  - sphinxcontrib-bibtex
+  - sphinx-autosummary-accessors
+  - sphinx-copybutton
+  - sphinx-book-theme
