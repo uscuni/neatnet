@@ -26,17 +26,15 @@ jobs:
         os: [ubuntu-latest]
         environment-file:
           [
-            py311_oldest,
-            py311_latest,
-            py312_latest,
             py313_latest,
             py314_latest,
-            py314_dev,
+            py315_latest,
+            py315_dev,
           ]
         include:
-          - environment-file: py314_latest
+          - environment-file: py315_latest
             os: macos-latest # Apple Silicon
-          - environment-file: py314_latest
+          - environment-file: py315_latest
             os: windows-latest
       fail-fast: false
 
